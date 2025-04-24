@@ -16,7 +16,7 @@ new_target(
   ${PROJECT_ROOT_DIR}/src/waypoint
   SOURCES
   ${PROJECT_ROOT_DIR}/src/waypoint/waypoint.cpp
-  INTERFACE_HEADERS
+  PUBLIC_HEADERS
   ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp)
 
 new_target(

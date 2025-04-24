@@ -1,25 +1,19 @@
 # Create new target and configure it
 function(new_target)
   set(options EXECUTABLE STATIC TEST)
-  set(singleValueKeywords TARGET DIRECTORY)
-  set(multiValueKeywords SOURCES INTERNAL_HEADERS INTERFACE_HEADERS LINKS)
+  set(singleValueKeywords DIRECTORY TARGET)
+  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
                         "${singleValueKeywords}" "${multiValueKeywords}")
 
-  if((arg_EXECUTABLE AND arg_STATIC)
-     OR (arg_EXECUTABLE AND arg_TEST)
-     OR (arg_TEST AND arg_STATIC))
-    message(
-      FATAL_ERROR
-        "new_target: EXECUTABLE, TEST and STATIC are mutually exclusive")
-  endif()
-
   if(arg_EXECUTABLE)
     add_executable(${arg_TARGET})
-  elseif(arg_TEST)
+  endif()
+  if(arg_TEST)
     add_executable(${arg_TARGET})
     add_test(NAME test_${arg_TARGET} COMMAND ${arg_TARGET})
-  elseif(arg_STATIC)
+  endif()
+  if(arg_STATIC)
     add_library(${arg_TARGET} STATIC)
   endif()
 
@@ -34,7 +28,7 @@ function(new_target)
   endif()
 
   if(DEFINED arg_DIRECTORY)
-    if(DEFINED arg_INTERNAL_HEADERS)
+    if(DEFINED arg_PRIVATE_HEADERS)
       target_sources(
         ${arg_TARGET}
         PRIVATE FILE_SET
@@ -44,10 +38,10 @@ function(new_target)
                 BASE_DIRS
                 ${arg_DIRECTORY}/internal
                 FILES
-                ${arg_INTERNAL_HEADERS})
+                ${arg_PRIVATE_HEADERS})
     endif()
 
-    if(DEFINED arg_INTERFACE_HEADERS)
+    if(DEFINED arg_PUBLIC_HEADERS)
       target_sources(
         ${arg_TARGET}
         PRIVATE FILE_SET
@@ -57,7 +51,7 @@ function(new_target)
                 BASE_DIRS
                 ${arg_DIRECTORY}/include/${arg_TARGET}
                 FILES
-                ${arg_INTERFACE_HEADERS})
+                ${arg_PUBLIC_HEADERS})
 
       target_sources(
         ${arg_TARGET}
@@ -68,7 +62,7 @@ function(new_target)
                   BASE_DIRS
                   ${arg_DIRECTORY}/include
                   FILES
-                  ${arg_INTERFACE_HEADERS})
+                  ${arg_PUBLIC_HEADERS})
     endif()
   endif()
 
