@@ -1,3 +1,4 @@
+import argparse
 import contextlib
 import enum
 import json
@@ -30,6 +31,16 @@ class Mode(enum.Enum):
         self._release = release_
         self._static_analysis = static_analysis_
         self._test = test_
+
+    def __str__(self):
+        if self == Mode.Clean:
+            return "clean"
+        elif self == Mode.Full:
+            return "full"
+        elif self == Mode.Fast:
+            return "fast"
+
+        return "clean"
 
     @property
     def clean(self):
@@ -363,31 +374,50 @@ def format_cpp() -> bool:
     return True
 
 
-def preamble() -> tuple[Mode, bool]:
+class CliConfig:
+    def __init__(self, mode_str):
+        self.mode = None
+        if mode_str == f"{Mode.Clean}":
+            self.mode = Mode.Clean
+        if mode_str == f"{Mode.Full}":
+            self.mode = Mode.Full
+        if mode_str == f"{Mode.Fast}":
+            self.mode = Mode.Fast
+        assert self.mode is not None
+
+
+def preamble() -> tuple[CliConfig | None, bool]:
     if not is_linux():
         print(f"Unknown OS: {platform.system()}")
-        return Mode.Clean, False
+        return None, False
 
-    if len(sys.argv) > 1:
-        if len(sys.argv) == 2 and sys.argv[1] == "fast":
-            return Mode.Fast, True
-        elif len(sys.argv) == 2 and sys.argv[1] == "full":
-            return Mode.Full, True
-        elif len(sys.argv) == 2 and sys.argv[1] == "clean":
-            return Mode.Clean, True
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "mode",
+        choices=[f"{Mode.Clean}", f"{Mode.Full}", f"{Mode.Fast}"],
+        metavar="mode",
+        help=f"""Selects build mode.
+                 Mode "{Mode.Fast}" runs one build and the tests for quick
+                 iterations.
+                 Mode "{Mode.Full}" builds everything and runs all tools.
+                 Mode "{Mode.Clean}" is like "{Mode.Full}", but it deletes
+                 the build trees first and recompiles everything from
+                 scratch.""",
+    )
 
-        print(
-            "Invalid argument(s): expected 'clean' (default), 'full', 'fast' or nothing"
-        )
-        return Mode.Clean, False
+    parsed = parser.parse_args()
 
-    return Mode.Clean, False
+    config = CliConfig(parsed.mode)
+
+    return config, True
 
 
 def main() -> int:
-    mode, result = preamble()
+    config, result = preamble()
     if not result:
         return 1
+
+    mode = config.mode
 
     if mode.format:
         print("Formatting JSON files...")
