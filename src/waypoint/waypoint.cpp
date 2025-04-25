@@ -38,7 +38,7 @@ auto get_autorun_section_boundaries()
 namespace waypoint
 {
 
-void initialize(TestEngine &t)
+auto initialize(TestEngine &t) -> bool
 {
   auto const section = get_autorun_section_boundaries();
   auto const begin = section.begin;
@@ -52,6 +52,8 @@ void initialize(TestEngine &t)
       autorun_fn(t);
     }
   }
+
+  return true;
 }
 
 auto TestEngine::group(String name) -> TestGroup

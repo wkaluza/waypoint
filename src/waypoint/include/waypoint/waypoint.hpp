@@ -18,7 +18,8 @@ private:
   Vector<Test> tests_;
 };
 
-void initialize(TestEngine &t);
+[[nodiscard]]
+auto initialize(TestEngine &t) -> bool;
 
 } // namespace waypoint
 
