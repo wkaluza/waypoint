@@ -11,7 +11,16 @@ function(new_target)
   endif()
   if(arg_TEST)
     add_executable(${arg_TARGET})
-    add_test(NAME test_${arg_TARGET} COMMAND ${arg_TARGET})
+
+    add_test(NAME test_${arg_TARGET} COMMAND $<CONFIG>/${arg_TARGET})
+    set_tests_properties(test_${arg_TARGET} PROPERTIES LABELS test)
+
+    add_test(
+      NAME valgrind_${arg_TARGET}
+      COMMAND valgrind --leak-check=yes --error-exitcode=1
+              $<CONFIG>/${arg_TARGET}
+      CONFIGURATIONS Debug)
+    set_tests_properties(valgrind_${arg_TARGET} PROPERTIES LABELS valgrind)
   endif()
   if(arg_STATIC)
     add_library(${arg_TARGET} STATIC)

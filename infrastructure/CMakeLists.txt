@@ -28,7 +28,7 @@ new_target(
 new_target(
   TEST
   TARGET
-  test_000_include_only
+  000_include_only
   SOURCES
   ${PROJECT_ROOT_DIR}/test/000_include_only/main.cpp
   LINKS
@@ -37,7 +37,7 @@ new_target(
 new_target(
   TEST
   TARGET
-  test_001_init_only
+  001_init_only
   SOURCES
   ${PROJECT_ROOT_DIR}/test/001_init_only/main.cpp
   LINKS
@@ -46,7 +46,7 @@ new_target(
 new_target(
   TEST
   TARGET
-  test_002_empty_autorun_block_with_init
+  002_empty_autorun_block_with_init
   SOURCES
   ${PROJECT_ROOT_DIR}/test/002_empty_autorun_block_with_init/main.cpp
   LINKS
@@ -55,7 +55,7 @@ new_target(
 new_target(
   TEST
   TARGET
-  test_003_two_empty_autorun_blocks_with_init
+  003_two_empty_autorun_blocks_with_init
   SOURCES
   ${PROJECT_ROOT_DIR}/test/003_two_empty_autorun_blocks_with_init/main.cpp
   LINKS
@@ -64,7 +64,7 @@ new_target(
 new_target(
   TEST
   TARGET
-  test_004_empty_autorun_block_without_init
+  004_empty_autorun_block_without_init
   SOURCES
   ${PROJECT_ROOT_DIR}/test/004_empty_autorun_block_without_init/main.cpp
   LINKS
@@ -73,7 +73,7 @@ new_target(
 new_target(
   TEST
   TARGET
-  test_005_two_empty_autorun_blocks_without_init
+  005_two_empty_autorun_blocks_without_init
   SOURCES
   ${PROJECT_ROOT_DIR}/test/005_two_empty_autorun_blocks_without_init/main.cpp
   LINKS
@@ -82,7 +82,7 @@ new_target(
 new_target(
   TEST
   TARGET
-  test_006_one_empty_group
+  006_one_empty_group
   SOURCES
   ${PROJECT_ROOT_DIR}/test/006_one_empty_group/main.cpp
   LINKS
@@ -91,7 +91,7 @@ new_target(
 new_target(
   TEST
   TARGET
-  test_007_two_empty_groups_different_names
+  007_two_empty_groups_different_names
   SOURCES
   ${PROJECT_ROOT_DIR}/test/007_two_empty_groups_different_names/main.cpp
   LINKS

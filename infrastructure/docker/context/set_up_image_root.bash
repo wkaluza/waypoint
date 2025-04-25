@@ -51,6 +51,7 @@ function install_apps
     make \
     ninja-build \
     python3.13 \
+    valgrind \
     vim
 }
 

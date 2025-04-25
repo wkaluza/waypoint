@@ -15,13 +15,25 @@ PROJECT_ROOT_DIR = os.path.realpath(f"{THIS_SCRIPT_DIR}/..")
 
 @enum.unique
 class Mode(enum.Enum):
-    Fast = (False, False, True, False, True, False, False, True)
-    Full = (False, True, True, True, True, True, True, True)
-    StaticAnalysis = (False, False, True, False, True, True, True, False)
-    Clean = (True, True, True, True, True, True, True, True)
+    Fast = (False, False, True, False, True, False, False, True, False)
+    Full = (False, True, True, True, True, True, True, True, True)
+    Clean = (True, False, False, False, False, False, False, False, False)
+    Verify = (True, True, True, True, True, True, True, True, True)
+    # Tool-specific modes
+    StaticAnalysis = (False, False, True, False, True, True, True, False, False)
+    Valgrind = (False, False, True, True, True, False, False, False, True)
 
     def __init__(
-        self, clean_, format_, clang_, gcc_, debug_, release_, static_analysis_, test_
+        self,
+        clean_,
+        format_,
+        clang_,
+        gcc_,
+        debug_,
+        release_,
+        static_analysis_,
+        test_,
+        valgrind_,
     ):
         self._clean = clean_
         self._format = format_
@@ -31,6 +43,7 @@ class Mode(enum.Enum):
         self._release = release_
         self._static_analysis = static_analysis_
         self._test = test_
+        self._valgrind = valgrind_
 
     def __str__(self):
         if self == Mode.Clean:
@@ -39,8 +52,10 @@ class Mode(enum.Enum):
             return "full"
         elif self == Mode.Fast:
             return "fast"
+        elif self == Mode.Verify:
+            return "verify"
 
-        return "clean"
+        return "verify"
 
     @property
     def clean(self):
@@ -73,6 +88,10 @@ class Mode(enum.Enum):
     @property
     def test(self):
         return self._test
+
+    @property
+    def valgrind(self):
+        return self._valgrind
 
 
 @enum.unique
@@ -218,7 +237,7 @@ def build_cmake(config, preset) -> bool:
         return result.returncode == 0
 
 
-def run_ctest(preset, build_config) -> bool:
+def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
     with contextlib.chdir(f"{PROJECT_ROOT_DIR}/infrastructure"):
         result = subprocess.run(
             [
@@ -228,7 +247,9 @@ def run_ctest(preset, build_config) -> bool:
                 "--build-config",
                 f"{build_config}",
                 "--parallel",
-                f"{os.process_cpu_count()}",
+                f"{jobs}",
+                "--label-regex",
+                label_include_regex,
             ]
         )
 
@@ -261,16 +282,31 @@ def run_clang_tidy(preset) -> bool:
 
 
 def run_tests(mode, preset) -> bool:
+    jobs = os.process_cpu_count()
+    regex = r"^test$"
+
     if mode.debug:
-        result = run_ctest(preset, CMakeBuildConfig.Debug)
+        result = run_ctest(preset, CMakeBuildConfig.Debug, jobs, regex)
         if not result:
             return False
 
     if mode.release:
-        result = run_ctest(preset, CMakeBuildConfig.RelWithDebInfo)
+        result = run_ctest(preset, CMakeBuildConfig.RelWithDebInfo, jobs, regex)
         if not result:
             return False
-        result = run_ctest(preset, CMakeBuildConfig.Release)
+        result = run_ctest(preset, CMakeBuildConfig.Release, jobs, regex)
+        if not result:
+            return False
+
+    return True
+
+
+def run_valgrind(mode, preset) -> bool:
+    jobs = 1
+    regex = r"^valgrind$"
+
+    if mode.debug:
+        result = run_ctest(preset, CMakeBuildConfig.Debug, jobs, regex)
         if not result:
             return False
 
@@ -379,10 +415,12 @@ class CliConfig:
         self.mode = None
         if mode_str == f"{Mode.Clean}":
             self.mode = Mode.Clean
-        if mode_str == f"{Mode.Full}":
-            self.mode = Mode.Full
         if mode_str == f"{Mode.Fast}":
             self.mode = Mode.Fast
+        if mode_str == f"{Mode.Full}":
+            self.mode = Mode.Full
+        if mode_str == f"{Mode.Verify}":
+            self.mode = Mode.Verify
         assert self.mode is not None
 
 
@@ -394,15 +432,15 @@ def preamble() -> tuple[CliConfig | None, bool]:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "mode",
-        choices=[f"{Mode.Clean}", f"{Mode.Full}", f"{Mode.Fast}"],
+        choices=[f"{Mode.Clean}", f"{Mode.Fast}", f"{Mode.Full}", f"{Mode.Verify}"],
         metavar="mode",
         help=f"""Selects build mode.
+                 Mode "{Mode.Clean}" deletes the build trees.
                  Mode "{Mode.Fast}" runs one build and the tests for quick
                  iterations.
                  Mode "{Mode.Full}" builds everything and runs all tools.
-                 Mode "{Mode.Clean}" is like "{Mode.Full}", but it deletes
-                 the build trees first and recompiles everything from
-                 scratch.""",
+                 Mode "{Mode.Verify}" runs "{Mode.Clean}" followed by
+                 "{Mode.Full}".""",
     )
 
     parsed = parser.parse_args()
@@ -418,6 +456,10 @@ def main() -> int:
         return 1
 
     mode = config.mode
+
+    if mode.clean:
+        clean_build_dir(CMakePresets.LinuxGcc)
+        clean_build_dir(CMakePresets.LinuxClang)
 
     if mode.format:
         print("Formatting JSON files...")
@@ -438,9 +480,6 @@ def main() -> int:
             return 1
 
     if mode.gcc:
-        if mode.clean:
-            clean_build_dir(CMakePresets.LinuxGcc)
-
         print("Running GCC build...")
         result = build_gcc_linux(mode, CMakePresets.LinuxGcc)
         if not result:
@@ -453,9 +492,6 @@ def main() -> int:
                 return 1
 
     if mode.clang:
-        if mode.clean:
-            clean_build_dir(CMakePresets.LinuxClang)
-
         print("Running Clang build...")
         result = build_clang_linux(mode, CMakePresets.LinuxClang)
         if not result:
@@ -464,6 +500,29 @@ def main() -> int:
         if mode.test:
             print("Testing Clang build...")
             result = run_tests(mode, CMakePresets.LinuxClang)
+            if not result:
+                return 1
+
+        if mode.valgrind:
+            # Test debug with Valgrind, release may yield false positives
+            mode_valgrind = Mode.Valgrind
+            assert mode_valgrind.debug
+            assert not mode_valgrind.release
+
+            result = build_gcc_linux(mode_valgrind, CMakePresets.LinuxGcc)
+            if not result:
+                return 1
+            result = build_clang_linux(mode_valgrind, CMakePresets.LinuxClang)
+            if not result:
+                return 1
+
+            print("Testing GCC build with Valgrind...")
+            result = run_valgrind(mode_valgrind, CMakePresets.LinuxGcc)
+            if not result:
+                return 1
+
+            print("Testing Clang build with Valgrind...")
+            result = run_valgrind(mode_valgrind, CMakePresets.LinuxClang)
             if not result:
                 return 1
 
