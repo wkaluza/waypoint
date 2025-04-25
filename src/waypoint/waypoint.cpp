@@ -1,6 +1,11 @@
 #include "waypoint.hpp"
 
+#include "string.hpp"
+#include "test_types.hpp"
+#include "vector.hpp"
+
 #include <cstdint>
+#include <utility>
 
 extern char __start_waypoint_tests;
 extern char __stop_waypoint_tests;
@@ -49,11 +54,26 @@ void initialize(TestEngine &t)
   }
 }
 
+auto TestEngine::group(String name) -> TestGroup
+{
+  groups_.push_back(TestGroup{std::move(name)});
+
+  return groups_.back();
+}
+
+auto TestEngine::test(TestGroup const &group, String name) -> Test
+{
+  tests_.push_back(Test{group, std::move(name)});
+
+  return tests_.back();
+}
+
 } // namespace waypoint
 
 namespace
 {
 
+// NOLINTNEXTLINE param may be const
 WAYPOINT_TESTS(t)
 {
   (void)t;

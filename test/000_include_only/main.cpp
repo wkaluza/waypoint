@@ -1,4 +1,4 @@
-// NOLINTNEXTLINE (unused header; clang-tidy misc-include-cleaner)
+// NOLINTNEXTLINE unused header
 #include "waypoint/waypoint.hpp"
 
 auto main() -> int

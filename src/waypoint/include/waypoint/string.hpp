@@ -1,0 +1,29 @@
+#pragma once
+
+namespace waypoint
+{
+namespace internal
+{
+
+class String_impl;
+
+} // namespace internal
+
+class String
+{
+public:
+  ~String();
+  String();
+  String(String const &other);
+  String(String &&other) noexcept;
+  auto operator=(String const &other) -> String &;
+  auto operator=(String &&other) noexcept -> String &;
+
+  // NOLINTNEXTLINE non-explicit unary ctor
+  String(char const *str);
+
+private:
+  internal::String_impl *impl_;
+};
+
+} // namespace waypoint

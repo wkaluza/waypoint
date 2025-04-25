@@ -16,8 +16,14 @@ new_target(
   ${PROJECT_ROOT_DIR}/src/waypoint
   SOURCES
   ${PROJECT_ROOT_DIR}/src/waypoint/waypoint.cpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/string.cpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/test_types.cpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/vector.cpp
   PUBLIC_HEADERS
-  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp)
+  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/string.hpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/test_types.hpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/vector.hpp)
 
 new_target(
   TEST
@@ -70,5 +76,23 @@ new_target(
   test_005_two_empty_autorun_blocks_without_init
   SOURCES
   ${PROJECT_ROOT_DIR}/test/005_two_empty_autorun_blocks_without_init/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  test_006_one_empty_group
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/006_one_empty_group/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  test_007_two_empty_groups_different_names
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/007_two_empty_groups_different_names/main.cpp
   LINKS
   waypoint)

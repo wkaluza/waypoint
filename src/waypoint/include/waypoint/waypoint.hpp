@@ -1,10 +1,21 @@
 #pragma once
 
+#include "string.hpp"
+#include "test_types.hpp"
+#include "vector.hpp"
+
 namespace waypoint
 {
 
 class TestEngine
 {
+public:
+  auto group(String name) -> TestGroup;
+  auto test(TestGroup const &group, String name) -> Test;
+
+private:
+  Vector<TestGroup> groups_;
+  Vector<Test> tests_;
 };
 
 void initialize(TestEngine &t);
