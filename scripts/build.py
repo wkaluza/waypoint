@@ -503,28 +503,28 @@ def main() -> int:
             if not result:
                 return 1
 
-        if mode.valgrind:
-            # Test debug with Valgrind, release may yield false positives
-            mode_valgrind = Mode.Valgrind
-            assert mode_valgrind.debug
-            assert not mode_valgrind.release
+    if mode.valgrind:
+        # Test debug with Valgrind, release may yield false positives
+        mode_valgrind = Mode.Valgrind
+        assert mode_valgrind.debug
+        assert not mode_valgrind.release
 
-            result = build_gcc_linux(mode_valgrind, CMakePresets.LinuxGcc)
-            if not result:
-                return 1
-            result = build_clang_linux(mode_valgrind, CMakePresets.LinuxClang)
-            if not result:
-                return 1
+        result = build_gcc_linux(mode_valgrind, CMakePresets.LinuxGcc)
+        if not result:
+            return 1
+        result = build_clang_linux(mode_valgrind, CMakePresets.LinuxClang)
+        if not result:
+            return 1
 
-            print("Testing GCC build with Valgrind...")
-            result = run_valgrind(mode_valgrind, CMakePresets.LinuxGcc)
-            if not result:
-                return 1
+        print("Testing GCC build with Valgrind...")
+        result = run_valgrind(mode_valgrind, CMakePresets.LinuxGcc)
+        if not result:
+            return 1
 
-            print("Testing Clang build with Valgrind...")
-            result = run_valgrind(mode_valgrind, CMakePresets.LinuxClang)
-            if not result:
-                return 1
+        print("Testing Clang build with Valgrind...")
+        result = run_valgrind(mode_valgrind, CMakePresets.LinuxClang)
+        if not result:
+            return 1
 
     if mode.static_analysis:
         # Need to build all configs for static analysis
