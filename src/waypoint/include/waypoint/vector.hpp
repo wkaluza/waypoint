@@ -1,5 +1,7 @@
 #pragma once
 
+#include "types.hpp"
+
 namespace waypoint
 {
 namespace internal
@@ -23,6 +25,29 @@ public:
 
   void push_back(T const &elem);
   auto back() -> T &;
+  [[nodiscard]]
+  auto contains_duplicates() const -> bool;
+
+  class Iterator
+  {
+  public:
+    explicit Iterator(T *ptr);
+
+    auto operator*() const -> T &;
+    auto operator->() -> T *;
+    auto operator++() -> Iterator &;
+    auto operator++(int) -> Iterator;
+    auto operator==(Iterator const &other) const -> bool;
+    auto operator!=(Iterator const &other) const -> bool;
+
+  private:
+    T *ptr_;
+  };
+
+  [[nodiscard]]
+  auto begin() const -> Iterator;
+  [[nodiscard]]
+  auto end() const -> Iterator;
 
 private:
   internal::Vector_impl<T> *impl_;
@@ -32,5 +57,6 @@ class Test;
 extern template class Vector<Test>;
 class TestGroup;
 extern template class Vector<TestGroup>;
+extern template class Vector<Body>;
 
 } // namespace waypoint

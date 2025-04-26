@@ -2,6 +2,7 @@
 
 #include "string.hpp"
 #include "test_types.hpp"
+#include "types.hpp"
 #include "vector.hpp"
 
 #include <cstdint>
@@ -53,7 +54,9 @@ auto initialize(TestEngine &t) -> bool
     }
   }
 
-  return true;
+  bool const success = t.verify();
+
+  return success;
 }
 
 auto TestEngine::group(String name) -> TestGroup
@@ -65,9 +68,88 @@ auto TestEngine::group(String name) -> TestGroup
 
 auto TestEngine::test(TestGroup const &group, String name) -> Test
 {
-  tests_.push_back(Test{group, std::move(name)});
+  Test test{group, std::move(name), *this};
+  tests_.push_back(test);
 
-  return tests_.back();
+  return test;
+}
+
+[[nodiscard]]
+auto run_all_tests(TestEngine &t) -> TestResult
+{
+  TestResult result{};
+
+  for(Body body : t.test_bodies())
+  {
+    TestContext ctx;
+    body(ctx);
+    result.register_test_outcome(ctx);
+  }
+
+  return result;
+}
+
+auto TestEngine::verify() const -> bool
+{
+  return !this->tests_.contains_duplicates();
+}
+
+void TestContext::assert(bool const condition)
+{
+  if(!condition)
+  {
+    this->register_assertion_failure();
+  }
+}
+
+auto TestEngine::test_bodies() const -> Vector<Body>
+{
+  return this->bodies_;
+}
+
+void TestEngine::register_test_body(Body const body)
+{
+  this->bodies_.push_back(body);
+}
+
+TestContext::TestContext() :
+  has_failure_{false}
+{
+}
+
+void TestContext::register_assertion_failure()
+{
+  this->has_failure_ = true;
+}
+
+auto TestContext::has_failure() const -> bool
+{
+  return this->has_failure_;
+}
+
+TestResult::TestResult() :
+  has_failure_{false}
+{
+}
+
+auto TestResult::pass() const -> bool
+{
+  return !this->has_failure();
+}
+
+void TestResult::register_test_outcome(TestContext const &ctx)
+{
+  this->set_failure(ctx.has_failure());
+}
+
+void TestResult::set_failure(bool const fail)
+{
+  this->has_failure_ = fail;
+}
+
+auto TestResult::has_failure() const -> bool
+{
+  return this->has_failure_;
 }
 
 } // namespace waypoint

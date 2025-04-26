@@ -22,6 +22,9 @@ public:
   // NOLINTNEXTLINE non-explicit unary ctor
   String(char const *str);
 
+  auto operator==(String const &other) const noexcept -> bool;
+  auto operator<(String const &other) const noexcept -> bool;
+
 private:
   internal::String_impl *impl_;
 };

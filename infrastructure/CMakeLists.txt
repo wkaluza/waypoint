@@ -96,3 +96,93 @@ new_target(
   ${PROJECT_ROOT_DIR}/test/007_two_empty_groups_different_names/main.cpp
   LINKS
   waypoint)
+
+new_target(
+  TEST
+  TARGET
+  008_two_empty_groups_same_name
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/008_two_empty_groups_same_name/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  009_trivial_test
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/009_trivial_test/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  010_two_trivial_tests_same_group_different_names
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/010_two_trivial_tests_same_group_different_names/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  011_two_trivial_tests_different_groups_different_names
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/011_two_trivial_tests_different_groups_different_names/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  012_trivial_tests_different_groups_same_name
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/012_two_trivial_tests_different_groups_same_name/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  013_trivial_tests_same_group_same_name
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/013_two_trivial_tests_same_group_same_name/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  014_passing_test
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/014_passing_test/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  015_failing_test
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/015_failing_test/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  016_passing_test_with_auto
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/016_passing_test_with_auto/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  017_failing_test_with_auto
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/017_failing_test_with_auto/main.cpp
+  LINKS
+  waypoint)

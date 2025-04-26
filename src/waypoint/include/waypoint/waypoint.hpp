@@ -2,10 +2,47 @@
 
 #include "string.hpp"
 #include "test_types.hpp"
+#include "types.hpp"
 #include "vector.hpp"
 
 namespace waypoint
 {
+
+class TestContext;
+
+class TestResult
+{
+public:
+  TestResult();
+
+  [[nodiscard]]
+  auto pass() const -> bool;
+
+  void register_test_outcome(TestContext const &ctx);
+
+  void set_failure(bool fail);
+  [[nodiscard]]
+  auto has_failure() const -> bool;
+
+private:
+  bool has_failure_;
+};
+
+class TestContext
+{
+public:
+  TestContext();
+
+  void assert(bool condition);
+
+  [[nodiscard]]
+  auto has_failure() const -> bool;
+
+private:
+  void register_assertion_failure();
+
+  bool has_failure_;
+};
 
 class TestEngine
 {
@@ -13,13 +50,24 @@ public:
   auto group(String name) -> TestGroup;
   auto test(TestGroup const &group, String name) -> Test;
 
+  [[nodiscard]]
+  auto verify() const -> bool;
+
+  [[nodiscard]]
+  auto test_bodies() const -> Vector<Body>;
+  void register_test_body(Body body);
+
 private:
   Vector<TestGroup> groups_;
   Vector<Test> tests_;
+  Vector<Body> bodies_;
 };
 
 [[nodiscard]]
 auto initialize(TestEngine &t) -> bool;
+
+[[nodiscard]]
+auto run_all_tests(TestEngine &t) -> TestResult;
 
 } // namespace waypoint
 

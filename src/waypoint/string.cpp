@@ -18,6 +18,9 @@ public:
 
   explicit String_impl(char const *str);
 
+  [[nodiscard]]
+  auto get_string() const -> std::string const &;
+
 private:
   std::string str_;
 };
@@ -35,6 +38,11 @@ auto String_impl::operator=(String_impl &&other) noexcept
 String_impl::String_impl(char const *str) :
   str_{str}
 {
+}
+
+auto String_impl::get_string() const -> std::string const &
+{
+  return str_;
 }
 
 } // namespace waypoint::internal
@@ -88,9 +96,19 @@ auto String::operator=(String &&other) noexcept -> String &
   return *this;
 }
 
-String ::String(char const *str) :
+String::String(char const *str) :
   impl_{new internal::String_impl{str}}
 {
+}
+
+auto String::operator==(String const &other) const noexcept -> bool
+{
+  return this->impl_->get_string() == other.impl_->get_string();
+}
+
+auto String::operator<(String const &other) const noexcept -> bool
+{
+  return this->impl_->get_string() < other.impl_->get_string();
 }
 
 } // namespace waypoint
