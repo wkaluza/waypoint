@@ -2,15 +2,16 @@
 
 #include "types.hpp"
 
-namespace waypoint
-{
-namespace internal
+namespace waypoint::internal
 {
 
 template<typename T>
 class Vector_impl;
 
-} // namespace internal
+} // namespace waypoint::internal
+
+namespace waypoint
+{
 
 template<typename T>
 class Vector

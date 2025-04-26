@@ -1,13 +1,14 @@
 #pragma once
 
-namespace waypoint
-{
-namespace internal
+namespace waypoint::internal
 {
 
 class String_impl;
 
-} // namespace internal
+} // namespace waypoint::internal
+
+namespace waypoint
+{
 
 class String
 {

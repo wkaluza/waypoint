@@ -70,9 +70,9 @@ auto Test::operator<(Test const &other) const noexcept -> bool
   return this->name_ < other.name_ && this->group_ < other.group_;
 }
 
-auto Test::run(Body fn) -> Test &
+auto Test::run(Body body) -> Test &
 {
-  engine_.register_test_body(fn);
+  engine_.register_test_body(body);
 
   return *this;
 }

@@ -8,7 +8,21 @@
 namespace waypoint
 {
 
-class TestContext;
+class TestContext
+{
+public:
+  TestContext();
+
+  void assert(bool condition);
+
+  [[nodiscard]]
+  auto has_failure() const -> bool;
+
+private:
+  void register_assertion_failure();
+
+  bool has_failure_;
+};
 
 class TestResult
 {
@@ -25,22 +39,6 @@ public:
   auto has_failure() const -> bool;
 
 private:
-  bool has_failure_;
-};
-
-class TestContext
-{
-public:
-  TestContext();
-
-  void assert(bool condition);
-
-  [[nodiscard]]
-  auto has_failure() const -> bool;
-
-private:
-  void register_assertion_failure();
-
   bool has_failure_;
 };
 

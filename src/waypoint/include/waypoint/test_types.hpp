@@ -40,7 +40,7 @@ public:
   auto operator==(Test const &other) const noexcept -> bool;
   auto operator<(Test const &other) const noexcept -> bool;
 
-  auto run(Body fn) -> Test &;
+  auto run(Body body) -> Test &;
 
 private:
   String name_;
