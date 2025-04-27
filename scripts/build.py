@@ -1,4 +1,5 @@
 import argparse
+import pathlib
 import contextlib
 import enum
 import json
@@ -12,16 +13,22 @@ import sys
 THIS_SCRIPT_DIR = os.path.realpath(os.path.dirname(__file__))
 PROJECT_ROOT_DIR = os.path.realpath(f"{THIS_SCRIPT_DIR}/..")
 
+COVERAGE_DIR_LCOV = f"{PROJECT_ROOT_DIR}/coverage_lcov___"
+COVERAGE_FILE_LCOV = f"{COVERAGE_DIR_LCOV}/coverage.info"
+COVERAGE_DIR_GCOVR = f"{PROJECT_ROOT_DIR}/coverage_gcovr___"
+COVERAGE_FILE_GCOVR = f"{COVERAGE_DIR_GCOVR}/coverage.html"
+
 
 @enum.unique
 class Mode(enum.Enum):
-    Fast = (False, False, True, False, True, False, False, True, False)
-    Full = (False, True, True, True, True, True, True, True, True)
-    Clean = (True, False, False, False, False, False, False, False, False)
-    Verify = (True, True, True, True, True, True, True, True, True)
+    Fast = (False, False, True, False, True, False, False, True, False, False)
+    Full = (False, True, True, True, True, True, True, True, True, True)
+    Clean = (True, False, False, False, False, False, False, False, False, False)
+    Verify = (True, True, True, True, True, True, True, True, True, True)
     # Tool-specific modes
-    StaticAnalysis = (False, False, True, False, True, True, True, False, False)
-    Valgrind = (False, False, True, True, True, False, False, False, True)
+    Coverage = (False, False, False, True, True, False, False, True, False, True)
+    StaticAnalysis = (False, False, True, False, True, True, True, False, False, False)
+    Valgrind = (False, False, True, True, True, False, False, False, True, False)
 
     def __init__(
         self,
@@ -34,6 +41,7 @@ class Mode(enum.Enum):
         static_analysis_,
         test_,
         valgrind_,
+        coverage_,
     ):
         self._clean = clean_
         self._format = format_
@@ -44,6 +52,7 @@ class Mode(enum.Enum):
         self._static_analysis = static_analysis_
         self._test = test_
         self._valgrind = valgrind_
+        self._coverage = coverage_
 
     def __str__(self):
         if self == Mode.Clean:
@@ -93,11 +102,20 @@ class Mode(enum.Enum):
     def valgrind(self):
         return self._valgrind
 
+    @property
+    def coverage(self):
+        return self._coverage
+
 
 @enum.unique
 class CMakePresets(enum.Enum):
     LinuxClang = ("configure_linux_clang", "build_linux_clang", "test_linux_clang")
     LinuxGcc = ("configure_linux_gcc", "build_linux_gcc", "test_linux_gcc")
+    LinuxGccCoverage = (
+        "configure_linux_gcc_coverage",
+        "build_linux_gcc_coverage",
+        "test_linux_gcc_coverage",
+    )
 
     def __init__(self, configure_preset, build_preset, test_preset):
         self._configure_preset = configure_preset
@@ -152,14 +170,16 @@ def is_linux():
     return platform.system() == "Linux"
 
 
-def build_dir_from_config_preset(preset):
+def build_dir_from_preset(preset):
     with open(f"{PROJECT_ROOT_DIR}/infrastructure/CMakePresets.json") as f:
         data = json.load(f)
-        preset = [p for p in data["configurePresets"] if p["name"] == preset]
-        assert len(preset) == 1
-        preset = preset[0]
+        configure_presets = [
+            p for p in data["configurePresets"] if p["name"] == preset.configure
+        ]
+        assert len(configure_presets) == 1
+        configure_presets = configure_presets[0]
 
-        binary_dir = preset["binaryDir"]
+        binary_dir = configure_presets["binaryDir"]
         binary_dir.replace("${sourceDir}", f"{PROJECT_ROOT_DIR}/infrastructure")
 
         return os.path.realpath(binary_dir)
@@ -170,8 +190,17 @@ def remove_dir(path):
         shutil.rmtree(path)
 
 
+def create_dir(path) -> bool:
+    if os.path.exists(path) and not os.path.isdir(path):
+        return False
+
+    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+
+    return True
+
+
 def clean_build_dir(preset):
-    build_dir = build_dir_from_config_preset(preset.configure)
+    build_dir = build_dir_from_preset(preset)
     remove_dir(build_dir)
 
 
@@ -201,7 +230,7 @@ def find_files_by_name(regex):
 
 
 def configure_cmake(preset) -> bool:
-    build_dir = build_dir_from_config_preset(preset.configure)
+    build_dir = build_dir_from_preset(preset)
 
     needs_configure = False
     if not os.path.exists(build_dir):
@@ -257,7 +286,7 @@ def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
 
 
 def run_clang_tidy(preset) -> bool:
-    build_dir = build_dir_from_config_preset(preset.configure)
+    build_dir = build_dir_from_preset(preset)
 
     files = find_files_by_name(r"\.cpp$")
     files += find_files_by_name(r"\.hpp$")
@@ -309,6 +338,76 @@ def run_valgrind(mode, preset) -> bool:
         result = run_ctest(preset, CMakeBuildConfig.Debug, jobs, regex)
         if not result:
             return False
+
+    return True
+
+
+def run_coverage(preset) -> bool:
+    build_dir = build_dir_from_preset(preset)
+
+    result = create_dir(COVERAGE_DIR_LCOV)
+    if not result:
+        print(f"Failed to create {COVERAGE_DIR_LCOV}")
+        return False
+
+    result = (
+        subprocess.run(
+            [
+                "lcov",
+                "--ignore-errors",
+                "inconsistent",
+                "--directory",
+                build_dir,
+                "--capture",
+                "--output-file",
+                COVERAGE_FILE_LCOV,
+            ]
+        ).returncode
+        == 0
+    )
+    if not result:
+        print("Error running lcov")
+        return False
+
+    result = (
+        subprocess.run(
+            [
+                "genhtml",
+                "--ignore-errors",
+                "inconsistent",
+                "--output-directory",
+                COVERAGE_DIR_LCOV,
+                COVERAGE_FILE_LCOV,
+            ]
+        ).returncode
+        == 0
+    )
+    if not result:
+        print("Error running genhtml")
+        return False
+
+    result = create_dir(COVERAGE_DIR_GCOVR)
+    if not result:
+        print(f"Failed to create {COVERAGE_DIR_GCOVR}")
+        return False
+
+    result = (
+        subprocess.run(
+            [
+                "gcovr",
+                "--root",
+                PROJECT_ROOT_DIR,
+                "--sort",
+                "filename",
+                "--html-details",
+                COVERAGE_FILE_GCOVR,
+            ]
+        ).returncode
+        == 0
+    )
+    if not result:
+        print("Error running gcovr")
+        return False
 
     return True
 
@@ -458,8 +557,11 @@ def main() -> int:
     mode = config.mode
 
     if mode.clean:
-        clean_build_dir(CMakePresets.LinuxGcc)
         clean_build_dir(CMakePresets.LinuxClang)
+        clean_build_dir(CMakePresets.LinuxGcc)
+        clean_build_dir(CMakePresets.LinuxGccCoverage)
+        remove_dir(COVERAGE_DIR_GCOVR)
+        remove_dir(COVERAGE_DIR_LCOV)
 
     if mode.format:
         print("Formatting JSON files...")
@@ -502,6 +604,24 @@ def main() -> int:
             result = run_tests(mode, CMakePresets.LinuxClang)
             if not result:
                 return 1
+
+    if mode.coverage:
+        mode_coverage = Mode.Coverage
+        assert mode_coverage.debug
+        assert not mode_coverage.release
+
+        result = build_gcc_linux(mode_coverage, CMakePresets.LinuxGccCoverage)
+        if not result:
+            return 1
+
+        result = run_tests(mode_coverage, CMakePresets.LinuxGccCoverage)
+        if not result:
+            return 1
+
+        print("Collecting coverage data...")
+        result = run_coverage(CMakePresets.LinuxGccCoverage)
+        if not result:
+            return 1
 
     if mode.valgrind:
         # Test debug with Valgrind, release may yield false positives

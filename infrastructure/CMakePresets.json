@@ -51,6 +51,16 @@
         "base_verbose"
       ],
       "name": "build_linux_clang_ide"
+    },
+    {
+      "configurePreset": "configure_linux_gcc_coverage",
+      "hidden": false,
+      "inherits": [
+        "base_build_ninja",
+        "base_system_linux",
+        "base_verbose"
+      ],
+      "name": "build_linux_gcc_coverage"
     }
   ],
   "configurePresets": [
@@ -82,6 +92,13 @@
       },
       "hidden": true,
       "name": "base_compiler_gcc"
+    },
+    {
+      "cacheVariables": {
+        "PRESET_ENABLE_COVERAGE": "--coverage"
+      },
+      "hidden": true,
+      "name": "base_enable_coverage"
     },
     {
       "condition": {
@@ -124,6 +141,18 @@
         "base_target_properties"
       ],
       "name": "configure_linux_clang_ide"
+    },
+    {
+      "binaryDir": "${sourceDir}/../build_linux_gcc_coverage___",
+      "hidden": false,
+      "inherits": [
+        "base_compiler_gcc",
+        "base_generator_ninja",
+        "base_system_linux",
+        "base_target_properties",
+        "base_enable_coverage"
+      ],
+      "name": "configure_linux_gcc_coverage"
     }
   ],
   "testPresets": [
@@ -161,6 +190,14 @@
         "base_test_linux"
       ],
       "name": "test_linux_gcc"
+    },
+    {
+      "configurePreset": "configure_linux_gcc_coverage",
+      "hidden": false,
+      "inherits": [
+        "base_test_linux"
+      ],
+      "name": "test_linux_gcc_coverage"
     }
   ],
   "version": 10

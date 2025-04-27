@@ -46,8 +46,10 @@ function install_apps
     cmake-format \
     gcc-15 \
     g++-15 \
+    gcovr \
     gdb \
     git \
+    lcov \
     make \
     ninja-build \
     python3.13 \
@@ -83,6 +85,8 @@ function main
     "${username}"
   add_kitware_apt_repo
   install_apps
+
+  ln --force --symbolic /usr/bin/gcov-15 /usr/bin/gcov
 }
 
 main "$1" "$2" "$3"

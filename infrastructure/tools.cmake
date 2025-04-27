@@ -28,6 +28,11 @@ function(new_target)
 
   target_compile_features(${arg_TARGET} PRIVATE cxx_std_20)
 
+  if(DEFINED PRESET_ENABLE_COVERAGE)
+    target_compile_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
+    target_link_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
+  endif()
+
   if(DEFINED arg_SOURCES)
     target_sources(${arg_TARGET} PRIVATE ${arg_SOURCES})
   endif()
