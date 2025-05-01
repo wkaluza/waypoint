@@ -5,15 +5,19 @@ namespace
 
 WAYPOINT_TESTS(t)
 {
-  auto g1 = t.group("Test group 1");
-  auto g2 = t.group("Test group 2");
+  (void)t;
+}
+
+WAYPOINT_TESTS(t)
+{
+  (void)t;
 }
 
 } // namespace
 
 auto main() -> int
 {
-  waypoint::TestEngine t;
+  waypoint::Engine t;
   bool const success = initialize(t);
   if(!success)
   {

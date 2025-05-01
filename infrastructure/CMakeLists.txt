@@ -16,14 +16,8 @@ new_target(
   ${PROJECT_ROOT_DIR}/src/waypoint
   SOURCES
   ${PROJECT_ROOT_DIR}/src/waypoint/waypoint.cpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/string.cpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/test_types.cpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/vector.cpp
   PUBLIC_HEADERS
-  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/string.hpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/test_types.hpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/vector.hpp)
+  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp)
 
 new_target(
   TEST
@@ -55,27 +49,27 @@ new_target(
 new_target(
   TEST
   TARGET
-  003_two_empty_autorun_blocks_with_init
+  003_two_empty_autoruns_with_init
   SOURCES
-  ${PROJECT_ROOT_DIR}/test/003_two_empty_autorun_blocks_with_init/main.cpp
+  ${PROJECT_ROOT_DIR}/test/003_two_empty_autoruns_with_init/main.cpp
   LINKS
   waypoint)
 
 new_target(
   TEST
   TARGET
-  004_empty_autorun_block_without_init
+  004_empty_autorun_block_no_init
   SOURCES
-  ${PROJECT_ROOT_DIR}/test/004_empty_autorun_block_without_init/main.cpp
+  ${PROJECT_ROOT_DIR}/test/004_empty_autorun_block_no_init/main.cpp
   LINKS
   waypoint)
 
 new_target(
   TEST
   TARGET
-  005_two_empty_autorun_blocks_without_init
+  005_two_empty_autoruns_no_init
   SOURCES
-  ${PROJECT_ROOT_DIR}/test/005_two_empty_autorun_blocks_without_init/main.cpp
+  ${PROJECT_ROOT_DIR}/test/005_two_empty_autoruns_no_init/main.cpp
   LINKS
   waypoint)
 
@@ -91,9 +85,9 @@ new_target(
 new_target(
   TEST
   TARGET
-  007_two_empty_groups_different_names
+  007_two_empty_groups_diff_names
   SOURCES
-  ${PROJECT_ROOT_DIR}/test/007_two_empty_groups_different_names/main.cpp
+  ${PROJECT_ROOT_DIR}/test/007_two_empty_groups_diff_names/main.cpp
   LINKS
   waypoint)
 
@@ -118,36 +112,36 @@ new_target(
 new_target(
   TEST
   TARGET
-  010_two_trivial_tests_same_group_different_names
+  010_two_tests_same_group_diff_name
   SOURCES
-  ${PROJECT_ROOT_DIR}/test/010_two_trivial_tests_same_group_different_names/main.cpp
+  ${PROJECT_ROOT_DIR}/test/010_two_tests_same_group_diff_name/main.cpp
   LINKS
   waypoint)
 
 new_target(
   TEST
   TARGET
-  011_two_trivial_tests_different_groups_different_names
+  011_two_tests_diff_group_diff_name
   SOURCES
-  ${PROJECT_ROOT_DIR}/test/011_two_trivial_tests_different_groups_different_names/main.cpp
+  ${PROJECT_ROOT_DIR}/test/011_two_tests_diff_group_diff_name/main.cpp
   LINKS
   waypoint)
 
 new_target(
   TEST
   TARGET
-  012_trivial_tests_different_groups_same_name
+  012_two_tests_diff_group_same_name
   SOURCES
-  ${PROJECT_ROOT_DIR}/test/012_two_trivial_tests_different_groups_same_name/main.cpp
+  ${PROJECT_ROOT_DIR}/test/012_two_tests_diff_group_same_name/main.cpp
   LINKS
   waypoint)
 
 new_target(
   TEST
   TARGET
-  013_trivial_tests_same_group_same_name
+  013_two_tests_same_group_same_name
   SOURCES
-  ${PROJECT_ROOT_DIR}/test/013_two_trivial_tests_same_group_same_name/main.cpp
+  ${PROJECT_ROOT_DIR}/test/013_two_tests_same_group_same_name/main.cpp
   LINKS
   waypoint)
 
@@ -184,5 +178,77 @@ new_target(
   017_failing_test_with_auto
   SOURCES
   ${PROJECT_ROOT_DIR}/test/017_failing_test_with_auto/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  018_failing_test_with_auto
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/018_failing_test_with_auto/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  019_failing_test_with_auto
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/019_failing_test_with_auto/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  020_failing_test_with_auto
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/020_failing_test_with_auto/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  021_failing_test_with_auto
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/021_failing_test_with_auto/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  022_failing_test_with_auto
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/022_failing_test_with_auto/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  023_failing_test_with_auto
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/023_failing_test_with_auto/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  024_failing_test_with_auto
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/024_failing_test_with_auto/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  025_failing_test_with_auto
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/025_failing_test_with_auto/main.cpp
   LINKS
   waypoint)

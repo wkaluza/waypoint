@@ -162,14 +162,18 @@
         "rhs": "Linux",
         "type": "equals"
       },
+      "hidden": true,
+      "name": "base_test_linux"
+    },
+    {
       "execution": {
         "noTestsAction": "error",
         "scheduleRandom": true,
-        "stopOnFailure": true,
+        "stopOnFailure": false,
         "timeout": 3600
       },
       "hidden": true,
-      "name": "base_test_linux",
+      "name": "base_test_config",
       "output": {
         "outputOnFailure": true,
         "verbosity": "default"
@@ -179,6 +183,7 @@
       "configurePreset": "configure_linux_clang",
       "hidden": false,
       "inherits": [
+        "base_test_config",
         "base_test_linux"
       ],
       "name": "test_linux_clang"
@@ -187,6 +192,7 @@
       "configurePreset": "configure_linux_gcc",
       "hidden": false,
       "inherits": [
+        "base_test_config",
         "base_test_linux"
       ],
       "name": "test_linux_gcc"
@@ -195,6 +201,7 @@
       "configurePreset": "configure_linux_gcc_coverage",
       "hidden": false,
       "inherits": [
+        "base_test_config",
         "base_test_linux"
       ],
       "name": "test_linux_gcc_coverage"

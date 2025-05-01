@@ -1,96 +1,143 @@
 #pragma once
 
-#include "string.hpp"
-#include "test_types.hpp"
-#include "types.hpp"
-#include "vector.hpp"
-
 namespace waypoint
 {
 
-class TestContext
+class Context;
+using Body = void (*)(Context &);
+
+class Engine;
+
+class Group_impl;
+
+class Group
 {
 public:
-  TestContext();
+  ~Group();
+  Group(Group const &other) = delete;
+  Group(Group &&other) noexcept;
+  auto operator=(Group const &other) -> Group & = delete;
+  auto operator=(Group &&other) noexcept -> Group &;
+
+private:
+  explicit Group(Engine &engine);
+
+  Group_impl *impl_;
+
+  friend class Engine_impl;
+  friend auto get_impl(Group const &group) -> Group_impl &;
+};
+
+class Test_impl;
+
+class Test
+{
+public:
+  ~Test();
+  Test(Test const &other) = delete;
+  Test(Test &&other) noexcept;
+  auto operator=(Test const &other) -> Test & = delete;
+  auto operator=(Test &&other) noexcept -> Test &;
+
+  auto run(Body const &body) -> Test &;
+
+private:
+  explicit Test(Engine &engine);
+
+  Test_impl *impl_;
+
+  friend class Engine_impl;
+  friend auto get_impl(Test const &test) -> Test_impl &;
+};
+
+class Context_impl;
+
+class Context
+{
+public:
+  ~Context();
+  Context(Context const &other) = delete;
+  Context(Context &&other) noexcept = delete;
+  auto operator=(Context const &other) -> Context & = delete;
+  auto operator=(Context &&other) noexcept -> Context & = delete;
 
   void assert(bool condition);
 
-  [[nodiscard]]
-  auto has_failure() const -> bool;
-
 private:
-  void register_assertion_failure();
+  explicit Context(Engine &engine);
 
-  bool has_failure_;
+  Context_impl *impl_;
+
+  friend class Engine_impl;
+  friend auto get_impl(Context const &context) -> Context_impl &;
 };
 
-class TestResult
+class Result_impl;
+
+class Result
 {
 public:
-  TestResult();
+  ~Result();
+  Result(Result const &other) = delete;
+  Result(Result &&other) noexcept = delete;
+  auto operator=(Result const &other) -> Result & = delete;
+  auto operator=(Result &&other) noexcept -> Result & = delete;
 
   [[nodiscard]]
   auto pass() const -> bool;
 
-  void register_test_outcome(TestContext const &ctx);
-
-  void set_failure(bool fail);
-  [[nodiscard]]
-  auto has_failure() const -> bool;
-
 private:
-  bool has_failure_;
+  explicit Result(Engine &engine);
+
+  Result_impl *impl_;
+
+  friend class Engine_impl;
+  friend auto get_impl(Result const &result) -> Result_impl &;
 };
 
-class TestEngine
+class Engine_impl;
+
+class Engine
 {
 public:
-  auto group(String name) -> TestGroup;
-  auto test(TestGroup const &group, String name) -> Test;
+  ~Engine();
+  Engine();
+  Engine(Engine const &other) = delete;
+  Engine(Engine &&other) noexcept = delete;
+  auto operator=(Engine const &other) -> Engine & = delete;
+  auto operator=(Engine &&other) noexcept -> Engine & = delete;
 
-  [[nodiscard]]
-  auto verify() const -> bool;
-
-  [[nodiscard]]
-  auto test_bodies() const -> Vector<Body>;
-  void register_test_body(Body body);
+  auto group(char const *name) const -> Group;
+  auto test(Group const &group, char const *name) const -> Test;
 
 private:
-  Vector<TestGroup> groups_;
-  Vector<Test> tests_;
-  Vector<Body> bodies_;
+  Engine_impl *impl_;
+
+  friend auto get_impl(Engine const &engine) -> Engine_impl &;
 };
 
 [[nodiscard]]
-auto initialize(TestEngine &t) -> bool;
+auto initialize(Engine &t) -> bool;
 
 [[nodiscard]]
-auto run_all_tests(TestEngine &t) -> TestResult;
+auto run_all_tests(Engine &t) -> Result;
 
 } // namespace waypoint
 
-namespace waypoint::internal
-{
-
-using AutorunFn = void (*)(TestEngine &);
-
-} // namespace waypoint::internal
-
-#define X_INTERNAL_MERGE(name, counter, line) name##_##counter##_##line
+#define X_INTERNAL_WAYPOINT_MERGE(name, counter, line) name##_##counter##_##line
 
 #define X_INTERNAL_WAYPOINT_TEST_NAME(counter, line) \
-  X_INTERNAL_MERGE(WAYPOINT_TEST, counter, line)
+  X_INTERNAL_WAYPOINT_MERGE(WAYPOINT_TEST, counter, line)
 #define X_INTERNAL_WAYPOINT_TEST_PTR_NAME(counter, line) \
-  X_INTERNAL_MERGE(WAYPOINT_TEST_PTR, counter, line)
+  X_INTERNAL_WAYPOINT_MERGE(WAYPOINT_TEST_PTR, counter, line)
 
-#define X_INTERNAL_WAYPOINT_AUTORUN_impl(engine, counter, line) \
-  void X_INTERNAL_WAYPOINT_TEST_NAME(counter, line)(waypoint::TestEngine &); \
-  waypoint::internal::AutorunFn \
-    __attribute__((used, section("waypoint_tests"))) \
-    X_INTERNAL_WAYPOINT_TEST_PTR_NAME(counter, line) = \
-      X_INTERNAL_WAYPOINT_TEST_NAME(counter, line); \
+#define X_INTERNAL_WAYPOINT_AUTORUN_IMPL(engine, counter, line) \
   void X_INTERNAL_WAYPOINT_TEST_NAME(counter, line)( \
-    waypoint::TestEngine & (engine))
+    waypoint::Engine & (engine)); \
+  void (*X_INTERNAL_WAYPOINT_TEST_PTR_NAME(counter, line))(waypoint::Engine &) \
+    __attribute__((used, section("waypoint_tests"))) = \
+      X_INTERNAL_WAYPOINT_TEST_NAME(counter, line); \
+  void X_INTERNAL_WAYPOINT_TEST_NAME(counter, line)(waypoint::Engine & (engine))
 
 #define WAYPOINT_TESTS(engine) \
-  X_INTERNAL_WAYPOINT_AUTORUN_impl(engine, __COUNTER__, __LINE__)
+  X_INTERNAL_WAYPOINT_AUTORUN_IMPL(engine, __COUNTER__, __LINE__)

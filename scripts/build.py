@@ -1,58 +1,98 @@
 import argparse
-import pathlib
 import contextlib
+import dataclasses
 import enum
 import json
+import multiprocessing
 import os
+import pathlib
 import platform
 import re
 import shutil
 import subprocess
 import sys
+import typing
 
 THIS_SCRIPT_DIR = os.path.realpath(os.path.dirname(__file__))
 PROJECT_ROOT_DIR = os.path.realpath(f"{THIS_SCRIPT_DIR}/..")
 
-COVERAGE_DIR_LCOV = f"{PROJECT_ROOT_DIR}/coverage_lcov___"
-COVERAGE_FILE_LCOV = f"{COVERAGE_DIR_LCOV}/coverage.info"
-COVERAGE_DIR_GCOVR = f"{PROJECT_ROOT_DIR}/coverage_gcovr___"
-COVERAGE_FILE_GCOVR = f"{COVERAGE_DIR_GCOVR}/coverage.html"
+COVERAGE_DIR_LCOV = os.path.realpath(f"{PROJECT_ROOT_DIR}/coverage_lcov___")
+COVERAGE_FILE_LCOV = os.path.realpath(f"{COVERAGE_DIR_LCOV}/coverage.info")
+COVERAGE_DIR_GCOVR = os.path.realpath(f"{PROJECT_ROOT_DIR}/coverage_gcovr___")
+COVERAGE_FILE_GCOVR = os.path.realpath(f"{COVERAGE_DIR_GCOVR}/coverage.html")
+
+JOBS = os.process_cpu_count()
+
+
+@dataclasses.dataclass(frozen=True)
+class ModeConfig:
+    clean: bool = False
+    format: bool = False
+    clang: bool = False
+    gcc: bool = False
+    debug: bool = False
+    release: bool = False
+    static_analysis: bool = False
+    test: bool = False
+    valgrind: bool = False
+    coverage: bool = False
 
 
 @enum.unique
 class Mode(enum.Enum):
-    Fast = (False, False, True, False, True, False, False, True, False, False)
-    Full = (False, True, True, True, True, True, True, True, True, True)
-    Clean = (True, False, False, False, False, False, False, False, False, False)
-    Verify = (True, True, True, True, True, True, True, True, True, True)
+    Fast = ModeConfig(
+        clang=True,
+        debug=True,
+        test=True,
+    )
+    Full = ModeConfig(
+        format=True,
+        clang=True,
+        gcc=True,
+        debug=True,
+        release=True,
+        static_analysis=True,
+        test=True,
+        valgrind=True,
+        coverage=True,
+    )
+    Clean = ModeConfig(
+        clean=True,
+    )
+    Verify = ModeConfig(
+        clean=True,
+        format=True,
+        clang=True,
+        gcc=True,
+        debug=True,
+        release=True,
+        static_analysis=True,
+        test=True,
+        valgrind=True,
+        coverage=True,
+    )
     # Tool-specific modes
-    Coverage = (False, False, False, True, True, False, False, True, False, True)
-    StaticAnalysis = (False, False, True, False, True, True, True, False, False, False)
-    Valgrind = (False, False, True, True, True, False, False, False, True, False)
+    Coverage = ModeConfig(
+        gcc=True,
+        debug=True,
+        test=True,
+        coverage=True,
+    )
+    StaticAnalysis = ModeConfig(
+        clang=True,
+        debug=True,
+        release=True,
+        static_analysis=True,
+    )
+    Valgrind = ModeConfig(
+        clang=True,
+        gcc=True,
+        debug=True,
+        valgrind=True,
+    )
 
-    def __init__(
-        self,
-        clean_,
-        format_,
-        clang_,
-        gcc_,
-        debug_,
-        release_,
-        static_analysis_,
-        test_,
-        valgrind_,
-        coverage_,
-    ):
-        self._clean = clean_
-        self._format = format_
-        self._clang = clang_
-        self._gcc = gcc_
-        self._debug = debug_
-        self._release = release_
-        self._static_analysis = static_analysis_
-        self._test = test_
-        self._valgrind = valgrind_
-        self._coverage = coverage_
+    def __init__(self, config):
+        self.config = config
 
     def __str__(self):
         if self == Mode.Clean:
@@ -68,43 +108,43 @@ class Mode(enum.Enum):
 
     @property
     def clean(self):
-        return self._clean
+        return self.config.clean
 
     @property
     def format(self):
-        return self._format
+        return self.config.format
 
     @property
     def clang(self):
-        return self._clang
+        return self.config.clang
 
     @property
     def gcc(self):
-        return self._gcc
+        return self.config.gcc
 
     @property
     def debug(self):
-        return self._debug
+        return self.config.debug
 
     @property
     def release(self):
-        return self._release
+        return self.config.release
 
     @property
     def static_analysis(self):
-        return self._static_analysis
+        return self.config.static_analysis
 
     @property
     def test(self):
-        return self._test
+        return self.config.test
 
     @property
     def valgrind(self):
-        return self._valgrind
+        return self.config.valgrind
 
     @property
     def coverage(self):
-        return self._coverage
+        return self.config.coverage
 
 
 @enum.unique
@@ -141,11 +181,11 @@ class CMakeBuildConfig(enum.Enum):
     RelWithDebInfo = ("RelWithDebInfo",)
     Release = ("Release",)
 
-    def __init__(self, config_name):
-        self.config_name = config_name
+    def __init__(self, config_name_):
+        self._config_name = config_name_
 
     def __str__(self):
-        return self.config_name
+        return self._config_name
 
 
 class NewEnv:
@@ -171,7 +211,11 @@ def is_linux():
 
 
 def build_dir_from_preset(preset):
-    with open(f"{PROJECT_ROOT_DIR}/infrastructure/CMakePresets.json") as f:
+    presets_file = os.path.realpath(
+        f"{PROJECT_ROOT_DIR}/infrastructure/CMakePresets.json"
+    )
+
+    with open(presets_file) as f:
         data = json.load(f)
         configure_presets = [
             p for p in data["configurePresets"] if p["name"] == preset.configure
@@ -240,7 +284,8 @@ def configure_cmake(preset) -> bool:
     if not needs_configure:
         return True
 
-    with contextlib.chdir(f"{PROJECT_ROOT_DIR}/infrastructure"):
+    source_dir = os.path.realpath(f"{PROJECT_ROOT_DIR}/infrastructure")
+    with contextlib.chdir(source_dir):
         config_cmd = ["cmake", "--preset", f"{preset.configure}"]
 
         result = subprocess.run(config_cmd)
@@ -249,7 +294,8 @@ def configure_cmake(preset) -> bool:
 
 
 def build_cmake(config, preset) -> bool:
-    with contextlib.chdir(f"{PROJECT_ROOT_DIR}/infrastructure"):
+    source_dir = os.path.realpath(f"{PROJECT_ROOT_DIR}/infrastructure")
+    with contextlib.chdir(source_dir):
         build_cmd = [
             "cmake",
             "--build",
@@ -258,7 +304,7 @@ def build_cmake(config, preset) -> bool:
             "--config",
             f"{config}",
             "--parallel",
-            f"{os.process_cpu_count()}",
+            f"{JOBS}",
         ]
 
         result = subprocess.run(build_cmd)
@@ -267,7 +313,8 @@ def build_cmake(config, preset) -> bool:
 
 
 def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
-    with contextlib.chdir(f"{PROJECT_ROOT_DIR}/infrastructure"):
+    source_dir = os.path.realpath(f"{PROJECT_ROOT_DIR}/infrastructure")
+    with contextlib.chdir(source_dir):
         result = subprocess.run(
             [
                 "ctest",
@@ -285,33 +332,52 @@ def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
     return result.returncode == 0
 
 
+def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str | None, str | None]:
+    f, build_dir = data
+
+    print(f"Analyzing {f}...")
+    result = subprocess.run(
+        [
+            "clang-tidy-20",
+            f"--config-file={PROJECT_ROOT_DIR}/infrastructure/.clang-tidy-20",
+            "-p",
+            build_dir,
+            f,
+        ],
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        return (
+            False,
+            f,
+            result.stdout.decode(encoding="utf-8", errors="replace"),
+        )
+
+    return True, None, None
+
+
 def run_clang_tidy(preset) -> bool:
     build_dir = build_dir_from_preset(preset)
 
     files = find_files_by_name(r"\.cpp$")
     files += find_files_by_name(r"\.hpp$")
 
-    for f in files:
-        print(f"Analyzing {f}...")
-        result = subprocess.run(
-            [
-                "clang-tidy-20",
-                f"--config-file={PROJECT_ROOT_DIR}/infrastructure/.clang-tidy-20",
-                "-p",
-                build_dir,
-                f,
-            ]
-        )
-        if result.returncode != 0:
-            print(f"Error running clang-tidy on {f}")
+    inputs = [(f, build_dir) for f in files]
+    with multiprocessing.Pool(JOBS) as pool:
+        results = pool.map(clang_tidy_process_single_file, inputs)
+        results = [(r[1], r[2]) for r in results if not r[0]]
+        if len(results) > 0:
+            for f, stdout in results:
+                print(f"Error running clang-tidy on {f}")
+                print(stdout)
 
-            return False
+                return False
 
     return True
 
 
 def run_tests(mode, preset) -> bool:
-    jobs = os.process_cpu_count()
+    jobs = JOBS
     regex = r"^test$"
 
     if mode.debug:
@@ -331,13 +397,81 @@ def run_tests(mode, preset) -> bool:
 
 
 def run_valgrind(mode, preset) -> bool:
-    jobs = 1
     regex = r"^valgrind$"
 
     if mode.debug:
-        result = run_ctest(preset, CMakeBuildConfig.Debug, jobs, regex)
+        result = run_ctest(preset, CMakeBuildConfig.Debug, JOBS, regex)
         if not result:
             return False
+
+    return True
+
+
+def run_genhtml() -> bool:
+    result = subprocess.run(
+        [
+            "genhtml",
+            "--ignore-errors",
+            "inconsistent",
+            "--output-directory",
+            COVERAGE_DIR_LCOV,
+            COVERAGE_FILE_LCOV,
+        ]
+    )
+
+    return result.returncode == 0
+
+
+def run_lcov(build_dir) -> bool:
+    result = create_dir(COVERAGE_DIR_LCOV)
+    if not result:
+        print(f"Failed to create {COVERAGE_DIR_LCOV}")
+        return False
+
+    result = subprocess.run(
+        [
+            "lcov",
+            "--ignore-errors",
+            "inconsistent",
+            "--directory",
+            build_dir,
+            "--capture",
+            "--output-file",
+            COVERAGE_FILE_LCOV,
+        ]
+    )
+    if result.returncode != 0:
+        print("Error running lcov")
+        return False
+
+    result = run_genhtml()
+    if not result:
+        print("Error running genhtml")
+        return False
+
+    return True
+
+
+def run_gcovr() -> bool:
+    result = create_dir(COVERAGE_DIR_GCOVR)
+    if not result:
+        print(f"Failed to create {COVERAGE_DIR_GCOVR}")
+        return False
+
+    result = subprocess.run(
+        [
+            "gcovr",
+            "--root",
+            PROJECT_ROOT_DIR,
+            "--sort",
+            "filename",
+            "--html-details",
+            COVERAGE_FILE_GCOVR,
+        ]
+    )
+    if result.returncode != 0:
+        print("Error running gcovr")
+        return False
 
     return True
 
@@ -345,68 +479,12 @@ def run_valgrind(mode, preset) -> bool:
 def run_coverage(preset) -> bool:
     build_dir = build_dir_from_preset(preset)
 
-    result = create_dir(COVERAGE_DIR_LCOV)
+    result = run_lcov(build_dir)
     if not result:
-        print(f"Failed to create {COVERAGE_DIR_LCOV}")
         return False
 
-    result = (
-        subprocess.run(
-            [
-                "lcov",
-                "--ignore-errors",
-                "inconsistent",
-                "--directory",
-                build_dir,
-                "--capture",
-                "--output-file",
-                COVERAGE_FILE_LCOV,
-            ]
-        ).returncode
-        == 0
-    )
+    result = run_gcovr()
     if not result:
-        print("Error running lcov")
-        return False
-
-    result = (
-        subprocess.run(
-            [
-                "genhtml",
-                "--ignore-errors",
-                "inconsistent",
-                "--output-directory",
-                COVERAGE_DIR_LCOV,
-                COVERAGE_FILE_LCOV,
-            ]
-        ).returncode
-        == 0
-    )
-    if not result:
-        print("Error running genhtml")
-        return False
-
-    result = create_dir(COVERAGE_DIR_GCOVR)
-    if not result:
-        print(f"Failed to create {COVERAGE_DIR_GCOVR}")
-        return False
-
-    result = (
-        subprocess.run(
-            [
-                "gcovr",
-                "--root",
-                PROJECT_ROOT_DIR,
-                "--sort",
-                "filename",
-                "--html-details",
-                COVERAGE_FILE_GCOVR,
-            ]
-        ).returncode
-        == 0
-    )
-    if not result:
-        print("Error running gcovr")
         return False
 
     return True
@@ -492,11 +570,15 @@ def format_cpp() -> bool:
     files = find_files_by_name(r"\.cpp$")
     files += find_files_by_name(r"\.hpp$")
 
+    path_to_config = os.path.realpath(
+        f"{PROJECT_ROOT_DIR}/infrastructure/.clang-format-20"
+    )
+
     for f in files:
         result = subprocess.run(
             [
                 "clang-format-20",
-                f"--style=file:{PROJECT_ROOT_DIR}/infrastructure/.clang-format-20",
+                f"--style=file:{path_to_config}",
                 "-i",
                 f,
             ]
@@ -512,6 +594,7 @@ def format_cpp() -> bool:
 class CliConfig:
     def __init__(self, mode_str):
         self.mode = None
+
         if mode_str == f"{Mode.Clean}":
             self.mode = Mode.Clean
         if mode_str == f"{Mode.Fast}":
@@ -520,6 +603,7 @@ class CliConfig:
             self.mode = Mode.Full
         if mode_str == f"{Mode.Verify}":
             self.mode = Mode.Verify
+
         assert self.mode is not None
 
 

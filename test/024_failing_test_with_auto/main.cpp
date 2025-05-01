@@ -9,9 +9,13 @@ WAYPOINT_TESTS(t)
 
   t.test(g1, "Test 1")
     .run(
-      [](waypoint::Context &ctx)
+      [](auto &ctx)
       {
+        ctx.assert(true);
         ctx.assert(false);
+        ctx.assert(true);
+        ctx.assert(false);
+        ctx.assert(true);
       });
 }
 

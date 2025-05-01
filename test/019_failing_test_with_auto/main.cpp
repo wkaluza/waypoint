@@ -9,15 +9,9 @@ WAYPOINT_TESTS(t)
 
   t.test(g1, "Test 1")
     .run(
-      [](waypoint::TestContext &ctx)
+      [](auto &ctx)
       {
-        ctx.assert(true);
-      });
-
-  t.test(g1, "Test 1")
-    .run(
-      [](waypoint::TestContext &ctx)
-      {
+        ctx.assert(false);
         ctx.assert(true);
       });
 }
@@ -26,15 +20,18 @@ WAYPOINT_TESTS(t)
 
 auto main() -> int
 {
-  waypoint::TestEngine t;
-  // We expect the call to initialize to fail
+  waypoint::Engine t;
   bool const success = initialize(t);
-
-  // Note inverted test result
   if(!success)
   {
-    return 0;
+    return 1;
   }
 
-  return 1;
+  auto const results = run_all_tests(t);
+  if(results.pass())
+  {
+    return 1;
+  }
+
+  return 0;
 }

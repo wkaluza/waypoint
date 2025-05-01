@@ -12,7 +12,7 @@ WAYPOINT_TESTS(t)
 
 auto main() -> int
 {
-  waypoint::TestEngine t;
+  waypoint::Engine t;
   bool const success = initialize(t);
   if(!success)
   {

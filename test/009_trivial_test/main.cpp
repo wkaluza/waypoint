@@ -9,7 +9,7 @@ WAYPOINT_TESTS(t)
 
   t.test(g1, "Test 1")
     .run(
-      [](waypoint::TestContext &ctx)
+      [](waypoint::Context &ctx)
       {
         ctx.assert(true);
       });
@@ -19,7 +19,7 @@ WAYPOINT_TESTS(t)
 
 auto main() -> int
 {
-  waypoint::TestEngine t;
+  waypoint::Engine t;
   bool const success = initialize(t);
   if(!success)
   {
