@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import typing
 
 THIS_SCRIPT_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -332,10 +333,11 @@ def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
     return result.returncode == 0
 
 
-def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str | None, str | None]:
+def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str | None]:
     f, build_dir = data
 
     print(f"Analyzing {f}...")
+    start_time = time.time()
     result = subprocess.run(
         [
             "clang-tidy-20",
@@ -346,14 +348,17 @@ def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str | None, str |
         ],
         capture_output=True,
     )
+    duration = time.time() - start_time
+
     if result.returncode != 0:
         return (
             False,
             f,
+            duration,
             result.stdout.decode(encoding="utf-8", errors="replace"),
         )
 
-    return True, None, None
+    return True, f, duration, None
 
 
 def run_clang_tidy(preset) -> bool:
@@ -365,9 +370,15 @@ def run_clang_tidy(preset) -> bool:
     inputs = [(f, build_dir) for f in files]
     with multiprocessing.Pool(JOBS) as pool:
         results = pool.map(clang_tidy_process_single_file, inputs)
-        results = [(r[1], r[2]) for r in results if not r[0]]
+
+        results = sorted(results, reverse=True, key=lambda x: x[2])
+
+        for status, file, duration, error in results:
+            print(f"Analyzed {file} in {int(duration*1000)} ms")
+
+        errors = [(r[1], r[3]) for r in results if not r[0]]
         if len(results) > 0:
-            for f, stdout in results:
+            for f, stdout in errors:
                 print(f"Error running clang-tidy on {f}")
                 print(stdout)
 
