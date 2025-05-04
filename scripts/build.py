@@ -367,10 +367,9 @@ def run_clang_tidy(preset) -> bool:
     files = find_files_by_name(is_cpp_file)
 
     inputs = [(f, build_dir) for f in files]
+    start_time = time.time()
     with multiprocessing.Pool(JOBS) as pool:
         results = pool.map(clang_tidy_process_single_file, inputs)
-
-        results = sorted(results, reverse=False, key=lambda x: x[2])
 
         errors = [
             (file, stdout) for success, file, duration, stdout in results if not success
@@ -384,10 +383,26 @@ def run_clang_tidy(preset) -> bool:
 
             return False
 
-        for success, file, duration, stdout in results:
-            # Only report files taking more than 1 second
-            if duration > 1:
-                print(f"Info: {file} took {round(duration, 1)}s to analyse")
+        durations = [duration for success, file, duration, stdout in results]
+        avg_duration = sum(durations) / len(durations)
+
+        # Select files taking more than X seconds
+        threshold_duration_seconds = 1
+        results = [
+            (file, duration)
+            for success, file, duration, stdout in results
+            if duration > threshold_duration_seconds
+        ]
+        # Sort by descending duration
+        results = sorted(results, reverse=True, key=lambda x: x[1])
+
+        # Only print X worst offenders
+        max_results = min(5, len(results))
+        for file, duration in reversed(results[0:max_results]):
+            print(f"Info: {file} took {round(duration, 1)}s to analyse")
+
+    print(f"Static analysis duration: {round(time.time() - start_time, 1)}s")
+    print(f"Average duration per file: {round(avg_duration, 1)}s")
 
     return True
 
