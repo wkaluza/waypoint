@@ -249,7 +249,7 @@ def clean_build_dir(preset):
     remove_dir(build_dir)
 
 
-def find_files_by_name(regex):
+def find_files_by_name(pred):
     output = []
     for root, dirs, files in os.walk(PROJECT_ROOT_DIR):
         dir_indices_to_remove = []
@@ -266,8 +266,9 @@ def find_files_by_name(regex):
             dirs.pop(i)
 
         for f in files:
-            if re.search(regex, f) is not None:
-                output.append(os.path.realpath(os.path.join(root, f)))
+            path = os.path.realpath(os.path.join(root, f))
+            if pred(path):
+                output.append(path)
 
     output.sort()
 
@@ -336,7 +337,6 @@ def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
 def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str | None]:
     f, build_dir = data
 
-    print(f"Analyzing {f}...")
     start_time = time.time()
     result = subprocess.run(
         [
@@ -364,25 +364,30 @@ def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str |
 def run_clang_tidy(preset) -> bool:
     build_dir = build_dir_from_preset(preset)
 
-    files = find_files_by_name(r"\.cpp$")
-    files += find_files_by_name(r"\.hpp$")
+    files = find_files_by_name(is_cpp_file)
 
     inputs = [(f, build_dir) for f in files]
     with multiprocessing.Pool(JOBS) as pool:
         results = pool.map(clang_tidy_process_single_file, inputs)
 
-        results = sorted(results, reverse=True, key=lambda x: x[2])
+        results = sorted(results, reverse=False, key=lambda x: x[2])
 
-        for status, file, duration, error in results:
-            print(f"Analyzed {file} in {int(duration*1000)} ms")
-
-        errors = [(r[1], r[3]) for r in results if not r[0]]
-        if len(results) > 0:
+        errors = [
+            (file, stdout) for success, file, duration, stdout in results if not success
+        ]
+        if len(errors) > 0:
             for f, stdout in errors:
+                print("----------")
                 print(f"Error running clang-tidy on {f}")
                 print(stdout)
+                print("----------")
 
-                return False
+            return False
+
+        for success, file, duration, stdout in results:
+            # Only report files taking more than 1 second
+            if duration > 1:
+                print(f"Info: {file} took {round(duration, 1)}s to analyse")
 
     return True
 
@@ -533,73 +538,96 @@ def build_clang_linux(mode, preset) -> bool:
     return _linux_compile(mode, preset, {"CC": "clang-20", "CXX": "clang++-20"})
 
 
-def format_json() -> bool:
-    files = find_files_by_name(r"\.json$")
-
-    for f in files:
-        with open(f, "r") as handle:
-            data = json.load(handle)
-
-        data_str = json.dumps(data, indent=2, sort_keys=True)
-        data_str += "\n"
-        with open(f, "w") as handle:
-            handle.write(data_str)
-
-    return True
+def is_json_file(f) -> bool:
+    return re.search(r"\.json$", f) is not None
 
 
-def format_cmake() -> bool:
-    files = find_files_by_name(r"^CMakeLists\.txt$")
-    files += find_files_by_name(r"\.cmake$")
+def is_python_file(f) -> bool:
+    return re.search(r"\.py$", f) is not None
 
-    for f in files:
-        result = subprocess.run(["cmake-format", "-i", f])
 
-        if result.returncode != 0:
-            print(f"Error running cmake-format on {f}")
+def is_cmake_file(f) -> bool:
+    return (
+        re.search(r"CMakeLists\.txt$", f) is not None
+        or re.search(r"\.cmake$", f) is not None
+    )
+
+
+def is_cpp_file(f) -> bool:
+    return re.search(r"\.cpp$", f) is not None or re.search(r"\.hpp$", f) is not None
+
+
+def format_single_file(f) -> typing.Tuple[bool, str]:
+    if is_python_file(f):
+        return format_python(f), f
+    elif is_cmake_file(f):
+        return format_cmake(f), f
+    elif is_json_file(f):
+        return format_json(f), f
+    elif is_cpp_file(f):
+        return format_cpp(f), f
+
+    return False, f
+
+
+def format_files() -> bool:
+    files = find_files_by_name(is_json_file)
+    files += find_files_by_name(is_cmake_file)
+    files += find_files_by_name(is_python_file)
+    files += find_files_by_name(is_cpp_file)
+    files.sort()
+
+    with multiprocessing.Pool(JOBS) as pool:
+        results = pool.map(format_single_file, files)
+        errors = [file for success, file in results if not success]
+        if len(errors) > 0:
+            for f in errors:
+                print(f"Error formatting file {f}")
 
             return False
 
     return True
 
 
-def format_python() -> bool:
-    files = find_files_by_name(r"\.py$")
+def format_json(f) -> bool:
+    with open(f, "r") as handle:
+        data = json.load(handle)
 
-    for f in files:
-        result = subprocess.run(["black", "-q", f])
-
-        if result.returncode != 0:
-            print(f"Error running black on {f}")
-
-            return False
+    data_str = json.dumps(data, indent=2, sort_keys=True)
+    data_str += "\n"
+    with open(f, "w") as handle:
+        handle.write(data_str)
 
     return True
 
 
-def format_cpp() -> bool:
-    files = find_files_by_name(r"\.cpp$")
-    files += find_files_by_name(r"\.hpp$")
+def format_cmake(f) -> bool:
+    result = subprocess.run(["cmake-format", "-i", f])
 
+    return result.returncode == 0
+
+
+def format_python(f) -> bool:
+    result = subprocess.run(["black", "-q", f])
+
+    return result.returncode == 0
+
+
+def format_cpp(f) -> bool:
     path_to_config = os.path.realpath(
         f"{PROJECT_ROOT_DIR}/infrastructure/.clang-format-20"
     )
 
-    for f in files:
-        result = subprocess.run(
-            [
-                "clang-format-20",
-                f"--style=file:{path_to_config}",
-                "-i",
-                f,
-            ]
-        )
-        if result.returncode != 0:
-            print(f"Error running clang-format on {f}")
+    result = subprocess.run(
+        [
+            "clang-format-20",
+            f"--style=file:{path_to_config}",
+            "-i",
+            f,
+        ]
+    )
 
-            return False
-
-    return True
+    return result.returncode == 0
 
 
 class CliConfig:
@@ -659,20 +687,8 @@ def main() -> int:
         remove_dir(COVERAGE_DIR_LCOV)
 
     if mode.format:
-        print("Formatting JSON files...")
-        result = format_json()
-        if not result:
-            return 1
-        print("Formatting C++ files...")
-        result = format_cpp()
-        if not result:
-            return 1
-        print("Formatting Python files...")
-        result = format_python()
-        if not result:
-            return 1
-        print("Formatting CMake files...")
-        result = format_cmake()
+        print("Formatting files...")
+        result = format_files()
         if not result:
             return 1
 
