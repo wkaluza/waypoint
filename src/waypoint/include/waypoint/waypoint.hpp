@@ -3,10 +3,19 @@
 namespace waypoint
 {
 
-class Context;
-using Body = void (*)(Context &);
-
 class Engine;
+class Result;
+
+// defined in core_actions.cpp
+[[nodiscard]]
+auto initialize(Engine &t) -> bool;
+// defined in core_actions.cpp
+[[nodiscard]]
+auto run_all_tests(Engine &t) -> Result;
+
+class Context;
+
+using BodyFnPtr = void (*)(Context &);
 
 class Group_impl;
 
@@ -39,7 +48,7 @@ public:
   auto operator=(Test const &other) -> Test & = delete;
   auto operator=(Test &&other) noexcept -> Test &;
 
-  auto run(Body const &body) -> Test &;
+  auto run(BodyFnPtr const &body) -> Test &;
 
 private:
   explicit Test(Engine &engine);
@@ -64,7 +73,7 @@ public:
   void assert(bool condition);
 
 private:
-  explicit Context(Engine &engine);
+  explicit Context(Context_impl *impl);
 
   Context_impl *impl_;
 
@@ -115,12 +124,6 @@ private:
 
   friend auto get_impl(Engine const &engine) -> Engine_impl &;
 };
-
-[[nodiscard]]
-auto initialize(Engine &t) -> bool;
-
-[[nodiscard]]
-auto run_all_tests(Engine &t) -> Result;
 
 } // namespace waypoint
 

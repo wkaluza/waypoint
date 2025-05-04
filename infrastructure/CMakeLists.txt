@@ -16,8 +16,15 @@ new_target(
   ${PROJECT_ROOT_DIR}/src/waypoint
   SOURCES
   ${PROJECT_ROOT_DIR}/src/waypoint/waypoint.cpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/core_actions.cpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/get_impl.cpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/impls.cpp
   PUBLIC_HEADERS
-  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp)
+  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp
+  PRIVATE_HEADERS
+  ${PROJECT_ROOT_DIR}/src/waypoint/internal/get_impl.hpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/internal/ids.hpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/internal/impls.hpp)
 
 new_target(
   TEST
