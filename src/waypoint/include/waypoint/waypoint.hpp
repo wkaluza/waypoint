@@ -96,7 +96,7 @@ public:
   auto pass() const -> bool;
 
 private:
-  explicit Result(Engine &engine);
+  explicit Result(Result_impl *impl);
 
   Result_impl *impl_;
 

@@ -114,8 +114,8 @@ Result::~Result()
   delete impl_;
 }
 
-Result::Result(Engine &engine) :
-  impl_{new Result_impl{engine}}
+Result::Result(Result_impl *const impl) :
+  impl_{impl}
 {
 }
 

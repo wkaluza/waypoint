@@ -203,7 +203,11 @@ auto Engine_impl::test_bodies() -> std::vector<TestBodyRecord>
 
 auto Engine_impl::generate_results() const -> Result
 {
-  return Result{this->engine_};
+  auto *impl = new Result_impl{};
+
+  impl->initialize(this->engine_);
+
+  return Result{impl};
 }
 
 void Engine_impl::register_assertion(bool condition, TestId const test_id)
@@ -211,7 +215,12 @@ void Engine_impl::register_assertion(bool condition, TestId const test_id)
   this->assertions_.emplace_back(condition, test_id);
 }
 
-Result_impl::Result_impl(Engine const &engine)
+Result_impl::Result_impl() :
+  has_failing_assertions_{false}
+{
+}
+
+void Result_impl::initialize(Engine &engine)
 {
   auto const &assertions = get_impl(engine).get_assertions();
 

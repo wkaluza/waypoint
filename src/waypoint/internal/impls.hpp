@@ -134,10 +134,12 @@ private:
 class Result_impl
 {
 public:
-  explicit Result_impl(Engine const &engine);
+  Result_impl();
 
   [[nodiscard]]
   auto has_failing_assertions() const -> bool;
+
+  void initialize(Engine &engine);
 
 private:
   bool has_failing_assertions_;
