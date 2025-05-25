@@ -30,7 +30,7 @@ auto Group::operator=(Group &&other) noexcept -> Group &
 }
 
 Group::Group(Engine & /*engine*/) :
-  impl_{new Group_impl{}}
+  impl_{new internal::Group_impl{}}
 {
 }
 
@@ -57,13 +57,13 @@ auto Test::operator=(Test &&other) noexcept -> Test &
 }
 
 Test::Test(Engine &engine) :
-  impl_{new Test_impl{engine}}
+  impl_{new internal::Test_impl{engine}}
 {
 }
 
 auto Test::run(BodyFnPtr const &body) -> Test &
 {
-  get_impl(this->impl_->get_engine())
+  internal::get_impl(this->impl_->get_engine())
     .register_test_body(body, this->impl_->get_id());
 
   return *this;
@@ -78,7 +78,8 @@ auto Engine::group(char const *name) const -> Group
 
 auto Engine::test(Group const &group, char const *name) const -> Test
 {
-  auto test_id = this->impl_->register_test(get_impl(group).get_id(), name);
+  auto test_id =
+    this->impl_->register_test(internal::get_impl(group).get_id(), name);
 
   return this->impl_->get_test(test_id);
 }
@@ -89,14 +90,14 @@ Engine::~Engine()
 }
 
 Engine::Engine() :
-  impl_{new Engine_impl{*this}}
+  impl_{new internal::Engine_impl{*this}}
 {
 }
 
-void Context::assert(bool const condition)
+void Context::assert(bool const condition) const
 {
-  get_impl(impl_->get_engine())
-    .register_assertion(condition, get_impl(*this).test_id());
+  internal::get_impl(impl_->get_engine())
+    .register_assertion(condition, internal::get_impl(*this).test_id());
 }
 
 Context::~Context()
@@ -104,7 +105,7 @@ Context::~Context()
   delete impl_;
 }
 
-Context::Context(Context_impl *const impl) :
+Context::Context(internal::Context_impl *const impl) :
   impl_{impl}
 {
 }
@@ -114,7 +115,7 @@ Result::~Result()
   delete impl_;
 }
 
-Result::Result(Result_impl *const impl) :
+Result::Result(internal::Result_impl *const impl) :
   impl_{impl}
 {
 }

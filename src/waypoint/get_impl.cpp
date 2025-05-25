@@ -1,6 +1,6 @@
 #include "waypoint.hpp"
 
-namespace waypoint
+namespace waypoint::internal
 {
 
 auto get_impl(Engine const &engine) -> Engine_impl &
@@ -28,4 +28,4 @@ auto get_impl(Result const &result) -> Result_impl &
   return *result.impl_;
 }
 
-} // namespace waypoint
+} // namespace waypoint::internal

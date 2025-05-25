@@ -1,6 +1,5 @@
 #include "impls.hpp"
 
-#include "get_impl.hpp"
 #include "ids.hpp"
 #include "waypoint.hpp"
 
@@ -8,7 +7,7 @@
 #include <format>
 #include <vector>
 
-namespace waypoint
+namespace waypoint::internal
 {
 
 TestBodyRecord::TestBodyRecord(BodyFnPtr const body, TestId const test_id) :
@@ -220,7 +219,7 @@ Result_impl::Result_impl() :
 {
 }
 
-void Result_impl::initialize(Engine &engine)
+void Result_impl::initialize(Engine const &engine)
 {
   auto const &assertions = get_impl(engine).get_assertions();
 
@@ -239,4 +238,4 @@ auto Result_impl::has_failing_assertions() const -> bool
   return this->has_failing_assertions_;
 }
 
-} // namespace waypoint
+} // namespace waypoint::internal

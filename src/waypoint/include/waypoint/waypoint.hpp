@@ -3,8 +3,38 @@
 namespace waypoint
 {
 
+class Context;
 class Engine;
+class Group;
 class Result;
+class Test;
+
+} // namespace waypoint
+
+namespace waypoint::internal
+{
+
+class Context_impl;
+class Engine_impl;
+class Group_impl;
+class Result_impl;
+class Test_impl;
+
+// defined in get_impl.cpp
+auto get_impl(Engine const &engine) -> Engine_impl &;
+// defined in get_impl.cpp
+auto get_impl(Group const &group) -> Group_impl &;
+// defined in get_impl.cpp
+auto get_impl(Test const &test) -> Test_impl &;
+// defined in get_impl.cpp
+auto get_impl(Context const &context) -> Context_impl &;
+// defined in get_impl.cpp
+auto get_impl(Result const &result) -> Result_impl &;
+
+} // namespace waypoint::internal
+
+namespace waypoint
+{
 
 // defined in core_actions.cpp
 [[nodiscard]]
@@ -13,11 +43,7 @@ auto initialize(Engine &t) -> bool;
 [[nodiscard]]
 auto run_all_tests(Engine &t) -> Result;
 
-class Context;
-
 using BodyFnPtr = void (*)(Context &);
-
-class Group_impl;
 
 class Group
 {
@@ -31,13 +57,11 @@ public:
 private:
   explicit Group(Engine &engine);
 
-  Group_impl *impl_;
+  internal::Group_impl *impl_;
 
-  friend class Engine_impl;
-  friend auto get_impl(Group const &group) -> Group_impl &;
+  friend class internal::Engine_impl;
+  friend auto internal::get_impl(Group const &group) -> internal::Group_impl &;
 };
-
-class Test_impl;
 
 class Test
 {
@@ -53,13 +77,11 @@ public:
 private:
   explicit Test(Engine &engine);
 
-  Test_impl *impl_;
+  internal::Test_impl *impl_;
 
-  friend class Engine_impl;
-  friend auto get_impl(Test const &test) -> Test_impl &;
+  friend class internal::Engine_impl;
+  friend auto internal::get_impl(Test const &test) -> internal::Test_impl &;
 };
-
-class Context_impl;
 
 class Context
 {
@@ -70,18 +92,17 @@ public:
   auto operator=(Context const &other) -> Context & = delete;
   auto operator=(Context &&other) noexcept -> Context & = delete;
 
-  void assert(bool condition);
+  void assert(bool condition) const;
 
 private:
-  explicit Context(Context_impl *impl);
+  explicit Context(internal::Context_impl *impl);
 
-  Context_impl *impl_;
+  internal::Context_impl *impl_;
 
-  friend class Engine_impl;
-  friend auto get_impl(Context const &context) -> Context_impl &;
+  friend class internal::Engine_impl;
+  friend auto internal::get_impl(Context const &context)
+    -> internal::Context_impl &;
 };
-
-class Result_impl;
 
 class Result
 {
@@ -96,15 +117,14 @@ public:
   auto pass() const -> bool;
 
 private:
-  explicit Result(Result_impl *impl);
+  explicit Result(internal::Result_impl *impl);
 
-  Result_impl *impl_;
+  internal::Result_impl *impl_;
 
-  friend class Engine_impl;
-  friend auto get_impl(Result const &result) -> Result_impl &;
+  friend class internal::Engine_impl;
+  friend auto internal::get_impl(Result const &result)
+    -> internal::Result_impl &;
 };
-
-class Engine_impl;
 
 class Engine
 {
@@ -120,9 +140,10 @@ public:
   auto test(Group const &group, char const *name) const -> Test;
 
 private:
-  Engine_impl *impl_;
+  internal::Engine_impl *impl_;
 
-  friend auto get_impl(Engine const &engine) -> Engine_impl &;
+  friend auto internal::get_impl(Engine const &engine)
+    -> internal::Engine_impl &;
 };
 
 } // namespace waypoint

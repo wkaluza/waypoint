@@ -22,7 +22,6 @@ new_target(
   PUBLIC_HEADERS
   ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp
   PRIVATE_HEADERS
-  ${PROJECT_ROOT_DIR}/src/waypoint/internal/get_impl.hpp
   ${PROJECT_ROOT_DIR}/src/waypoint/internal/ids.hpp
   ${PROJECT_ROOT_DIR}/src/waypoint/internal/impls.hpp)
 

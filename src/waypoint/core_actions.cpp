@@ -1,4 +1,3 @@
-#include "get_impl.hpp"
 #include "impls.hpp"
 #include "waypoint.hpp"
 
@@ -44,20 +43,21 @@ auto initialize(Engine &t) -> bool
     }
   }
 
-  bool const success = get_impl(t).verify();
+  bool const success = internal::get_impl(t).verify();
 
   return success;
 }
 
 auto run_all_tests(Engine &t) -> Result
 {
-  for(TestBodyRecord const &body : get_impl(t).test_bodies())
+  for(internal::TestBodyRecord const &body :
+      internal::get_impl(t).test_bodies())
   {
-    auto ctx = get_impl(t).make_context(body.test_id());
+    auto ctx = internal::get_impl(t).make_context(body.test_id());
     body.body()(ctx);
   }
 
-  return get_impl(t).generate_results();
+  return internal::get_impl(t).generate_results();
 }
 
 } // namespace waypoint

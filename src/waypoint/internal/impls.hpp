@@ -10,6 +10,13 @@
 namespace waypoint
 {
 
+class Engine;
+
+} // namespace waypoint
+
+namespace waypoint::internal
+{
+
 class TestBodyRecord
 {
 public:
@@ -39,8 +46,6 @@ private:
   bool condition_;
   TestId test_id_;
 };
-
-class Engine;
 
 class Group_impl
 {
@@ -139,10 +144,10 @@ public:
   [[nodiscard]]
   auto has_failing_assertions() const -> bool;
 
-  void initialize(Engine &engine);
+  void initialize(Engine const &engine);
 
 private:
   bool has_failing_assertions_;
 };
 
-} // namespace waypoint
+} // namespace waypoint::internal
