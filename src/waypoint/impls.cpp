@@ -99,14 +99,13 @@ void Context_impl::set_test_id(TestId test_id)
   this->test_id_ = test_id;
 }
 
-Engine_impl::Engine_impl(Engine &engine) :
-  engine_{engine}
-{
-}
+Engine_impl::Engine_impl() = default;
 
 auto Engine_impl::get_group(GroupId const group_id) const -> Group
 {
-  Group group{this->engine_};
+  auto *impl = new Group_impl{};
+
+  Group group{impl};
 
   get_impl(group).set_id(group_id);
 
@@ -115,7 +114,9 @@ auto Engine_impl::get_group(GroupId const group_id) const -> Group
 
 auto Engine_impl::get_test(TestId const test_id) const -> Test
 {
-  Test test{this->engine_};
+  auto *impl = new Test_impl{*this->engine_};
+
+  Test test{impl};
 
   get_impl(test).set_id(test_id);
 
@@ -180,7 +181,7 @@ auto Engine_impl::get_assertions() const -> std::vector<AssertionRecord>
 
 auto Engine_impl::make_context(TestId const test_id) const -> Context
 {
-  auto *impl = new Context_impl{this->engine_, test_id};
+  auto *impl = new Context_impl{*this->engine_, test_id};
 
   return Context{impl};
 }
@@ -188,6 +189,11 @@ auto Engine_impl::make_context(TestId const test_id) const -> Context
 auto Engine_impl::verify() const -> bool
 {
   return this->errors_.empty();
+}
+
+void Engine_impl::initialize(Engine &engine)
+{
+  this->engine_ = &engine;
 }
 
 void Engine_impl::register_test_body(BodyFnPtr body, TestId const test_id)
@@ -204,7 +210,7 @@ auto Engine_impl::generate_results() const -> Result
 {
   auto *impl = new Result_impl{};
 
-  impl->initialize(this->engine_);
+  impl->initialize(*this->engine_);
 
   return Result{impl};
 }

@@ -96,13 +96,14 @@ private:
 class Engine_impl
 {
 public:
-  explicit Engine_impl(Engine &engine);
+  Engine_impl();
 
 private:
   using GroupName = std::string;
   using TestName = std::string;
 
 public:
+  void initialize(Engine &engine);
   void register_test_body(BodyFnPtr body, TestId test_id);
   [[nodiscard]]
   auto test_bodies() -> std::vector<TestBodyRecord>;
@@ -124,7 +125,7 @@ public:
   auto make_context(TestId test_id) const -> Context;
 
 private:
-  Engine &engine_;
+  Engine *engine_{nullptr};
   GroupId group_id_counter_{0};
   TestId test_id_counter_{0};
   std::unordered_map<GroupName, GroupId> group_name2id_map_;

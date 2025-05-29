@@ -2,7 +2,8 @@
 
 auto main() -> int
 {
-  waypoint::Engine t;
+  auto t = waypoint::make_default_engine();
+
   bool const success = initialize(t);
   if(!success)
   {

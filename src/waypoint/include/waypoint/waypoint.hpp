@@ -38,6 +38,9 @@ namespace waypoint
 
 // defined in core_actions.cpp
 [[nodiscard]]
+auto make_default_engine() -> Engine;
+// defined in core_actions.cpp
+[[nodiscard]]
 auto initialize(Engine &t) -> bool;
 // defined in core_actions.cpp
 [[nodiscard]]
@@ -55,7 +58,7 @@ public:
   auto operator=(Group &&other) noexcept -> Group &;
 
 private:
-  explicit Group(Engine &engine);
+  explicit Group(internal::Group_impl *impl);
 
   internal::Group_impl *impl_;
 
@@ -75,7 +78,7 @@ public:
   auto run(BodyFnPtr const &body) -> Test &;
 
 private:
-  explicit Test(Engine &engine);
+  explicit Test(internal::Test_impl *impl);
 
   internal::Test_impl *impl_;
 
@@ -130,7 +133,6 @@ class Engine
 {
 public:
   ~Engine();
-  Engine();
   Engine(Engine const &other) = delete;
   Engine(Engine &&other) noexcept = delete;
   auto operator=(Engine const &other) -> Engine & = delete;
@@ -140,10 +142,14 @@ public:
   auto test(Group const &group, char const *name) const -> Test;
 
 private:
+  explicit Engine(internal::Engine_impl *impl);
+
   internal::Engine_impl *impl_;
 
   friend auto internal::get_impl(Engine const &engine)
     -> internal::Engine_impl &;
+
+  friend auto make_default_engine() -> Engine;
 };
 
 } // namespace waypoint

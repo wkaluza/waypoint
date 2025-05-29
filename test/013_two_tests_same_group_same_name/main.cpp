@@ -26,7 +26,8 @@ WAYPOINT_TESTS(t)
 
 auto main() -> int
 {
-  waypoint::Engine t;
+  auto t = waypoint::make_default_engine();
+
   // We expect the call to initialize to fail
   bool const success = initialize(t);
 

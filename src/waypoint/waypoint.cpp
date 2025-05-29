@@ -29,8 +29,8 @@ auto Group::operator=(Group &&other) noexcept -> Group &
   return *this;
 }
 
-Group::Group(Engine & /*engine*/) :
-  impl_{new internal::Group_impl{}}
+Group::Group(internal::Group_impl *const impl) :
+  impl_{impl}
 {
 }
 
@@ -56,8 +56,8 @@ auto Test::operator=(Test &&other) noexcept -> Test &
   return *this;
 }
 
-Test::Test(Engine &engine) :
-  impl_{new internal::Test_impl{engine}}
+Test::Test(internal::Test_impl *const impl) :
+  impl_{impl}
 {
 }
 
@@ -89,9 +89,10 @@ Engine::~Engine()
   delete impl_;
 }
 
-Engine::Engine() :
-  impl_{new internal::Engine_impl{*this}}
+Engine::Engine(internal::Engine_impl *const impl) :
+  impl_{impl}
 {
+  impl->initialize(*this);
 }
 
 void Context::assert(bool const condition) const

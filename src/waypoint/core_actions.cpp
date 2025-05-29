@@ -28,6 +28,13 @@ auto get_autorun_section_boundaries() -> AutorunSectionBoundaries
 namespace waypoint
 {
 
+auto make_default_engine() -> Engine
+{
+  auto *impl = new internal::Engine_impl{};
+
+  return Engine{impl};
+}
+
 auto initialize(Engine &t) -> bool
 {
   auto const section = get_autorun_section_boundaries();
