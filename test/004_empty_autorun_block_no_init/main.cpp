@@ -3,7 +3,7 @@
 namespace
 {
 
-WAYPOINT_TESTS(t)
+WAYPOINT_AUTORUN(t)
 {
   (void)t;
 }

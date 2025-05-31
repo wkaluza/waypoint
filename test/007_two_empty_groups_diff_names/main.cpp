@@ -3,7 +3,7 @@
 namespace
 {
 
-WAYPOINT_TESTS(t)
+WAYPOINT_AUTORUN(t)
 {
   [[maybe_unused]]
   auto g1 = t.group("Test group 1");

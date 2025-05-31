@@ -132,7 +132,7 @@ namespace
 {
 
 // NOLINTNEXTLINE param may be const
-WAYPOINT_TESTS(t)
+WAYPOINT_AUTORUN(t)
 {
   (void)t;
 }

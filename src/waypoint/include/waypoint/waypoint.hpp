@@ -154,20 +154,20 @@ private:
 
 } // namespace waypoint
 
-#define X_INTERNAL_WAYPOINT_MERGE(name, counter, line) name##_##counter##_##line
+#define _INTERNAL_WAYPOINT_AUTORUN_IMPL2_(engine, section_name, counter, line) \
+  void _INTERNAL_WAYPOINT_TEST##_##counter##_##line( \
+    waypoint::Engine &(engine)); \
+  void (*_INTERNAL_WAYPOINT_TEST_PTR##_##counter##_##line)(waypoint::Engine &) \
+    __attribute__((used, section(#section_name))) = \
+      _INTERNAL_WAYPOINT_TEST##_##counter##_##line; \
+  void _INTERNAL_WAYPOINT_TEST##_##counter##_##line(waypoint::Engine &(engine))
 
-#define X_INTERNAL_WAYPOINT_TEST_NAME(counter, line) \
-  X_INTERNAL_WAYPOINT_MERGE(WAYPOINT_TEST, counter, line)
-#define X_INTERNAL_WAYPOINT_TEST_PTR_NAME(counter, line) \
-  X_INTERNAL_WAYPOINT_MERGE(WAYPOINT_TEST_PTR, counter, line)
+#define _INTERNAL_WAYPOINT_AUTORUN_IMPL1_(engine, section_name, counter, line) \
+  _INTERNAL_WAYPOINT_AUTORUN_IMPL2_(engine, section_name, counter, line)
 
-#define X_INTERNAL_WAYPOINT_AUTORUN_IMPL(engine, counter, line) \
-  void X_INTERNAL_WAYPOINT_TEST_NAME(counter, line)( \
-    waypoint::Engine & (engine)); \
-  void (*X_INTERNAL_WAYPOINT_TEST_PTR_NAME(counter, line))(waypoint::Engine &) \
-    __attribute__((used, section("waypoint_tests"))) = \
-      X_INTERNAL_WAYPOINT_TEST_NAME(counter, line); \
-  void X_INTERNAL_WAYPOINT_TEST_NAME(counter, line)(waypoint::Engine & (engine))
-
-#define WAYPOINT_TESTS(engine) \
-  X_INTERNAL_WAYPOINT_AUTORUN_IMPL(engine, __COUNTER__, __LINE__)
+#define WAYPOINT_AUTORUN(engine) \
+  _INTERNAL_WAYPOINT_AUTORUN_IMPL1_( \
+    engine, \
+    waypoint_tests, \
+    __COUNTER__, \
+    __LINE__)
