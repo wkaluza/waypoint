@@ -201,7 +201,7 @@ void Engine_impl::register_test_body(BodyFnPtr body, TestId const test_id)
   this->bodies_.emplace_back(body, test_id);
 }
 
-auto Engine_impl::test_bodies() -> std::vector<TestBodyRecord>
+auto Engine_impl::test_bodies() -> std::vector<TestBodyRecord> const &
 {
   return this->bodies_;
 }

@@ -5,7 +5,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <random>
-#include <ranges>
 #include <vector>
 
 extern char __start_waypoint_tests;
@@ -84,31 +83,35 @@ auto get_random_number_generator() -> std::mt19937_64
   return rng;
 }
 
-auto get_shuffled_indices(Engine &t) -> std::vector<std::size_t>
+void shuffle_vector(std::vector<internal::TestBodyRecord const *> &v)
 {
   auto rng = get_random_number_generator();
 
-  auto const number_of_tests = internal::get_impl(t).test_bodies().size();
-
-  auto indices = std::views::iota(static_cast<std::size_t>(0)) |
-    std::views::take(number_of_tests) |
-    std::ranges::to<std::vector>();
-  std::ranges::shuffle(indices, rng);
-
-  return indices;
+  std::ranges::shuffle(v, rng);
 }
 
 } // namespace
 
 auto run_all_tests(Engine &t) -> Result
 {
-  auto const indices = get_shuffled_indices(t);
-
   auto const &bodies = internal::get_impl(t).test_bodies();
-  for(auto const i : indices)
+  std::vector<internal::TestBodyRecord const *> body_ptrs(bodies.size());
+  for(std::size_t i = 0; i < bodies.size(); ++i)
   {
-    auto context = internal::get_impl(t).make_context(bodies[i].test_id());
-    bodies[i].body()(context);
+    body_ptrs[i] = &bodies[i];
+  }
+  std::ranges::sort(
+    body_ptrs,
+    [](auto *a, auto *b)
+    {
+      return *a < *b;
+    });
+
+  shuffle_vector(body_ptrs);
+  for(auto const *ptr : body_ptrs)
+  {
+    auto context = internal::get_impl(t).make_context(ptr->test_id());
+    ptr->body()(context);
   }
 
   return internal::get_impl(t).generate_results();

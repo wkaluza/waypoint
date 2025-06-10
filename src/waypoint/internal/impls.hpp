@@ -27,6 +27,12 @@ public:
   [[nodiscard]]
   auto body() const -> BodyFnPtr;
 
+  [[nodiscard]]
+  auto operator<(TestBodyRecord const &other) const -> bool
+  {
+    return this->test_id_ < other.test_id_;
+  }
+
 private:
   BodyFnPtr body_;
   TestId test_id_;
@@ -106,7 +112,7 @@ public:
   void initialize(Engine &engine);
   void register_test_body(BodyFnPtr body, TestId test_id);
   [[nodiscard]]
-  auto test_bodies() -> std::vector<TestBodyRecord>;
+  auto test_bodies() -> std::vector<TestBodyRecord> const &;
   [[nodiscard]]
   auto generate_results() const -> Result;
   void register_assertion(bool condition, TestId test_id);
