@@ -83,16 +83,8 @@ auto get_random_number_generator() -> std::mt19937_64
   return rng;
 }
 
-void shuffle_vector(std::vector<internal::TestBodyRecord const *> &v)
-{
-  auto rng = get_random_number_generator();
-
-  std::ranges::shuffle(v, rng);
-}
-
-} // namespace
-
-auto run_all_tests(Engine &t) -> Result
+auto get_shuffled_bodies(Engine &t)
+  -> std::vector<internal::TestBodyRecord const *>
 {
   auto const &bodies = internal::get_impl(t).test_bodies();
   std::vector<internal::TestBodyRecord const *> body_ptrs(bodies.size());
@@ -100,6 +92,7 @@ auto run_all_tests(Engine &t) -> Result
   {
     body_ptrs[i] = &bodies[i];
   }
+
   std::ranges::sort(
     body_ptrs,
     [](auto *a, auto *b)
@@ -107,10 +100,22 @@ auto run_all_tests(Engine &t) -> Result
       return *a < *b;
     });
 
-  shuffle_vector(body_ptrs);
+  auto rng = get_random_number_generator();
+
+  std::ranges::shuffle(body_ptrs, rng);
+
+  return body_ptrs;
+}
+
+} // namespace
+
+auto run_all_tests(Engine &t) -> Result
+{
+  auto const body_ptrs = get_shuffled_bodies(t);
   for(auto const *ptr : body_ptrs)
   {
     auto context = internal::get_impl(t).make_context(ptr->test_id());
+    // Run test
     ptr->body()(context);
   }
 
