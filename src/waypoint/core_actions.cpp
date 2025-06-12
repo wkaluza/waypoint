@@ -64,8 +64,9 @@ namespace
 
 auto get_random_number_generator() -> std::mt19937_64
 {
-  constexpr std::size_t arbitrary_seed = 0x0123'4567'89ab'cdef;
   constexpr std::size_t arbitrary_constant = 0x1234;
+  constexpr std::size_t arbitrary_seed = 0x0123'4567'89ab'cdef;
+
   using knuth_lcg = std::linear_congruential_engine<
     std::uint64_t,
     6'364'136'223'846'793'005U,
@@ -83,15 +84,18 @@ auto get_random_number_generator() -> std::mt19937_64
   return rng;
 }
 
-auto get_shuffled_bodies(Engine &t)
-  -> std::vector<internal::TestBodyRecord const *>
+auto get_body_ptrs(Engine &t) -> std::vector<internal::TestBodyRecord const *>
 {
   auto const &bodies = internal::get_impl(t).test_bodies();
   std::vector<internal::TestBodyRecord const *> body_ptrs(bodies.size());
-  for(std::size_t i = 0; i < bodies.size(); ++i)
-  {
-    body_ptrs[i] = &bodies[i];
-  }
+
+  std::ranges::transform(
+    bodies,
+    body_ptrs.begin(),
+    [](auto const &body)
+    {
+      return &body;
+    });
 
   std::ranges::sort(
     body_ptrs,
@@ -99,6 +103,14 @@ auto get_shuffled_bodies(Engine &t)
     {
       return *a < *b;
     });
+
+  return body_ptrs;
+}
+
+auto get_shuffled_body_ptrs(Engine &t)
+  -> std::vector<internal::TestBodyRecord const *>
+{
+  auto body_ptrs = get_body_ptrs(t);
 
   auto rng = get_random_number_generator();
 
@@ -111,13 +123,15 @@ auto get_shuffled_bodies(Engine &t)
 
 auto run_all_tests(Engine &t) -> Result
 {
-  auto const body_ptrs = get_shuffled_bodies(t);
-  for(auto const *ptr : body_ptrs)
-  {
-    auto context = internal::get_impl(t).make_context(ptr->test_id());
-    // Run test
-    ptr->body()(context);
-  }
+  auto const body_ptrs = get_shuffled_body_ptrs(t);
+  std::ranges::for_each(
+    body_ptrs,
+    [&t](auto const *ptr)
+    {
+      auto context = internal::get_impl(t).make_context(ptr->test_id());
+      // Run test
+      ptr->body()(context);
+    });
 
   return internal::get_impl(t).generate_results();
 }
