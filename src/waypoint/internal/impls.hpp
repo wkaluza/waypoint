@@ -28,10 +28,7 @@ public:
   auto body() const -> BodyFnPtr;
 
   [[nodiscard]]
-  auto operator<(TestBodyRecord const &other) const -> bool
-  {
-    return this->test_id_ < other.test_id_;
-  }
+  auto operator<(TestBodyRecord const &other) const -> bool;
 
 private:
   BodyFnPtr body_;

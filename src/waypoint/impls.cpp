@@ -26,6 +26,11 @@ auto TestBodyRecord::body() const -> BodyFnPtr
   return this->body_;
 }
 
+auto TestBodyRecord::operator<(TestBodyRecord const &other) const -> bool
+{
+  return this->test_id() < other.test_id();
+}
+
 AssertionRecord::AssertionRecord(bool const condition, TestId const test_id) :
   condition_{condition},
   test_id_{test_id}
