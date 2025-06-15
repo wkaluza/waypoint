@@ -258,3 +258,12 @@ new_target(
   ${PROJECT_ROOT_DIR}/test/025_failing_test_with_auto/main.cpp
   LINKS
   waypoint)
+
+new_target(
+  TEST
+  TARGET
+  026_multiple_tests
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/026_multiple_tests/main.cpp
+  LINKS
+  waypoint)
