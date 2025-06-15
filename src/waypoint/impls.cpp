@@ -28,7 +28,7 @@ auto TestBodyRecord::body() const -> BodyFnPtr
 
 auto TestBodyRecord::operator<(TestBodyRecord const &other) const -> bool
 {
-  return this->test_id() < other.test_id();
+  return this->test_id_ < other.test_id_;
 }
 
 AssertionRecord::AssertionRecord(bool const condition, TestId const test_id) :
@@ -97,11 +97,6 @@ auto Context_impl::get_engine() const -> Engine &
 auto Context_impl::test_id() const -> TestId
 {
   return this->test_id_;
-}
-
-void Context_impl::set_test_id(TestId test_id)
-{
-  this->test_id_ = test_id;
 }
 
 Engine_impl::Engine_impl() = default;

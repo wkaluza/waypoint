@@ -89,7 +89,6 @@ public:
 
   [[nodiscard]]
   auto test_id() const -> TestId;
-  void set_test_id(TestId test_id);
 
 private:
   Engine &engine_;
