@@ -31,20 +31,16 @@ auto TestBodyRecord::operator<(TestBodyRecord const &other) const -> bool
   return this->test_id_ < other.test_id_;
 }
 
-AssertionRecord::AssertionRecord(bool const condition, TestId const test_id) :
-  condition_{condition},
-  test_id_{test_id}
+AssertionRecord::AssertionRecord(
+  bool const condition,
+  TestId const /*test_id*/) :
+  condition_{condition}
 {
 }
 
 auto AssertionRecord::get_condition() const -> bool
 {
   return this->condition_;
-}
-
-auto AssertionRecord::test_id() const -> TestId
-{
-  return this->test_id_;
 }
 
 Group_impl::Group_impl() :

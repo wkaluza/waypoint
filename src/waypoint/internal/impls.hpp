@@ -42,12 +42,9 @@ public:
 
   [[nodiscard]]
   auto get_condition() const -> bool;
-  [[nodiscard]]
-  auto test_id() const -> TestId;
 
 private:
   bool condition_;
-  TestId test_id_;
 };
 
 class Group_impl
