@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <random>
+#include <ranges>
 #include <vector>
 
 extern char __start_waypoint_tests;
@@ -45,13 +46,21 @@ auto initialize(Engine &t) -> bool
   auto const begin = section.begin;
   auto const end = section.end;
 
+  std::vector<void (*)(Engine &)> functions;
+
   for(auto fn_ptr = begin; fn_ptr < end; fn_ptr += sizeof(void (*)(Engine &)))
   {
-    if(auto const autorun_fn = *reinterpret_cast<void (**)(Engine &)>(fn_ptr);
-       autorun_fn != nullptr)
-    {
-      autorun_fn(t);
-    }
+    functions.push_back(*reinterpret_cast<void (**)(Engine &)>(fn_ptr));
+  }
+
+  auto is_not_null = [](auto *ptr)
+  {
+    return ptr != nullptr;
+  };
+
+  for(auto const fn_ptr : functions | std::views::filter(is_not_null))
+  {
+    fn_ptr(t);
   }
 
   bool const success = internal::get_impl(t).verify();
