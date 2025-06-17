@@ -20,7 +20,8 @@ PROJECT_ROOT_DIR = os.path.realpath(f"{THIS_SCRIPT_DIR}/..")
 COVERAGE_DIR_LCOV = os.path.realpath(f"{PROJECT_ROOT_DIR}/coverage_lcov___")
 COVERAGE_FILE_LCOV = os.path.realpath(f"{COVERAGE_DIR_LCOV}/coverage.info")
 COVERAGE_DIR_GCOVR = os.path.realpath(f"{PROJECT_ROOT_DIR}/coverage_gcovr___")
-COVERAGE_FILE_GCOVR = os.path.realpath(f"{COVERAGE_DIR_GCOVR}/coverage.html")
+COVERAGE_FILE_HTML_GCOVR = os.path.realpath(f"{COVERAGE_DIR_GCOVR}/index.html")
+COVERAGE_FILE_JSON_GCOVR = os.path.realpath(f"{COVERAGE_DIR_GCOVR}/coverage.json")
 
 JOBS = os.process_cpu_count()
 
@@ -211,7 +212,7 @@ def is_linux():
     return platform.system() == "Linux"
 
 
-def build_dir_from_preset(preset):
+def build_dir_from_preset(preset) -> str:
     presets_file = os.path.realpath(
         f"{PROJECT_ROOT_DIR}/infrastructure/CMakePresets.json"
     )
@@ -438,83 +439,94 @@ def run_valgrind(mode, preset) -> bool:
     return True
 
 
-def run_genhtml() -> bool:
-    result = subprocess.run(
-        [
-            "genhtml",
-            "--ignore-errors",
-            "inconsistent",
-            "--output-directory",
-            COVERAGE_DIR_LCOV,
-            COVERAGE_FILE_LCOV,
-        ]
-    )
-
-    return result.returncode == 0
-
-
 def run_lcov(build_dir) -> bool:
     result = create_dir(COVERAGE_DIR_LCOV)
     if not result:
         print(f"Failed to create {COVERAGE_DIR_LCOV}")
         return False
 
-    result = subprocess.run(
-        [
-            "lcov",
-            "--ignore-errors",
-            "inconsistent",
-            "--directory",
-            build_dir,
-            "--capture",
-            "--exclude",
-            "/workspace/test/",
-            "--exclude",
-            "/usr/include/x86_64-linux-gnu/c++/15/bits/",
-            "--exclude",
-            "15/bits/",
-            "--exclude",
-            "15/ext/",
-            "--exclude",
-            "15/",
-            "--output-file",
-            COVERAGE_FILE_LCOV,
-        ]
-    )
-    if result.returncode != 0:
-        print("Error running lcov")
-        return False
+    with contextlib.chdir(PROJECT_ROOT_DIR):
+        result = subprocess.run(
+            [
+                "lcov",
+                "--branch-coverage",
+                "--capture",
+                "--directory",
+                build_dir,
+                "--exclude",
+                f"{PROJECT_ROOT_DIR}/test/",
+                "--function-coverage",
+                "--ignore-errors",
+                "inconsistent",
+                "--include",
+                PROJECT_ROOT_DIR,
+                "--output-file",
+                COVERAGE_FILE_LCOV,
+            ]
+        )
+        if result.returncode != 0:
+            print("Error running lcov")
+            return False
 
-    result = run_genhtml()
-    if not result:
-        print("Error running genhtml")
-        return False
+        result = subprocess.run(
+            [
+                "genhtml",
+                "--branch-coverage",
+                "--dark-mode",
+                "--flat",
+                "--function-coverage",
+                "--ignore-errors",
+                "inconsistent",
+                "--legend",
+                "--output-directory",
+                COVERAGE_DIR_LCOV,
+                "--show-zero-columns",
+                "--sort",
+                COVERAGE_FILE_LCOV,
+            ]
+        )
+        if result.returncode != 0:
+            print("Error running genhtml")
+            return False
 
     return True
 
 
-def run_gcovr() -> bool:
+def run_gcovr(build_dir) -> bool:
     result = create_dir(COVERAGE_DIR_GCOVR)
     if not result:
         print(f"Failed to create {COVERAGE_DIR_GCOVR}")
         return False
 
-    result = subprocess.run(
-        [
-            "gcovr",
-            "--root",
-            PROJECT_ROOT_DIR,
-            "--exclude",
-            "^test/.*$",
-            "--sort",
-            "filename",
-            "--html-details",
-            COVERAGE_FILE_GCOVR,
-        ]
-    )
-    if result.returncode != 0:
-        print("Error running gcovr")
-        return False
+    with contextlib.chdir(PROJECT_ROOT_DIR):
+        result = subprocess.run(
+            [
+                "gcovr",
+                "--calls",
+                "--decisions",
+                "--exclude",
+                f"{PROJECT_ROOT_DIR}/test/",
+                "--filter",
+                PROJECT_ROOT_DIR,
+                "--gcov-object-directory",
+                build_dir,
+                "--html-details",
+                COVERAGE_FILE_HTML_GCOVR,
+                "--html-theme",
+                "github.dark-green",
+                "--json-summary",
+                COVERAGE_FILE_JSON_GCOVR,
+                "--json-summary-pretty",
+                "--root",
+                PROJECT_ROOT_DIR,
+                "--sort",
+                "uncovered-percent",
+                "--verbose",
+            ]
+        )
+        if result.returncode != 0:
+            print("Error running gcovr")
+            return False
 
     return True
 
@@ -526,8 +538,29 @@ def run_coverage(preset) -> bool:
     if not result:
         return False
 
-    result = run_gcovr()
+    result = run_gcovr(build_dir)
     if not result:
+        return False
+
+    return True
+
+
+def check_coverage() -> bool:
+    with open(COVERAGE_FILE_JSON_GCOVR, "r") as f:
+        data = json.load(f)
+
+    all_branches_covered = data["branch_covered"] == data["branch_total"]
+    all_decisions_covered = data["decision_covered"] == data["decision_total"]
+    all_functions_covered = data["function_covered"] == data["function_total"]
+    all_lines_covered = data["line_covered"] == data["line_total"]
+
+    if (
+        not all_branches_covered
+        or not all_decisions_covered
+        or not all_functions_covered
+        or not all_lines_covered
+    ):
+        print("Incomplete coverage")
         return False
 
     return True
@@ -758,6 +791,9 @@ def main() -> int:
 
         print("Collecting coverage data...")
         result = run_coverage(CMakePresets.LinuxGccCoverage)
+        if not result:
+            return 1
+        result = check_coverage()
         if not result:
             return 1
 
