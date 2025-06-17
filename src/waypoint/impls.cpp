@@ -105,22 +105,18 @@ auto Engine_impl::get_group(GroupId const group_id) const -> Group
 {
   auto *impl = new Group_impl{};
 
-  Group group{impl};
+  impl->set_id(group_id);
 
-  get_impl(group).set_id(group_id);
-
-  return group;
+  return Group{impl};
 }
 
 auto Engine_impl::get_test(TestId const test_id) const -> Test
 {
   auto *impl = new Test_impl{*this->engine_};
 
-  Test test{impl};
+  impl->set_id(test_id);
 
-  get_impl(test).set_id(test_id);
-
-  return test;
+  return Test{impl};
 }
 
 auto Engine_impl::register_test(

@@ -2,62 +2,20 @@
 
 #include "impls.hpp"
 
-#include <utility>
-
 namespace waypoint
 {
 
-Group::~Group()
-{
-  delete impl_;
-}
-
-Group::Group(Group &&other) noexcept :
-  impl_{std::exchange(other.impl_, nullptr)}
-{
-}
-
-auto Group::operator=(Group &&other) noexcept -> Group &
-{
-  if(this == &other)
-  {
-    return *this;
-  }
-
-  impl_ = std::exchange(other.impl_, nullptr);
-
-  return *this;
-}
+Group::~Group() = default;
 
 Group::Group(internal::Group_impl *const impl) :
   impl_{impl}
 {
 }
 
-Test::~Test()
-{
-  delete impl_;
-}
-
-Test::Test(Test &&other) noexcept :
-  impl_{std::exchange(other.impl_, nullptr)}
-{
-}
-
-auto Test::operator=(Test &&other) noexcept -> Test &
-{
-  if(this == &other)
-  {
-    return *this;
-  }
-
-  impl_ = std::exchange(other.impl_, nullptr);
-
-  return *this;
-}
+Test::~Test() = default;
 
 Test::Test(internal::Test_impl *const impl) :
-  impl_{impl}
+  impl_{internal::UniquePtr{impl}}
 {
 }
 
@@ -84,13 +42,10 @@ auto Engine::test(Group const &group, char const *name) const -> Test
   return this->impl_->get_test(test_id);
 }
 
-Engine::~Engine()
-{
-  delete impl_;
-}
+Engine::~Engine() = default;
 
 Engine::Engine(internal::Engine_impl *const impl) :
-  impl_{impl}
+  impl_{internal::UniquePtr{impl}}
 {
   impl->initialize(*this);
 }
@@ -101,23 +56,17 @@ void Context::assert(bool const condition) const
     .register_assertion(condition, internal::get_impl(*this).test_id());
 }
 
-Context::~Context()
-{
-  delete impl_;
-}
+Context::~Context() = default;
 
 Context::Context(internal::Context_impl *const impl) :
-  impl_{impl}
+  impl_{internal::UniquePtr{impl}}
 {
 }
 
-Result::~Result()
-{
-  delete impl_;
-}
+Result::~Result() = default;
 
 Result::Result(internal::Result_impl *const impl) :
-  impl_{impl}
+  impl_{internal::UniquePtr{impl}}
 {
 }
 

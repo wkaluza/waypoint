@@ -31,6 +31,70 @@ auto get_impl(Context const &context) -> Context_impl &;
 // defined in get_impl.cpp
 auto get_impl(Result const &result) -> Result_impl &;
 
+template<typename T>
+class UniquePtr
+{
+public:
+  ~UniquePtr()
+  {
+    delete ptr_;
+  }
+
+  UniquePtr() = delete;
+
+  explicit UniquePtr(T *ptr) :
+    ptr_{ptr}
+  {
+  }
+
+  UniquePtr(UniquePtr const &other) = delete;
+  auto operator=(UniquePtr const &other) -> UniquePtr & = delete;
+
+  UniquePtr(UniquePtr &&other) noexcept :
+    ptr_{other.ptr_}
+  {
+    other.ptr_ = nullptr;
+  }
+
+  auto operator=(UniquePtr &&other) noexcept -> UniquePtr &
+  {
+    delete ptr_;
+
+    ptr_ = other.ptr_;
+    other.ptr_ = nullptr;
+
+    return *this;
+  }
+
+  explicit operator bool() const
+  {
+    return ptr_ != nullptr;
+  }
+
+  auto operator->() -> T *
+  {
+    return ptr_;
+  }
+
+  auto operator->() const -> T *
+  {
+    return ptr_;
+  }
+
+  auto operator*() -> T &
+  {
+    return *ptr_;
+  }
+
+  auto operator*() const -> T &
+  {
+    return *ptr_;
+  }
+
+private:
+  T *ptr_;
+};
+
 } // namespace waypoint::internal
 
 namespace waypoint
@@ -53,14 +117,14 @@ class Group
 public:
   ~Group();
   Group(Group const &other) = delete;
-  Group(Group &&other) noexcept;
+  Group(Group &&other) noexcept = delete;
   auto operator=(Group const &other) -> Group & = delete;
-  auto operator=(Group &&other) noexcept -> Group &;
+  auto operator=(Group &&other) noexcept -> Group & = delete;
 
 private:
   explicit Group(internal::Group_impl *impl);
 
-  internal::Group_impl *impl_;
+  internal::UniquePtr<internal::Group_impl> impl_;
 
   friend class internal::Engine_impl;
   friend auto internal::get_impl(Group const &group) -> internal::Group_impl &;
@@ -71,16 +135,16 @@ class Test
 public:
   ~Test();
   Test(Test const &other) = delete;
-  Test(Test &&other) noexcept;
+  Test(Test &&other) noexcept = delete;
   auto operator=(Test const &other) -> Test & = delete;
-  auto operator=(Test &&other) noexcept -> Test &;
+  auto operator=(Test &&other) noexcept -> Test & = delete;
 
   auto run(BodyFnPtr const &body) -> Test &;
 
 private:
   explicit Test(internal::Test_impl *impl);
 
-  internal::Test_impl *impl_;
+  internal::UniquePtr<internal::Test_impl> impl_;
 
   friend class internal::Engine_impl;
   friend auto internal::get_impl(Test const &test) -> internal::Test_impl &;
@@ -100,7 +164,7 @@ public:
 private:
   explicit Context(internal::Context_impl *impl);
 
-  internal::Context_impl *impl_;
+  internal::UniquePtr<internal::Context_impl> impl_;
 
   friend class internal::Engine_impl;
   friend auto internal::get_impl(Context const &context)
@@ -122,7 +186,7 @@ public:
 private:
   explicit Result(internal::Result_impl *impl);
 
-  internal::Result_impl *impl_;
+  internal::UniquePtr<internal::Result_impl> impl_;
 
   friend class internal::Engine_impl;
   friend auto internal::get_impl(Result const &result)
@@ -144,7 +208,7 @@ public:
 private:
   explicit Engine(internal::Engine_impl *impl);
 
-  internal::Engine_impl *impl_;
+  internal::UniquePtr<internal::Engine_impl> impl_;
 
   friend auto internal::get_impl(Engine const &engine)
     -> internal::Engine_impl &;

@@ -267,3 +267,12 @@ new_target(
   ${PROJECT_ROOT_DIR}/test/026_multiple_tests/main.cpp
   LINKS
   waypoint)
+
+new_target(
+  TEST
+  TARGET
+  027_unique_ptr
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/027_unique_ptr/main.cpp
+  LINKS
+  waypoint)
