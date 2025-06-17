@@ -31,6 +31,8 @@ function(new_target)
   if(DEFINED PRESET_ENABLE_COVERAGE)
     target_compile_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
     target_link_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
+
+    target_compile_options(${arg_TARGET} PRIVATE -fno-exceptions)
   endif()
 
   if(DEFINED arg_SOURCES)
