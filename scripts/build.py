@@ -534,7 +534,6 @@ def run_gcovr(build_dir) -> bool:
         success = run(
             [
                 "gcovr",
-                "--calls",
                 "--decisions",
                 "--exclude",
                 f"{PROJECT_ROOT_DIR}/test/",
