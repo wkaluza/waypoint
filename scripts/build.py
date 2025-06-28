@@ -11,8 +11,11 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import typing
+
+TIME_START = time.time_ns()
 
 THIS_SCRIPT_DIR = os.path.realpath(os.path.dirname(__file__))
 PROJECT_ROOT_DIR = os.path.realpath(f"{THIS_SCRIPT_DIR}/..")
@@ -22,6 +25,11 @@ COVERAGE_FILE_LCOV = os.path.realpath(f"{COVERAGE_DIR_LCOV}/coverage.info")
 COVERAGE_DIR_GCOVR = os.path.realpath(f"{PROJECT_ROOT_DIR}/coverage_gcovr___")
 COVERAGE_FILE_HTML_GCOVR = os.path.realpath(f"{COVERAGE_DIR_GCOVR}/index.html")
 COVERAGE_FILE_JSON_GCOVR = os.path.realpath(f"{COVERAGE_DIR_GCOVR}/coverage.json")
+INFRASTRUCTURE_DIR = os.path.realpath(f"{PROJECT_ROOT_DIR}/infrastructure")
+CMAKE_SOURCE_DIR = INFRASTRUCTURE_DIR
+assert os.path.isfile(f"{INFRASTRUCTURE_DIR}/CMakeLists.txt") and os.path.isfile(
+    f"{INFRASTRUCTURE_DIR}/CMakePresets.json"
+)
 
 JOBS = os.process_cpu_count()
 
@@ -208,14 +216,37 @@ class NewEnv:
         return False
 
 
+def ns_to_string(nanos) -> str:
+    if nanos > 10**9:
+        return f"{round(nanos / 10**9, 1)}s"
+    elif nanos > 10**6:
+        return f"{round(nanos / 10**6, 1)}ms"
+    elif nanos > 10**3:
+        return f"{round(nanos / 10**3, 1)}us"
+
+    return f"{nanos}ns"
+
+
+def run(cmd) -> bool:
+    with tempfile.TemporaryFile("r+") as f:
+        result = subprocess.run(cmd, stdout=f, stderr=f)
+
+        if result.returncode == 0:
+            return True
+
+        print("")
+        f.seek(0)
+        print(f.read())
+
+        return False
+
+
 def is_linux():
     return platform.system() == "Linux"
 
 
 def build_dir_from_preset(preset) -> str:
-    presets_file = os.path.realpath(
-        f"{PROJECT_ROOT_DIR}/infrastructure/CMakePresets.json"
-    )
+    presets_file = os.path.realpath(f"{CMAKE_SOURCE_DIR}/CMakePresets.json")
 
     with open(presets_file) as f:
         data = json.load(f)
@@ -226,7 +257,7 @@ def build_dir_from_preset(preset) -> str:
         configure_presets = configure_presets[0]
 
         binary_dir = configure_presets["binaryDir"]
-        binary_dir.replace("${sourceDir}", f"{PROJECT_ROOT_DIR}/infrastructure")
+        binary_dir.replace("${sourceDir}", f"{CMAKE_SOURCE_DIR}")
 
         return os.path.realpath(binary_dir)
 
@@ -279,46 +310,40 @@ def find_files_by_name(pred):
 def configure_cmake(preset) -> bool:
     build_dir = build_dir_from_preset(preset)
 
-    needs_configure = False
-    if not os.path.exists(build_dir):
-        needs_configure = True
-        os.mkdir(build_dir)
-
-    if not needs_configure:
+    if os.path.exists(build_dir):
         return True
 
-    source_dir = os.path.realpath(f"{PROJECT_ROOT_DIR}/infrastructure")
-    with contextlib.chdir(source_dir):
-        config_cmd = ["cmake", "--preset", f"{preset.configure}"]
+    os.mkdir(build_dir)
 
-        result = subprocess.run(config_cmd)
-
-        return result.returncode == 0
+    with contextlib.chdir(CMAKE_SOURCE_DIR):
+        return run(["cmake", "--preset", f"{preset.configure}"])
 
 
 def build_cmake(config, preset) -> bool:
-    source_dir = os.path.realpath(f"{PROJECT_ROOT_DIR}/infrastructure")
-    with contextlib.chdir(source_dir):
-        build_cmd = [
-            "cmake",
-            "--build",
-            "--preset",
-            f"{preset.build}",
-            "--config",
-            f"{config}",
-            "--parallel",
-            f"{JOBS}",
-        ]
+    with contextlib.chdir(CMAKE_SOURCE_DIR):
+        print(f" {config}", end="")
+        sys.stdout.flush()
 
-        result = subprocess.run(build_cmd)
-
-        return result.returncode == 0
+        return run(
+            [
+                "cmake",
+                "--build",
+                "--preset",
+                f"{preset.build}",
+                "--config",
+                f"{config}",
+                "--parallel",
+                f"{JOBS}",
+            ]
+        )
 
 
 def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
-    source_dir = os.path.realpath(f"{PROJECT_ROOT_DIR}/infrastructure")
-    with contextlib.chdir(source_dir):
-        result = subprocess.run(
+    with contextlib.chdir(CMAKE_SOURCE_DIR):
+        print(f" {build_config}", end="")
+        sys.stdout.flush()
+
+        return run(
             [
                 "ctest",
                 "--preset",
@@ -332,34 +357,37 @@ def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
             ]
         )
 
-    return result.returncode == 0
-
 
 def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str | None]:
-    f, build_dir = data
+    file, build_dir = data
 
-    start_time = time.time()
-    result = subprocess.run(
-        [
-            "clang-tidy-20",
-            f"--config-file={PROJECT_ROOT_DIR}/infrastructure/.clang-tidy-20",
-            "-p",
-            build_dir,
-            f,
-        ],
-        capture_output=True,
-    )
-    duration = time.time() - start_time
+    with tempfile.TemporaryFile("r+") as f:
+        start_time = time.time_ns()
+        result = subprocess.run(
+            [
+                "clang-tidy-20",
+                f"--config-file={INFRASTRUCTURE_DIR}/.clang-tidy-20",
+                "-p",
+                build_dir,
+                file,
+            ],
+            stdout=f,
+            stderr=f,
+        )
+        duration = time.time_ns() - start_time
 
-    if result.returncode != 0:
+        if result.returncode == 0:
+            return True, file, duration, None
+
+        f.seek(0)
+        output = f.read()
+
         return (
             False,
-            f,
+            file,
             duration,
-            result.stdout.decode(encoding="utf-8", errors="replace"),
+            output,
         )
-
-    return True, f, duration, None
 
 
 def run_clang_tidy(preset) -> bool:
@@ -368,7 +396,7 @@ def run_clang_tidy(preset) -> bool:
     files = find_files_by_name(is_cpp_file)
 
     inputs = [(f, build_dir) for f in files]
-    start_time = time.time()
+    start_time = time.time_ns()
     with multiprocessing.Pool(JOBS) as pool:
         results = pool.map(clang_tidy_process_single_file, inputs)
 
@@ -388,11 +416,11 @@ def run_clang_tidy(preset) -> bool:
         avg_duration = sum(durations) / len(durations)
 
         # Select files taking more than X seconds
-        threshold_duration_seconds = 1
+        threshold_duration_ns = 10**9
         results = [
             (file, duration)
             for success, file, duration, stdout in results
-            if duration > threshold_duration_seconds
+            if duration > threshold_duration_ns
         ]
         # Sort by descending duration
         results = sorted(results, reverse=True, key=lambda x: x[1])
@@ -400,10 +428,10 @@ def run_clang_tidy(preset) -> bool:
         # Only print X worst offenders
         max_results = min(5, len(results))
         for file, duration in reversed(results[0:max_results]):
-            print(f"Info: {file} took {round(duration, 1)}s to analyse")
+            print(f"Info: {file} took", ns_to_string(duration), "to analyse")
 
-    print(f"Static analysis duration: {round(time.time() - start_time, 1)}s")
-    print(f"Average duration per file: {round(avg_duration, 1)}s")
+    print("Static analysis duration:", ns_to_string(time.time_ns() - start_time))
+    print(f"Average duration per file: {ns_to_string(avg_duration)}")
 
     return True
 
@@ -413,16 +441,16 @@ def run_tests(mode, preset) -> bool:
     regex = r"^test$"
 
     if mode.debug:
-        result = run_ctest(preset, CMakeBuildConfig.Debug, jobs, regex)
-        if not result:
+        success = run_ctest(preset, CMakeBuildConfig.Debug, jobs, regex)
+        if not success:
             return False
 
     if mode.release:
-        result = run_ctest(preset, CMakeBuildConfig.RelWithDebInfo, jobs, regex)
-        if not result:
+        success = run_ctest(preset, CMakeBuildConfig.RelWithDebInfo, jobs, regex)
+        if not success:
             return False
-        result = run_ctest(preset, CMakeBuildConfig.Release, jobs, regex)
-        if not result:
+        success = run_ctest(preset, CMakeBuildConfig.Release, jobs, regex)
+        if not success:
             return False
 
     return True
@@ -432,21 +460,21 @@ def run_valgrind(mode, preset) -> bool:
     regex = r"^valgrind$"
 
     if mode.debug:
-        result = run_ctest(preset, CMakeBuildConfig.Debug, JOBS, regex)
-        if not result:
+        success = run_ctest(preset, CMakeBuildConfig.Debug, JOBS, regex)
+        if not success:
             return False
 
     return True
 
 
 def run_lcov(build_dir) -> bool:
-    result = create_dir(COVERAGE_DIR_LCOV)
-    if not result:
+    success = create_dir(COVERAGE_DIR_LCOV)
+    if not success:
         print(f"Failed to create {COVERAGE_DIR_LCOV}")
         return False
 
     with contextlib.chdir(PROJECT_ROOT_DIR):
-        result = subprocess.run(
+        success = run(
             [
                 "lcov",
                 "--branch-coverage",
@@ -464,11 +492,11 @@ def run_lcov(build_dir) -> bool:
                 COVERAGE_FILE_LCOV,
             ]
         )
-        if result.returncode != 0:
+        if not success:
             print("Error running lcov")
             return False
 
-        result = subprocess.run(
+        success = run(
             [
                 "genhtml",
                 "--branch-coverage",
@@ -485,7 +513,7 @@ def run_lcov(build_dir) -> bool:
                 COVERAGE_FILE_LCOV,
             ]
         )
-        if result.returncode != 0:
+        if not success:
             print("Error running genhtml")
             return False
 
@@ -493,13 +521,13 @@ def run_lcov(build_dir) -> bool:
 
 
 def run_gcovr(build_dir) -> bool:
-    result = create_dir(COVERAGE_DIR_GCOVR)
-    if not result:
+    success = create_dir(COVERAGE_DIR_GCOVR)
+    if not success:
         print(f"Failed to create {COVERAGE_DIR_GCOVR}")
         return False
 
     with contextlib.chdir(PROJECT_ROOT_DIR):
-        result = subprocess.run(
+        success = run(
             [
                 "gcovr",
                 "--calls",
@@ -524,7 +552,7 @@ def run_gcovr(build_dir) -> bool:
                 "--verbose",
             ]
         )
-        if result.returncode != 0:
+        if not success:
             print("Error running gcovr")
             return False
 
@@ -534,12 +562,12 @@ def run_gcovr(build_dir) -> bool:
 def run_coverage(preset) -> bool:
     build_dir = build_dir_from_preset(preset)
 
-    result = run_lcov(build_dir)
-    if not result:
+    success = run_lcov(build_dir)
+    if not success:
         return False
 
-    result = run_gcovr(build_dir)
-    if not result:
+    success = run_gcovr(build_dir)
+    if not success:
         return False
 
     return True
@@ -570,21 +598,21 @@ def _linux_compile(mode, preset, env_patch):
     env = os.environ.copy()
     env.update(env_patch)
     with NewEnv(env):
-        result = configure_cmake(preset)
-        if not result:
+        success = configure_cmake(preset)
+        if not success:
             return False
 
         if mode.debug:
-            result = build_cmake(CMakeBuildConfig.Debug, preset)
-            if not result:
+            success = build_cmake(CMakeBuildConfig.Debug, preset)
+            if not success:
                 return False
 
         if mode.release:
-            result = build_cmake(CMakeBuildConfig.RelWithDebInfo, preset)
-            if not result:
+            success = build_cmake(CMakeBuildConfig.RelWithDebInfo, preset)
+            if not success:
                 return False
-            result = build_cmake(CMakeBuildConfig.Release, preset)
-            if not result:
+            success = build_cmake(CMakeBuildConfig.Release, preset)
+            if not success:
                 return False
 
     return True
@@ -651,34 +679,31 @@ def format_files() -> bool:
 
 def format_json(f) -> bool:
     with open(f, "r") as handle:
+        original = handle.read()
+    with open(f, "r") as handle:
         data = json.load(handle)
 
     data_str = json.dumps(data, indent=2, sort_keys=True)
     data_str += "\n"
-    with open(f, "w") as handle:
-        handle.write(data_str)
+    if data_str != original:
+        with open(f, "w") as handle:
+            handle.write(data_str)
 
     return True
 
 
 def format_cmake(f) -> bool:
-    result = subprocess.run(["cmake-format", "-i", f])
-
-    return result.returncode == 0
+    return run(["cmake-format", "-i", f])
 
 
 def format_python(f) -> bool:
-    result = subprocess.run(["black", "-q", f])
-
-    return result.returncode == 0
+    return run(["black", "-q", f])
 
 
 def format_cpp(f) -> bool:
-    path_to_config = os.path.realpath(
-        f"{PROJECT_ROOT_DIR}/infrastructure/.clang-format-20"
-    )
+    path_to_config = os.path.realpath(f"{INFRASTRUCTURE_DIR}/.clang-format-20")
 
-    result = subprocess.run(
+    return run(
         [
             "clang-format-20",
             f"--style=file:{path_to_config}",
@@ -686,8 +711,6 @@ def format_cpp(f) -> bool:
             f,
         ]
     )
-
-    return result.returncode == 0
 
 
 class CliConfig:
@@ -733,8 +756,8 @@ def preamble() -> tuple[CliConfig | None, bool]:
 
 
 def main() -> int:
-    config, result = preamble()
-    if not result:
+    config, success = preamble()
+    if not success:
         return 1
 
     mode = config.mode
@@ -748,53 +771,73 @@ def main() -> int:
 
     if mode.format:
         print("Formatting files...")
-        result = format_files()
-        if not result:
+        success = format_files()
+        if not success:
             return 1
 
     if mode.gcc:
-        print("Running GCC build...")
-        result = build_gcc_linux(mode, CMakePresets.LinuxGcc)
-        if not result:
+        print("Running GCC build...", end="")
+        sys.stdout.flush()
+        success = build_gcc_linux(mode, CMakePresets.LinuxGcc)
+        if not success:
+            print("")
             return 1
+        print("")
 
         if mode.test:
-            print("Testing GCC build...")
-            result = run_tests(mode, CMakePresets.LinuxGcc)
-            if not result:
+            print("Testing GCC build...", end="")
+            sys.stdout.flush()
+            success = run_tests(mode, CMakePresets.LinuxGcc)
+            if not success:
+                print("")
                 return 1
+            print("")
 
     if mode.clang:
-        print("Running Clang build...")
-        result = build_clang_linux(mode, CMakePresets.LinuxClang)
-        if not result:
+        print("Running Clang build...", end="")
+        sys.stdout.flush()
+        success = build_clang_linux(mode, CMakePresets.LinuxClang)
+        if not success:
+            print("")
             return 1
+        print("")
 
         if mode.test:
-            print("Testing Clang build...")
-            result = run_tests(mode, CMakePresets.LinuxClang)
-            if not result:
+            print("Testing Clang build...", end="")
+            sys.stdout.flush()
+            success = run_tests(mode, CMakePresets.LinuxClang)
+            if not success:
+                print("")
                 return 1
+            print("")
 
     if mode.coverage:
         mode_coverage = Mode.Coverage
         assert mode_coverage.debug
         assert not mode_coverage.release
 
-        result = build_gcc_linux(mode_coverage, CMakePresets.LinuxGccCoverage)
-        if not result:
+        print("Building coverage...", end="")
+        sys.stdout.flush()
+        success = build_gcc_linux(mode_coverage, CMakePresets.LinuxGccCoverage)
+        if not success:
+            print("")
             return 1
+        print("")
 
-        result = run_tests(mode_coverage, CMakePresets.LinuxGccCoverage)
-        if not result:
+        print("Running coverage tests...", end="")
+        sys.stdout.flush()
+        success = run_tests(mode_coverage, CMakePresets.LinuxGccCoverage)
+        if not success:
+            print("")
             return 1
+        print("")
 
-        print("Collecting coverage data...")
-        result = run_coverage(CMakePresets.LinuxGccCoverage)
-        if not result:
+        print("Processing coverage data...")
+        success = run_coverage(CMakePresets.LinuxGccCoverage)
+        if not success:
             return 1
-        result = check_coverage()
-        if not result:
+        success = check_coverage()
+        if not success:
             return 1
 
     if mode.valgrind:
@@ -803,22 +846,37 @@ def main() -> int:
         assert mode_valgrind.debug
         assert not mode_valgrind.release
 
-        result = build_gcc_linux(mode_valgrind, CMakePresets.LinuxGcc)
-        if not result:
+        print("Building GCC for Valgrind...", end="")
+        sys.stdout.flush()
+        success = build_gcc_linux(mode_valgrind, CMakePresets.LinuxGcc)
+        if not success:
+            print("")
             return 1
-        result = build_clang_linux(mode_valgrind, CMakePresets.LinuxClang)
-        if not result:
-            return 1
+        print("")
 
-        print("Testing GCC build with Valgrind...")
-        result = run_valgrind(mode_valgrind, CMakePresets.LinuxGcc)
-        if not result:
+        print("Testing GCC build with Valgrind...", end="")
+        sys.stdout.flush()
+        success = run_valgrind(mode_valgrind, CMakePresets.LinuxGcc)
+        if not success:
+            print("")
             return 1
+        print("")
 
-        print("Testing Clang build with Valgrind...")
-        result = run_valgrind(mode_valgrind, CMakePresets.LinuxClang)
-        if not result:
+        print("Building Clang for Valgrind...", end="")
+        sys.stdout.flush()
+        success = build_clang_linux(mode_valgrind, CMakePresets.LinuxClang)
+        if not success:
+            print("")
             return 1
+        print("")
+
+        print("Testing Clang build with Valgrind...", end="")
+        sys.stdout.flush()
+        success = run_valgrind(mode_valgrind, CMakePresets.LinuxClang)
+        if not success:
+            print("")
+            return 1
+        print("")
 
     if mode.static_analysis:
         # Need to build all configs for static analysis
@@ -826,15 +884,20 @@ def main() -> int:
         assert mode_static_analysis.debug
         assert mode_static_analysis.release
 
-        result = build_clang_linux(mode_static_analysis, CMakePresets.LinuxClang)
-        if not result:
+        print("Building Clang for static analysis...", end="")
+        sys.stdout.flush()
+        success = build_clang_linux(mode_static_analysis, CMakePresets.LinuxClang)
+        if not success:
+            print("")
             return 1
+        print("")
 
         print("Running clang-tidy analysis...")
-        result = run_clang_tidy(CMakePresets.LinuxClang)
-        if not result:
+        success = run_clang_tidy(CMakePresets.LinuxClang)
+        if not success:
             return 1
 
+    print("Build duration: ", ns_to_string(time.time_ns() - TIME_START))
     print(f"Success: {os.path.basename(sys.argv[0])}")
 
     return 0
