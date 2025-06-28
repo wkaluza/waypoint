@@ -2,8 +2,85 @@
 
 #include "impls.hpp"
 
+#include <optional>
+
 namespace waypoint
 {
+
+AssertionOutcome::~AssertionOutcome() = default;
+
+AssertionOutcome::AssertionOutcome(
+  internal::AssertionOutcome_impl *const impl) :
+  impl_{internal::UniquePtr{impl}}
+{
+}
+
+AssertionOutcome::AssertionOutcome(AssertionOutcome &&other) noexcept = default;
+
+auto AssertionOutcome::group() const -> char const *
+{
+  return this->impl_->group_name.c_str();
+}
+
+auto AssertionOutcome::test() const -> char const *
+{
+  return this->impl_->test_name.c_str();
+}
+
+auto AssertionOutcome::message() const -> char const *
+{
+  return this->impl_->message.c_str();
+}
+
+auto AssertionOutcome::passed() const -> bool
+{
+  return this->impl_->passed;
+}
+
+auto AssertionOutcome::index() const -> unsigned long long
+{
+  return this->impl_->index;
+}
+
+TestOutcome::~TestOutcome() = default;
+
+TestOutcome::TestOutcome(internal::TestOutcome_impl *const impl) :
+  impl_{internal::UniquePtr{impl}}
+{
+}
+
+TestOutcome::TestOutcome(TestOutcome &&other) noexcept = default;
+
+auto TestOutcome::test_name() const -> char const *
+{
+  return this->impl_->get_test_name().c_str();
+}
+
+auto TestOutcome::group_name() const -> char const *
+{
+  return this->impl_->get_group_name().c_str();
+}
+
+auto TestOutcome::test_id() const -> unsigned long long
+{
+  return this->impl_->get_id();
+}
+
+auto TestOutcome::test_index() const -> unsigned long long
+{
+  return this->impl_->get_index();
+}
+
+auto TestOutcome::assertion_count() const -> unsigned long long
+{
+  return this->impl_->get_assertion_count();
+}
+
+auto TestOutcome::assertion_outcome(unsigned long long const index) const
+  -> AssertionOutcome const &
+{
+  return this->impl_->get_assertion_outcome(index);
+}
 
 Group::~Group() = default;
 
@@ -29,17 +106,17 @@ auto Test::run(BodyFnPtr const &body) -> Test &
 
 auto Engine::group(char const *name) const -> Group
 {
-  auto group_id = this->impl_->register_group(name);
+  auto const group_id = this->impl_->register_group(name);
 
-  return this->impl_->get_group(group_id);
+  return this->impl_->make_group(group_id);
 }
 
 auto Engine::test(Group const &group, char const *name) const -> Test
 {
-  auto test_id =
-    this->impl_->register_test(internal::get_impl(group).get_id(), name);
+  auto const test_id =
+    this->impl_->register_test(this->impl_->get_group_id(group), name);
 
-  return this->impl_->get_test(test_id);
+  return this->impl_->make_test(test_id);
 }
 
 Engine::~Engine() = default;
@@ -53,7 +130,21 @@ Engine::Engine(internal::Engine_impl *const impl) :
 void Context::assert(bool const condition) const
 {
   internal::get_impl(impl_->get_engine())
-    .register_assertion(condition, internal::get_impl(*this).test_id());
+    .register_assertion(
+      condition,
+      this->impl_->test_id(),
+      this->impl_->generate_assertion_index(),
+      std::nullopt);
+}
+
+void Context::assert(bool const condition, char const *const message) const
+{
+  internal::get_impl(impl_->get_engine())
+    .register_assertion(
+      condition,
+      this->impl_->test_id(),
+      this->impl_->generate_assertion_index(),
+      message);
 }
 
 Context::~Context() = default;
@@ -63,16 +154,27 @@ Context::Context(internal::Context_impl *const impl) :
 {
 }
 
-Result::~Result() = default;
+RunResult::~RunResult() = default;
 
-Result::Result(internal::Result_impl *const impl) :
+RunResult::RunResult(internal::RunResult_impl *const impl) :
   impl_{internal::UniquePtr{impl}}
 {
 }
 
-auto Result::pass() const -> bool
+auto RunResult::success() const -> bool
 {
-  return !this->impl_->has_failing_assertions();
+  return !this->impl_->has_errors() && !this->impl_->has_failing_assertions();
+}
+
+auto RunResult::test_count() const -> unsigned long long
+{
+  return this->impl_->test_outcome_count();
+}
+
+auto RunResult::test_outcome(unsigned long long const index) const
+  -> TestOutcome const &
+{
+  return this->impl_->get_test_outcome(index);
 }
 
 } // namespace waypoint

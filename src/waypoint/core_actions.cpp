@@ -2,9 +2,7 @@
 #include "waypoint.hpp"
 
 #include <algorithm>
-#include <cstddef>
 #include <cstdint>
-#include <random>
 #include <ranges>
 #include <vector>
 
@@ -28,29 +26,19 @@ auto get_autorun_section_boundaries() -> AutorunSectionBoundaries
   return {begin, end};
 }
 
-} // namespace
-
-namespace waypoint
-{
-
-auto make_default_engine() -> Engine
-{
-  auto *impl = new internal::Engine_impl{};
-
-  return Engine{impl};
-}
-
-auto initialize(Engine &t) -> bool
+void initialize(waypoint::Engine &t)
 {
   auto const section = get_autorun_section_boundaries();
   auto const begin = section.begin;
   auto const end = section.end;
 
-  std::vector<void (*)(Engine &)> functions;
+  std::vector<void (*)(waypoint::Engine &)> functions;
 
-  for(auto fn_ptr = begin; fn_ptr < end; fn_ptr += sizeof(void (*)(Engine &)))
+  for(auto fn_ptr = begin; fn_ptr < end;
+      fn_ptr += sizeof(void (*)(waypoint::Engine &)))
   {
-    functions.push_back(*reinterpret_cast<void (**)(Engine &)>(fn_ptr));
+    functions.push_back(
+      *reinterpret_cast<void (**)(waypoint::Engine &)>(fn_ptr));
   }
 
   auto is_not_null = [](auto *ptr)
@@ -63,78 +51,40 @@ auto initialize(Engine &t) -> bool
     fn_ptr(t);
   }
 
-  bool const success = internal::get_impl(t).verify();
-
-  return success;
-}
-
-namespace
-{
-
-auto get_random_number_generator() -> std::mt19937_64
-{
-  constexpr std::size_t arbitrary_constant = 0x1234;
-  constexpr std::size_t arbitrary_seed = 0x0123'4567'89ab'cdef;
-
-  using knuth_lcg = std::linear_congruential_engine<
-    std::uint64_t,
-    6'364'136'223'846'793'005U,
-    1'442'695'040'888'963'407U,
-    0U>;
-  knuth_lcg seed_rng(arbitrary_seed);
-  seed_rng.discard(arbitrary_constant);
-
-  std::vector<std::uint64_t> seeds(624);
-  std::ranges::generate(seeds, seed_rng);
-  std::seed_seq seq(seeds.begin(), seeds.end());
-  std::mt19937_64 rng(seq);
-  rng.discard(arbitrary_constant);
-
-  return rng;
-}
-
-auto get_body_ptrs(Engine &t) -> std::vector<internal::TestBodyRecord const *>
-{
-  auto const &bodies = internal::get_impl(t).test_bodies();
-  std::vector<internal::TestBodyRecord const *> body_ptrs(bodies.size());
-
-  std::ranges::transform(
-    bodies,
-    body_ptrs.begin(),
-    [](auto const &body)
-    {
-      return &body;
-    });
-
-  std::ranges::sort(
-    body_ptrs,
-    [](auto *a, auto *b)
-    {
-      return *a < *b;
-    });
-
-  return body_ptrs;
-}
-
-auto get_shuffled_body_ptrs(Engine &t)
-  -> std::vector<internal::TestBodyRecord const *>
-{
-  auto body_ptrs = get_body_ptrs(t);
-
-  auto rng = get_random_number_generator();
-
-  std::ranges::shuffle(body_ptrs, rng);
-
-  return body_ptrs;
+  waypoint::internal::get_impl(t).set_shuffled_body_ptrs();
+  auto const &shuffled_body_ptrs =
+    waypoint::internal::get_impl(t).get_shuffled_body_ptrs();
+  for(unsigned long long i = 0; i < shuffled_body_ptrs.size(); ++i)
+  {
+    waypoint::internal::get_impl(t).set_test_index(
+      shuffled_body_ptrs[i]->test_id(),
+      i);
+  }
 }
 
 } // namespace
 
-auto run_all_tests(Engine &t) -> Result
+namespace waypoint
 {
-  auto const body_ptrs = get_shuffled_body_ptrs(t);
+
+auto make_default_engine() -> Engine
+{
+  auto *impl = new internal::Engine_impl{};
+
+  return Engine{impl};
+}
+
+auto run_all_tests(Engine &t) -> RunResult
+{
+  initialize(t);
+  if(internal::get_impl(t).has_errors())
+  {
+    // Initialization had errors, skip running tests and emit results
+    return internal::get_impl(t).generate_results();
+  }
+
   std::ranges::for_each(
-    body_ptrs,
+    internal::get_impl(t).get_shuffled_body_ptrs(),
     [&t](auto const *ptr)
     {
       auto context = internal::get_impl(t).make_context(ptr->test_id());

@@ -22,7 +22,7 @@ new_target(
   PUBLIC_HEADERS
   ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp
   PRIVATE_HEADERS
-  ${PROJECT_ROOT_DIR}/src/waypoint/internal/ids.hpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/internal/types.hpp
   ${PROJECT_ROOT_DIR}/src/waypoint/internal/impls.hpp)
 
 new_target(
@@ -274,5 +274,23 @@ new_target(
   027_unique_ptr
   SOURCES
   ${PROJECT_ROOT_DIR}/test/027_unique_ptr/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  028_assertion_messages
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/028_assertion_messages/main.cpp
+  LINKS
+  waypoint)
+
+new_target(
+  TEST
+  TARGET
+  029_results
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/029_results/main.cpp
   LINKS
   waypoint)

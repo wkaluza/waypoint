@@ -28,11 +28,12 @@ auto main() -> int
 {
   auto t = waypoint::make_default_engine();
 
-  // We expect the call to initialize to fail
-  bool const success = initialize(t);
+  // We expect the call to run_all_tests to fail
+  // due to initialization errors
+  auto const result = waypoint::run_all_tests(t);
 
   // Note inverted test result
-  if(!success)
+  if(!result.success())
   {
     return 0;
   }

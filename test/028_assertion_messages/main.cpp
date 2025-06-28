@@ -11,11 +11,21 @@ WAYPOINT_AUTORUN(t)
     .run(
       [](auto &ctx)
       {
-        ctx.assert(true);
-        ctx.assert(false);
-        ctx.assert(true);
-        ctx.assert(false);
-        ctx.assert(true);
+        ctx.assert(true, "Condition must be true");
+      });
+
+  t.test(g1, "Test 2")
+    .run(
+      [](auto &ctx)
+      {
+        ctx.assert(true, "Condition must be true");
+      });
+
+  t.test(g1, "Test 3")
+    .run(
+      [](auto &ctx)
+      {
+        ctx.assert(true, "Condition must be true");
       });
 }
 
@@ -26,7 +36,7 @@ auto main() -> int
   auto t = waypoint::make_default_engine();
 
   auto const results = run_all_tests(t);
-  if(results.success())
+  if(!results.success())
   {
     return 1;
   }

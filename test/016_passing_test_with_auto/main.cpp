@@ -21,14 +21,8 @@ auto main() -> int
 {
   auto t = waypoint::make_default_engine();
 
-  bool const success = initialize(t);
-  if(!success)
-  {
-    return 1;
-  }
-
   auto const results = run_all_tests(t);
-  if(results.pass())
+  if(results.success())
   {
     return 0;
   }

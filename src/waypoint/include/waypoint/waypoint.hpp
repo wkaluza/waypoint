@@ -6,30 +6,25 @@ namespace waypoint
 class Context;
 class Engine;
 class Group;
-class Result;
+class RunResult;
 class Test;
+class TestOutcome;
 
 } // namespace waypoint
 
 namespace waypoint::internal
 {
 
+class AssertionOutcome_impl;
 class Context_impl;
 class Engine_impl;
 class Group_impl;
-class Result_impl;
+class RunResult_impl;
 class Test_impl;
+class TestOutcome_impl;
 
 // defined in get_impl.cpp
 auto get_impl(Engine const &engine) -> Engine_impl &;
-// defined in get_impl.cpp
-auto get_impl(Group const &group) -> Group_impl &;
-// defined in get_impl.cpp
-auto get_impl(Test const &test) -> Test_impl &;
-// defined in get_impl.cpp
-auto get_impl(Context const &context) -> Context_impl &;
-// defined in get_impl.cpp
-auto get_impl(Result const &result) -> Result_impl &;
 
 template<typename T>
 class UniquePtr
@@ -105,12 +100,69 @@ namespace waypoint
 auto make_default_engine() -> Engine;
 // defined in core_actions.cpp
 [[nodiscard]]
-auto initialize(Engine &t) -> bool;
-// defined in core_actions.cpp
-[[nodiscard]]
-auto run_all_tests(Engine &t) -> Result;
+auto run_all_tests(Engine &t) -> RunResult;
 
 using BodyFnPtr = void (*)(Context &);
+
+class AssertionOutcome
+{
+public:
+  ~AssertionOutcome();
+  AssertionOutcome(AssertionOutcome const &other) = delete;
+  AssertionOutcome(AssertionOutcome &&other) noexcept;
+  auto operator=(AssertionOutcome const &other) -> AssertionOutcome & = delete;
+  auto operator=(AssertionOutcome &&other) noexcept
+    -> AssertionOutcome & = delete;
+
+  [[nodiscard]]
+  auto group() const -> char const *;
+  [[nodiscard]]
+  auto test() const -> char const *;
+  [[nodiscard]]
+  auto message() const -> char const *;
+  [[nodiscard]]
+  auto passed() const -> bool;
+  [[nodiscard]]
+  auto index() const -> unsigned long long;
+
+private:
+  explicit AssertionOutcome(internal::AssertionOutcome_impl *impl);
+
+  internal::UniquePtr<internal::AssertionOutcome_impl> impl_;
+
+  friend class internal::Engine_impl;
+};
+
+class TestOutcome
+{
+public:
+  ~TestOutcome();
+  TestOutcome(TestOutcome const &other) = delete;
+  TestOutcome(TestOutcome &&other) noexcept;
+  auto operator=(TestOutcome const &other) -> TestOutcome & = delete;
+  auto operator=(TestOutcome &&other) noexcept -> TestOutcome & = delete;
+
+  [[nodiscard]]
+  auto test_name() const -> char const *;
+  [[nodiscard]]
+  auto group_name() const -> char const *;
+  [[nodiscard]]
+  auto test_id() const -> unsigned long long;
+  [[nodiscard]]
+  auto test_index() const -> unsigned long long;
+  [[nodiscard]]
+  auto assertion_count() const -> unsigned long long;
+  [[nodiscard]]
+  auto assertion_outcome(unsigned long long index) const
+    -> AssertionOutcome const &;
+
+private:
+  explicit TestOutcome(internal::TestOutcome_impl *impl);
+
+  internal::UniquePtr<internal::TestOutcome_impl> impl_;
+
+  friend class internal::Engine_impl;
+};
 
 class Group
 {
@@ -127,7 +179,6 @@ private:
   internal::UniquePtr<internal::Group_impl> impl_;
 
   friend class internal::Engine_impl;
-  friend auto internal::get_impl(Group const &group) -> internal::Group_impl &;
 };
 
 class Test
@@ -147,7 +198,6 @@ private:
   internal::UniquePtr<internal::Test_impl> impl_;
 
   friend class internal::Engine_impl;
-  friend auto internal::get_impl(Test const &test) -> internal::Test_impl &;
 };
 
 class Context
@@ -160,6 +210,7 @@ public:
   auto operator=(Context &&other) noexcept -> Context & = delete;
 
   void assert(bool condition) const;
+  void assert(bool condition, char const *message) const;
 
 private:
   explicit Context(internal::Context_impl *impl);
@@ -167,30 +218,30 @@ private:
   internal::UniquePtr<internal::Context_impl> impl_;
 
   friend class internal::Engine_impl;
-  friend auto internal::get_impl(Context const &context)
-    -> internal::Context_impl &;
 };
 
-class Result
+class RunResult
 {
 public:
-  ~Result();
-  Result(Result const &other) = delete;
-  Result(Result &&other) noexcept = delete;
-  auto operator=(Result const &other) -> Result & = delete;
-  auto operator=(Result &&other) noexcept -> Result & = delete;
+  ~RunResult();
+  RunResult(RunResult const &other) = delete;
+  RunResult(RunResult &&other) noexcept = delete;
+  auto operator=(RunResult const &other) -> RunResult & = delete;
+  auto operator=(RunResult &&other) noexcept -> RunResult & = delete;
 
   [[nodiscard]]
-  auto pass() const -> bool;
+  auto success() const -> bool;
+  [[nodiscard]]
+  auto test_count() const -> unsigned long long;
+  [[nodiscard]]
+  auto test_outcome(unsigned long long index) const -> TestOutcome const &;
 
 private:
-  explicit Result(internal::Result_impl *impl);
+  explicit RunResult(internal::RunResult_impl *impl);
 
-  internal::UniquePtr<internal::Result_impl> impl_;
+  internal::UniquePtr<internal::RunResult_impl> impl_;
 
   friend class internal::Engine_impl;
-  friend auto internal::get_impl(Result const &result)
-    -> internal::Result_impl &;
 };
 
 class Engine
