@@ -35,6 +35,7 @@ WAYPOINT_AUTORUN(t)
         auto pi2 = waypoint::internal::UniquePtr<int>{nullptr};
 
         ctx.assert(static_cast<bool>(pi1));
+        ctx.assert(*pi1 == 42);
         ctx.assert(!static_cast<bool>(pi2));
 
         pi2 = std::move(pi1);
@@ -42,6 +43,7 @@ WAYPOINT_AUTORUN(t)
         // NOLINTNEXTLINE use after move
         ctx.assert(!static_cast<bool>(pi1));
         ctx.assert(static_cast<bool>(pi2));
+        ctx.assert(*pi2 == 42);
 
         auto const &pi2_ref = *pi2;
 
@@ -57,6 +59,7 @@ WAYPOINT_AUTORUN(t)
 
         ctx.assert(!static_cast<bool>(pi1));
         ctx.assert(static_cast<bool>(pi2));
+        ctx.assert(*pi2 == 123);
 
         pi2 = std::move(pi1);
 
@@ -74,13 +77,16 @@ WAYPOINT_AUTORUN(t)
         auto pi2 = waypoint::internal::UniquePtr{new int{123}};
 
         ctx.assert(static_cast<bool>(pi1));
+        ctx.assert(*pi1 == 42);
         ctx.assert(static_cast<bool>(pi2));
+        ctx.assert(*pi2 == 123);
 
         pi2 = std::move(pi1);
 
         // NOLINTNEXTLINE use after move
         ctx.assert(!static_cast<bool>(pi1));
         ctx.assert(static_cast<bool>(pi2));
+        ctx.assert(*pi2 == 42);
 
         auto const &pi2_ref = *pi2;
 
@@ -110,6 +116,7 @@ WAYPOINT_AUTORUN(t)
         // NOLINTNEXTLINE use after move
         ctx.assert(!static_cast<bool>(pi1));
         ctx.assert(static_cast<bool>(pi2));
+        ctx.assert(*pi2 == 42);
 
         auto const &pi2_ref = *pi2;
 
