@@ -59,6 +59,9 @@ class Mode(enum.Enum):
         debug=True,
         test=True,
     )
+    Format = ModeConfig(
+        format=True,
+    )
     Full = ModeConfig(
         format=True,
         clang=True,
@@ -111,14 +114,16 @@ class Mode(enum.Enum):
     def __str__(self):
         if self == Mode.Clean:
             return "clean"
-        elif self == Mode.Full:
-            return "full"
         elif self == Mode.Fast:
             return "fast"
+        elif self == Mode.Format:
+            return "format"
+        elif self == Mode.Full:
+            return "full"
         elif self == Mode.Verify:
             return "verify"
 
-        return "verify"
+        assert False, "This should not happen"
 
     @property
     def clean(self):
@@ -728,6 +733,8 @@ class CliConfig:
             self.mode = Mode.Clean
         if mode_str == f"{Mode.Fast}":
             self.mode = Mode.Fast
+        if mode_str == f"{Mode.Format}":
+            self.mode = Mode.Format
         if mode_str == f"{Mode.Full}":
             self.mode = Mode.Full
         if mode_str == f"{Mode.Verify}":
@@ -744,10 +751,17 @@ def preamble() -> tuple[CliConfig | None, bool]:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "mode",
-        choices=[f"{Mode.Clean}", f"{Mode.Fast}", f"{Mode.Full}", f"{Mode.Verify}"],
+        choices=[
+            f"{Mode.Clean}",
+            f"{Mode.Fast}",
+            f"{Mode.Format}",
+            f"{Mode.Full}",
+            f"{Mode.Verify}",
+        ],
         metavar="mode",
         help=f"""Selects build mode.
                  Mode "{Mode.Clean}" deletes the build trees.
+                 Mode "{Mode.Format}" formats source files.
                  Mode "{Mode.Fast}" runs one build and the tests for quick
                  iterations.
                  Mode "{Mode.Full}" builds everything and runs all tools.
