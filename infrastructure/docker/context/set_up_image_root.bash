@@ -53,6 +53,7 @@ function install_apps
     make \
     ninja-build \
     python3.13 \
+    python3-isort \
     valgrind \
     vim
 }

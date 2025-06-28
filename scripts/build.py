@@ -17,6 +17,10 @@ import typing
 
 TIME_START = time.time_ns()
 
+PYTHON = (
+    "python3" if (sys.executable is None or sys.executable == "") else sys.executable
+)
+
 THIS_SCRIPT_DIR = os.path.realpath(os.path.dirname(__file__))
 PROJECT_ROOT_DIR = os.path.realpath(f"{THIS_SCRIPT_DIR}/..")
 
@@ -697,7 +701,11 @@ def format_cmake(f) -> bool:
 
 
 def format_python(f) -> bool:
-    return run(["black", "-q", f])
+    success = run([PYTHON, "-m", "isort", "--quiet", "--line-length", "88", f])
+    if not success:
+        return False
+
+    return run(["black", "--quiet", "--line-length", "88", f])
 
 
 def format_cpp(f) -> bool:
