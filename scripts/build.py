@@ -426,22 +426,24 @@ def run_clang_tidy(preset) -> bool:
         durations = [duration for success, file, duration, stdout in results]
         avg_duration = sum(durations) / len(durations)
 
-        # Select files taking more than X seconds
-        threshold_duration_ns = 10**9
+        # Select files taking more than x seconds
+        x = 1
+        threshold_duration_ns = x * 10**9
         results = [
             (file, duration)
             for success, file, duration, stdout in results
-            if duration > threshold_duration_ns
+            if duration >= threshold_duration_ns
         ]
         # Sort by descending duration
-        results = sorted(results, reverse=True, key=lambda x: x[1])
+        results = sorted(results, reverse=True, key=lambda a: a[1])
 
-        # Only print X worst offenders
-        max_results = min(5, len(results))
+        # Print no more than y worst offenders
+        y = 10
+        max_results = min(y, len(results))
         for file, duration in reversed(results[0:max_results]):
-            print(f"Info: {file} took", ns_to_string(duration), "to analyse")
+            print(f"Info: {file} took {ns_to_string(duration)} to analyse")
 
-    print("Static analysis duration:", ns_to_string(time.time_ns() - start_time))
+    print(f"Static analysis duration: {ns_to_string(time.time_ns() - start_time)}")
     print(f"Average duration per file: {ns_to_string(avg_duration)}")
 
     return True
