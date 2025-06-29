@@ -236,18 +236,19 @@ def ns_to_string(nanos) -> str:
     return f"{nanos}ns"
 
 
-def run(cmd) -> bool:
+def run(cmd) -> typing.Tuple[bool, str | None]:
     with tempfile.TemporaryFile("r+") as f:
         result = subprocess.run(cmd, stdout=f, stderr=f)
 
         if result.returncode == 0:
-            return True
+            return True, None
 
-        print("")
+        output = "\n"
         f.seek(0)
-        print(f.read())
+        output += f.read()
+        output += "\n"
 
-        return False
+        return False, output
 
 
 def is_linux():
@@ -325,7 +326,12 @@ def configure_cmake(preset) -> bool:
     os.mkdir(build_dir)
 
     with contextlib.chdir(CMAKE_SOURCE_DIR):
-        return run(["cmake", "--preset", f"{preset.configure}"])
+        success, output = run(["cmake", "--preset", f"{preset.configure}"])
+        if not success:
+            print(output)
+            return False
+
+        return True
 
 
 def build_cmake(config, preset) -> bool:
@@ -333,7 +339,7 @@ def build_cmake(config, preset) -> bool:
         print(f" {config}", end="")
         sys.stdout.flush()
 
-        return run(
+        success, output = run(
             [
                 "cmake",
                 "--build",
@@ -345,6 +351,11 @@ def build_cmake(config, preset) -> bool:
                 f"{JOBS}",
             ]
         )
+        if not success:
+            print(output)
+            return False
+
+        return True
 
 
 def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
@@ -352,7 +363,7 @@ def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
         print(f" {build_config}", end="")
         sys.stdout.flush()
 
-        return run(
+        success, output = run(
             [
                 "ctest",
                 "--preset",
@@ -365,38 +376,29 @@ def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
                 label_include_regex,
             ]
         )
+        if not success:
+            print(output)
+            return False
+
+        return True
 
 
 def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str | None]:
     file, build_dir = data
 
-    with tempfile.TemporaryFile("r+") as f:
-        start_time = time.time_ns()
-        result = subprocess.run(
-            [
-                "clang-tidy-20",
-                f"--config-file={INFRASTRUCTURE_DIR}/.clang-tidy-20",
-                "-p",
-                build_dir,
-                file,
-            ],
-            stdout=f,
-            stderr=f,
-        )
-        duration = time.time_ns() - start_time
-
-        if result.returncode == 0:
-            return True, file, duration, None
-
-        f.seek(0)
-        output = f.read()
-
-        return (
-            False,
+    start_time = time.time_ns()
+    success, output = run(
+        [
+            "clang-tidy-20",
+            f"--config-file={INFRASTRUCTURE_DIR}/.clang-tidy-20",
+            "-p",
+            build_dir,
             file,
-            duration,
-            output,
-        )
+        ]
+    )
+    duration = time.time_ns() - start_time
+
+    return success, file, duration, None if success else output
 
 
 def run_clang_tidy(preset) -> bool:
@@ -483,7 +485,7 @@ def run_lcov(build_dir) -> bool:
         return False
 
     with contextlib.chdir(PROJECT_ROOT_DIR):
-        success = run(
+        success, output = run(
             [
                 "lcov",
                 "--branch-coverage",
@@ -503,9 +505,10 @@ def run_lcov(build_dir) -> bool:
         )
         if not success:
             print("Error running lcov")
+            print(output)
             return False
 
-        success = run(
+        success, output = run(
             [
                 "genhtml",
                 "--branch-coverage",
@@ -524,6 +527,7 @@ def run_lcov(build_dir) -> bool:
         )
         if not success:
             print("Error running genhtml")
+            print(output)
             return False
 
     return True
@@ -536,7 +540,7 @@ def run_gcovr(build_dir) -> bool:
         return False
 
     with contextlib.chdir(PROJECT_ROOT_DIR):
-        success = run(
+        success, output = run(
             [
                 "gcovr",
                 "--decisions",
@@ -562,6 +566,7 @@ def run_gcovr(build_dir) -> bool:
         )
         if not success:
             print("Error running gcovr")
+            print(output)
             return False
 
     return True
@@ -701,21 +706,32 @@ def format_json(f) -> bool:
 
 
 def format_cmake(f) -> bool:
-    return run(["cmake-format", "-i", f])
+    success, output = run(["cmake-format", "-i", f])
+    if not success:
+        print(output)
+        return False
+
+    return True
 
 
 def format_python(f) -> bool:
-    success = run([PYTHON, "-m", "isort", "--quiet", "--line-length", "88", f])
+    success, output = run([PYTHON, "-m", "isort", "--quiet", "--line-length", "88", f])
     if not success:
+        print(output)
         return False
 
-    return run(["black", "--quiet", "--line-length", "88", f])
+    success, output = run(["black", "--quiet", "--line-length", "88", f])
+    if not success:
+        print(output)
+        return False
+
+    return True
 
 
 def format_cpp(f) -> bool:
     path_to_config = os.path.realpath(f"{INFRASTRUCTURE_DIR}/.clang-format-20")
 
-    return run(
+    success, output = run(
         [
             "clang-format-20",
             f"--style=file:{path_to_config}",
@@ -723,6 +739,11 @@ def format_cpp(f) -> bool:
             f,
         ]
     )
+    if not success:
+        print(output)
+        return False
+
+    return True
 
 
 class CliConfig:
