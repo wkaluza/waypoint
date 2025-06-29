@@ -784,6 +784,7 @@ def main() -> int:
     mode = config.mode
 
     if mode.clean:
+        print("Deleting build files...")
         clean_build_dir(CMakePresets.LinuxClang)
         clean_build_dir(CMakePresets.LinuxGcc)
         clean_build_dir(CMakePresets.LinuxGccCoverage)
