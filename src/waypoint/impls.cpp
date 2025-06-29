@@ -257,13 +257,13 @@ void Engine_impl::set_test_index(
   TestId const test_id,
   unsigned long long const index)
 {
-  this->test_id2index_[test_id] = index;
+  this->test_id2test_index_[test_id] = index;
 }
 
 auto Engine_impl::get_test_index(TestId const test_id) const
   -> unsigned long long
 {
-  return this->test_id2index_.at(test_id);
+  return this->test_id2test_index_.at(test_id);
 }
 
 auto Engine_impl::test_count() const -> unsigned long long
@@ -341,12 +341,7 @@ auto Engine_impl::register_test(
 
 auto Engine_impl::register_group(GroupName const &group_name) -> GroupId
 {
-  if(!group_name2id_map_.contains(group_name))
-  {
-    group_name2id_map_[group_name] = group_id_counter_++;
-  }
-
-  auto const group_id = group_name2id_map_[group_name];
+  auto const group_id = group_id_counter_++;
   group_id2name_map_[group_id] = group_name;
 
   return group_id;

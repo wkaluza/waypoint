@@ -240,11 +240,10 @@ private:
   Engine *engine_;
   GroupId group_id_counter_;
   TestId test_id_counter_;
-  std::unordered_map<GroupName, GroupId> group_name2id_map_;
   std::unordered_map<GroupId, GroupName> group_id2name_map_;
   std::unordered_map<TestId, TestName> test_id2name_map_;
   std::unordered_map<TestId, GroupId> test_id2group_id_;
-  std::unordered_map<TestId, unsigned long long> test_id2index_;
+  std::unordered_map<TestId, unsigned long long> test_id2test_index_;
   std::vector<std::unordered_map<TestName, TestId>> test_id_maps_;
   std::vector<Error> errors_;
   std::vector<AssertionRecord> assertions_;
