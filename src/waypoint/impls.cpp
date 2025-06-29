@@ -18,18 +18,44 @@
 namespace waypoint::internal
 {
 
-TestOutcome_impl::TestOutcome_impl(
+AssertionOutcome_impl::AssertionOutcome_impl() :
+  passed{},
+  index{}
+{
+}
+
+void AssertionOutcome_impl::initialize(
+  std::string group_name,
+  std::string test_name,
+  std::string message,
+  bool const passed,
+  unsigned long long const index)
+{
+  this->group_name = std::move(group_name);
+  this->test_name = std::move(test_name);
+  this->message = std::move(message);
+  this->passed = passed;
+  this->index = index;
+}
+
+TestOutcome_impl::TestOutcome_impl() :
+  test_id_{},
+  test_index_{}
+{
+}
+
+void TestOutcome_impl::initialize(
   TestId const id,
   std::vector<AssertionOutcome> assertion_outcomes,
   std::string group_name,
   std::string test_name,
-  unsigned long long const index) :
-  assertion_outcomes_{std::move(assertion_outcomes)},
-  test_id_{id},
-  group_name_{std::move(group_name)},
-  test_name_{std::move(test_name)},
-  test_index_{index}
+  unsigned long long const index)
 {
+  this->test_id_ = id;
+  this->assertion_outcomes_ = std::move(assertion_outcomes);
+  this->group_name_ = std::move(group_name);
+  this->test_name_ = std::move(test_name);
+  this->test_index_ = index;
 }
 
 auto TestOutcome_impl::get_id() const -> unsigned long long
@@ -131,20 +157,21 @@ auto Group_impl::get_id() const -> GroupId
   return this->id_;
 }
 
-Test_impl::Test_impl(Engine &engine) :
-  engine_{engine},
+Test_impl::Test_impl() :
+  engine_{},
   id_{}
 {
 }
 
-auto Test_impl::get_engine() const -> Engine &
+void Test_impl::initialize(Engine &engine, TestId const id)
 {
-  return engine_;
+  this->engine_ = &engine;
+  this->id_ = id;
 }
 
-void Test_impl::set_id(TestId const test_id)
+auto Test_impl::get_engine() const -> Engine &
 {
-  this->id_ = test_id;
+  return *engine_;
 }
 
 auto Test_impl::get_id() const -> TestId
@@ -152,16 +179,23 @@ auto Test_impl::get_id() const -> TestId
   return this->id_;
 }
 
-Context_impl::Context_impl(Engine &engine, TestId const test_id) :
-  engine_{engine},
-  test_id_{test_id},
-  assertion_index_{0}
+Context_impl::Context_impl() :
+  engine_{},
+  test_id_{},
+  assertion_index_{}
 {
+}
+
+void Context_impl::initialize(Engine &engine, TestId const test_id)
+{
+  this->engine_ = &engine;
+  this->test_id_ = test_id;
+  this->assertion_index_ = 0;
 }
 
 auto Context_impl::get_engine() const -> Engine &
 {
-  return engine_;
+  return *engine_;
 }
 
 auto Context_impl::generate_assertion_index() -> AssertionIndex
@@ -192,9 +226,9 @@ auto Engine_impl::make_group(GroupId const group_id) const -> Group
 
 auto Engine_impl::make_test(TestId const test_id) const -> Test
 {
-  auto *impl = new Test_impl{*this->engine_};
+  auto *impl = new Test_impl{};
 
-  impl->set_id(test_id);
+  impl->initialize(*this->engine_, test_id);
 
   return Test{impl};
 }
@@ -251,23 +285,27 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const -> TestOutcome
   for(auto const &assertion : assertions)
   {
     auto maybe_message = assertion.message();
-    auto *assertion_impl = new AssertionOutcome_impl{
+    auto *assertion_impl = new AssertionOutcome_impl{};
+
+    assertion_impl->initialize(
       this->get_group_name(this->get_group_id(test_id)),
       this->get_test_name(test_id),
       maybe_message.has_value() ? maybe_message.value() : "[EMPTY]",
       assertion.passed(),
-      assertion.index()};
+      assertion.index());
 
     AssertionOutcome assertion_outcome{assertion_impl};
     assertion_outcomes.push_back(std::move(assertion_outcome));
   }
 
-  auto *impl = new TestOutcome_impl{
+  auto *impl = new TestOutcome_impl{};
+
+  impl->initialize(
     test_id,
     std::move(assertion_outcomes),
     this->get_group_name(this->get_group_id(test_id)),
     this->get_test_name(test_id),
-    this->get_test_index(test_id)};
+    this->get_test_index(test_id));
 
   return TestOutcome{impl};
 }
@@ -338,7 +376,9 @@ auto Engine_impl::get_assertions() const -> std::vector<AssertionRecord>
 
 auto Engine_impl::make_context(TestId const test_id) const -> Context
 {
-  auto *impl = new Context_impl{*this->engine_, test_id};
+  auto *impl = new Context_impl{};
+
+  impl->initialize(*this->engine_, test_id);
 
   return Context{impl};
 }

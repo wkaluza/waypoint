@@ -22,17 +22,28 @@ namespace waypoint::internal
 class AssertionOutcome_impl
 {
 public:
-  std::string const group_name;
-  std::string const test_name;
-  std::string const message;
-  bool const passed;
-  unsigned long long const index;
+  AssertionOutcome_impl();
+
+  void initialize(
+    std::string group_name,
+    std::string test_name,
+    std::string message,
+    bool passed,
+    unsigned long long index);
+
+  std::string group_name;
+  std::string test_name;
+  std::string message;
+  bool passed;
+  unsigned long long index;
 };
 
 class TestOutcome_impl
 {
 public:
-  explicit TestOutcome_impl(
+  TestOutcome_impl();
+
+  void initialize(
     TestId id,
     std::vector<AssertionOutcome> assertion_outcomes,
     std::string group_name,
@@ -82,7 +93,7 @@ private:
 class AssertionRecord
 {
 public:
-  explicit AssertionRecord(
+  AssertionRecord(
     bool condition,
     TestId test_id,
     AssertionIndex index,
@@ -120,23 +131,26 @@ private:
 class Test_impl
 {
 public:
-  explicit Test_impl(Engine &engine);
+  Test_impl();
+
+  void initialize(Engine &engine, TestId id);
 
   [[nodiscard]]
   auto get_engine() const -> Engine &;
-  void set_id(TestId test_id);
   [[nodiscard]]
   auto get_id() const -> TestId;
 
 private:
-  Engine &engine_;
+  Engine *engine_;
   TestId id_;
 };
 
 class Context_impl
 {
 public:
-  explicit Context_impl(Engine &engine, TestId test_id);
+  Context_impl();
+
+  void initialize(Engine &engine, TestId test_id);
 
   [[nodiscard]]
   auto get_engine() const -> Engine &;
@@ -147,7 +161,7 @@ public:
   auto test_id() const -> TestId;
 
 private:
-  Engine &engine_;
+  Engine *engine_;
   TestId test_id_;
   AssertionIndex assertion_index_;
 };

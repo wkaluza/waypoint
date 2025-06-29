@@ -30,65 +30,30 @@ template<typename T>
 class UniquePtr
 {
 public:
-  ~UniquePtr()
-  {
-    delete ptr_;
-  }
-
+  ~UniquePtr();
   UniquePtr() = delete;
-
-  explicit UniquePtr(T *ptr) :
-    ptr_{ptr}
-  {
-  }
-
+  explicit UniquePtr(T *ptr);
   UniquePtr(UniquePtr const &other) = delete;
   auto operator=(UniquePtr const &other) -> UniquePtr & = delete;
+  UniquePtr(UniquePtr &&other) noexcept;
+  auto operator=(UniquePtr &&other) noexcept -> UniquePtr &;
 
-  UniquePtr(UniquePtr &&other) noexcept :
-    ptr_{other.ptr_}
-  {
-    other.ptr_ = nullptr;
-  }
-
-  auto operator=(UniquePtr &&other) noexcept -> UniquePtr &
-  {
-    delete ptr_;
-
-    ptr_ = other.ptr_;
-    other.ptr_ = nullptr;
-
-    return *this;
-  }
-
-  explicit operator bool() const
-  {
-    return ptr_ != nullptr;
-  }
-
-  auto operator->() -> T *
-  {
-    return ptr_;
-  }
-
-  auto operator->() const -> T *
-  {
-    return ptr_;
-  }
-
-  auto operator*() -> T &
-  {
-    return *ptr_;
-  }
-
-  auto operator*() const -> T &
-  {
-    return *ptr_;
-  }
+  explicit operator bool() const;
+  auto operator->() const -> T *;
+  auto operator*() -> T &;
+  auto operator*() const -> T &;
 
 private:
   T *ptr_;
 };
+
+extern template class UniquePtr<AssertionOutcome_impl>;
+extern template class UniquePtr<Context_impl>;
+extern template class UniquePtr<Engine_impl>;
+extern template class UniquePtr<Group_impl>;
+extern template class UniquePtr<RunResult_impl>;
+extern template class UniquePtr<Test_impl>;
+extern template class UniquePtr<TestOutcome_impl>;
 
 } // namespace waypoint::internal
 
