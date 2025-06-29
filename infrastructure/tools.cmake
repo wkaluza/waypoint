@@ -111,3 +111,14 @@ function(new_target)
                                ${PRESET_PROP_EXPORT_COMPILE_COMMANDS})
   endif()
 endfunction()
+
+function(new_basic_test name)
+  new_target(
+    TEST
+    TARGET
+    ${name}
+    SOURCES
+    ${PROJECT_ROOT_DIR}/test/${name}/main.cpp
+    LINKS
+    waypoint)
+endfunction()
