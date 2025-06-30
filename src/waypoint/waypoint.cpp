@@ -51,19 +51,24 @@ TestOutcome::TestOutcome(internal::TestOutcome_impl *const impl) :
 
 TestOutcome::TestOutcome(TestOutcome &&other) noexcept = default;
 
-auto TestOutcome::test_name() const -> char const *
-{
-  return this->impl_->get_test_name().c_str();
-}
-
 auto TestOutcome::group_name() const -> char const *
 {
   return this->impl_->get_group_name().c_str();
 }
 
+auto TestOutcome::group_id() const -> unsigned long long
+{
+  return this->impl_->get_group_id();
+}
+
+auto TestOutcome::test_name() const -> char const *
+{
+  return this->impl_->get_test_name().c_str();
+}
+
 auto TestOutcome::test_id() const -> unsigned long long
 {
-  return this->impl_->get_id();
+  return this->impl_->get_test_id();
 }
 
 auto TestOutcome::test_index() const -> unsigned long long

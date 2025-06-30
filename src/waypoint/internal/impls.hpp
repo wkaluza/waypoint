@@ -45,29 +45,33 @@ public:
   TestOutcome_impl();
 
   void initialize(
-    TestId id,
+    TestId test_id,
+    GroupId group_id,
     std::vector<AssertionOutcome> assertion_outcomes,
     std::string group_name,
     std::string test_name,
     unsigned long long index);
 
   [[nodiscard]]
-  auto get_id() const -> unsigned long long;
+  auto get_test_name() const -> std::string const &;
+  [[nodiscard]]
+  auto get_test_id() const -> unsigned long long;
+  [[nodiscard]]
+  auto get_group_name() const -> std::string const &;
+  [[nodiscard]]
+  auto get_group_id() const -> unsigned long long;
   [[nodiscard]]
   auto get_assertion_count() const -> unsigned long long;
   [[nodiscard]]
   auto get_assertion_outcome(unsigned long long index) const
     -> AssertionOutcome const &;
   [[nodiscard]]
-  auto get_group_name() const -> std::string const &;
-  [[nodiscard]]
-  auto get_test_name() const -> std::string const &;
-  [[nodiscard]]
   auto get_index() const -> unsigned long long;
 
 private:
   std::vector<AssertionOutcome> assertion_outcomes_;
   TestId test_id_;
+  GroupId group_id_;
   std::string group_name_;
   std::string test_name_;
   unsigned long long test_index_;

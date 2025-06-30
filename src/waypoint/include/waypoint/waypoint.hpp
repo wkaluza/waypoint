@@ -108,9 +108,11 @@ public:
   auto operator=(TestOutcome &&other) noexcept -> TestOutcome & = delete;
 
   [[nodiscard]]
-  auto test_name() const -> char const *;
-  [[nodiscard]]
   auto group_name() const -> char const *;
+  [[nodiscard]]
+  auto group_id() const -> unsigned long long;
+  [[nodiscard]]
+  auto test_name() const -> char const *;
   [[nodiscard]]
   auto test_id() const -> unsigned long long;
   [[nodiscard]]

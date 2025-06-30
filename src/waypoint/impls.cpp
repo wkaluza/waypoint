@@ -40,27 +40,45 @@ void AssertionOutcome_impl::initialize(
 
 TestOutcome_impl::TestOutcome_impl() :
   test_id_{},
+  group_id_{},
   test_index_{}
 {
 }
 
 void TestOutcome_impl::initialize(
-  TestId const id,
+  TestId const test_id,
+  GroupId const group_id,
   std::vector<AssertionOutcome> assertion_outcomes,
   std::string group_name,
   std::string test_name,
   unsigned long long const index)
 {
-  this->test_id_ = id;
+  this->test_id_ = test_id;
+  this->group_id_ = group_id;
   this->assertion_outcomes_ = std::move(assertion_outcomes);
   this->group_name_ = std::move(group_name);
   this->test_name_ = std::move(test_name);
   this->test_index_ = index;
 }
 
-auto TestOutcome_impl::get_id() const -> unsigned long long
+auto TestOutcome_impl::get_test_name() const -> std::string const &
+{
+  return this->test_name_;
+}
+
+auto TestOutcome_impl::get_test_id() const -> unsigned long long
 {
   return this->test_id_;
+}
+
+auto TestOutcome_impl::get_group_name() const -> std::string const &
+{
+  return this->group_name_;
+}
+
+auto TestOutcome_impl::get_group_id() const -> unsigned long long
+{
+  return this->group_id_;
 }
 
 auto TestOutcome_impl::get_assertion_count() const -> unsigned long long
@@ -72,16 +90,6 @@ auto TestOutcome_impl::get_assertion_outcome(unsigned long long index) const
   -> AssertionOutcome const &
 {
   return this->assertion_outcomes_[index];
-}
-
-auto TestOutcome_impl::get_group_name() const -> std::string const &
-{
-  return this->group_name_;
-}
-
-auto TestOutcome_impl::get_test_name() const -> std::string const &
-{
-  return this->test_name_;
 }
 
 auto TestOutcome_impl::get_index() const -> unsigned long long
@@ -302,6 +310,7 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const -> TestOutcome
 
   impl->initialize(
     test_id,
+    this->get_group_id(test_id),
     std::move(assertion_outcomes),
     this->get_group_name(this->get_group_id(test_id)),
     this->get_test_name(test_id),

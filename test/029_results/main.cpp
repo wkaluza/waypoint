@@ -85,10 +85,19 @@ auto main() -> int
     {5, 0},
   };
 
-  for(unsigned i = 0; i < test_count; ++i)
+  for(unsigned test_id = 0; test_id < test_count; ++test_id)
   {
-    auto const &test_outcome = results.test_outcome(i);
-    if(test_outcome.test_id() != i)
+    auto const &test_outcome = results.test_outcome(test_id);
+    auto const group_id = std::invoke(
+      [test_id]() -> unsigned long long
+      {
+        return test_id < 3 ? 0 : 1;
+      });
+    if(test_outcome.group_id() != group_id)
+    {
+      return 1;
+    }
+    if(test_outcome.test_id() != test_id)
     {
       return 1;
     }
@@ -98,9 +107,9 @@ auto main() -> int
     }
 
     auto const group_name = std::invoke(
-      [i]() -> std::string
+      [test_id]() -> std::string
       {
-        return i < 3 ? "Test group 1" : "Test group 2";
+        return test_id < 3 ? "Test group 1" : "Test group 2";
       });
     if(test_outcome.group_name() != group_name)
     {
@@ -108,11 +117,11 @@ auto main() -> int
     }
 
     auto const test_name = std::invoke(
-      [i]()
+      [test_id]()
       {
         std::ostringstream stream;
 
-        stream << "Test " << i + 1;
+        stream << "Test " << test_id + 1;
 
         return stream.str();
       });
