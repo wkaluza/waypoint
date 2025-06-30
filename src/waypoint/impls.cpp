@@ -314,23 +314,16 @@ auto Engine_impl::register_test(
   GroupId const group_id,
   TestName const &test_name) -> TestId
 {
-  if(test_id_maps_.size() <= group_id)
-  {
-    test_id_maps_.resize(group_id + 1);
-  }
-
-  auto &test_id_map = test_id_maps_[group_id];
-  if(test_id_map.contains(test_name))
+  auto &test_names = test_names_per_group_[group_id];
+  if(test_names.contains(test_name))
   {
     auto const &group_name = this->group_id2name_map_[group_id];
-    this->report_duplicate_test(group_name, test_name);
-  }
-  else
-  {
-    test_id_map[test_name] = test_id_counter_++;
+    this->report_duplicate_test_name(group_name, test_name);
   }
 
-  auto const test_id = test_id_map[test_name];
+  test_names.insert(test_name);
+
+  auto const test_id = test_id_counter_++;
 
   test_id2group_id_[test_id] = group_id;
 
@@ -352,7 +345,7 @@ void Engine_impl::report_error(ErrorType type, std::string const &message)
   this->errors_.emplace_back(type, message);
 }
 
-void Engine_impl::report_duplicate_test(
+void Engine_impl::report_duplicate_test_name(
   GroupName const &group_name,
   TestName const &test_name)
 {

@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace waypoint
@@ -224,7 +225,7 @@ public:
   [[nodiscard]]
   auto make_test_outcome(TestId test_id) const -> TestOutcome;
   void report_error(ErrorType type, std::string const &message);
-  void report_duplicate_test(
+  void report_duplicate_test_name(
     GroupName const &group_name,
     TestName const &test_name);
   [[nodiscard]]
@@ -244,7 +245,8 @@ private:
   std::unordered_map<TestId, TestName> test_id2name_map_;
   std::unordered_map<TestId, GroupId> test_id2group_id_;
   std::unordered_map<TestId, unsigned long long> test_id2test_index_;
-  std::vector<std::unordered_map<TestName, TestId>> test_id_maps_;
+  std::unordered_map<GroupId, std::unordered_set<TestName>>
+    test_names_per_group_;
   std::vector<Error> errors_;
   std::vector<AssertionRecord> assertions_;
   std::vector<TestRecord> bodies_;
