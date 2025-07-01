@@ -9,6 +9,22 @@ function prepare_apt
     --yes
 }
 
+function set_timezone
+{
+  local timezone="$1"
+
+  ln \
+    --force \
+    --symbolic \
+    "/usr/share/zoneinfo/${timezone}" \
+    "/etc/localtime"
+  echo "${timezone}" >"/etc/timezone"
+
+  apt-get install \
+    --yes \
+    tzdata
+}
+
 function create_user
 {
   local uid="$1"
@@ -78,8 +94,11 @@ function main
   local uid="$1"
   local gid="$2"
   local username="$3"
+  local timezone="$4"
 
   prepare_apt
+  set_timezone \
+    "${timezone}"
   create_user \
     "${uid}" \
     "${gid}" \
@@ -90,4 +109,4 @@ function main
   ln --force --symbolic /usr/bin/gcov-15 /usr/bin/gcov
 }
 
-main "$1" "$2" "$3"
+main "$1" "$2" "$3" "$4"

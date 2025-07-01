@@ -11,6 +11,21 @@ LOCAL_USERNAME="$(id -un)"
 LOCAL_UID="$(id -u)"
 LOCAL_GID="$(id -g)"
 
+function current_timezone
+{
+  local output
+
+  if command -v timedatectl &>/dev/null; then
+    output="$(source <(timedatectl show |
+      grep -E '^Timezone=') &&
+      echo "${Timezone}")"
+  else
+    output="$(cat /etc/timezone)"
+  fi
+
+  echo "${output}"
+}
+
 function main
 {
   docker build \
@@ -21,6 +36,7 @@ function main
     --build-arg DOCKER_USERNAME="${LOCAL_USERNAME}" \
     --build-arg DOCKER_UID="${LOCAL_UID}" \
     --build-arg DOCKER_GID="${LOCAL_GID}" \
+    --build-arg DOCKER_HOST_TIMEZONE="$(current_timezone)" \
     "${DOCKER_BUILD_CONTEXT}"
 
   docker run \
