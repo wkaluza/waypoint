@@ -27,6 +27,151 @@ class TestOutcome_impl;
 auto get_impl(Engine const &engine) -> Engine_impl &;
 
 template<typename T>
+struct remove_reference
+{
+  using type = T;
+};
+
+template<typename T>
+struct remove_reference<T &>
+{
+  using type = T;
+};
+
+template<typename T>
+struct remove_reference<T &&>
+{
+  using type = T;
+};
+
+template<typename T>
+using remove_reference_t = typename remove_reference<T>::type;
+
+template<typename T>
+struct remove_cv
+{
+  using type = T;
+};
+
+template<typename T>
+struct remove_cv<T const>
+{
+  using type = T;
+};
+
+template<typename T>
+struct remove_cv<T volatile>
+{
+  using type = T;
+};
+
+template<typename T>
+struct remove_cv<T const volatile>
+{
+  using type = T;
+};
+
+template<typename T>
+using remove_cv_t = typename remove_cv<T>::type;
+
+template<typename T>
+struct remove_cv_ref
+{
+  using type = remove_cv_t<remove_reference_t<T>>;
+};
+
+template<typename T>
+using remove_cv_ref_t = typename remove_cv_ref<T>::type;
+
+template<typename T, typename U>
+struct is_same
+{
+  constexpr static bool value = false;
+};
+
+template<typename T>
+struct is_same<T, T>
+{
+  constexpr static bool value = true;
+};
+
+template<typename T, typename U>
+constexpr bool is_same_v = is_same<T, U>::value;
+
+class FunctionBase
+{
+public:
+  virtual ~FunctionBase() = default;
+  FunctionBase() = default;
+  FunctionBase(FunctionBase const &other) = delete;
+  FunctionBase(FunctionBase &&other) noexcept = default;
+  auto operator=(FunctionBase const &other) -> FunctionBase & = delete;
+  auto operator=(FunctionBase &&other) noexcept -> FunctionBase & = delete;
+
+  virtual void invoke(Context &ctx) = 0;
+};
+
+template<typename F>
+class Function final : public FunctionBase
+{
+public:
+  explicit Function(F const &f) :
+    fn_(f)
+  {
+  }
+
+  // NOLINTNEXTLINE rvalue reference used without std::move
+  explicit Function(F &&f) :
+    fn_(static_cast<remove_reference_t<F> &&>(f))
+  {
+  }
+
+  void invoke(Context &ctx) override
+  {
+    this->fn_(ctx);
+  }
+
+private:
+  F fn_;
+};
+
+class TestBody
+{
+public:
+  ~TestBody()
+  {
+    delete this->fn_;
+  }
+
+  template<typename F>
+  requires requires { !is_same_v<remove_reference_t<F>, TestBody>; }
+  // NOLINTNEXTLINE forwarding reference used without std::forward
+  explicit TestBody(F &&f) :
+    fn_{new Function<remove_reference_t<F>>(static_cast<F &&>(f))}
+  {
+  }
+
+  TestBody(TestBody const &other) = delete;
+
+  TestBody(TestBody &&other) noexcept :
+    fn_{other.fn_}
+  {
+    other.fn_ = nullptr;
+  }
+
+  auto operator=(TestBody const &other) -> TestBody & = delete;
+  auto operator=(TestBody &&other) noexcept -> TestBody & = delete;
+
+  void operator()(Context &ctx) const
+  {
+    this->fn_->invoke(ctx);
+  }
+
+private:
+  FunctionBase *fn_;
+};
+
+template<typename T>
 class UniquePtr
 {
 public:
@@ -66,8 +211,6 @@ auto make_default_engine() -> Engine;
 // defined in core_actions.cpp
 [[nodiscard]]
 auto run_all_tests(Engine &t) -> RunResult;
-
-using BodyFnPtr = void (*)(Context &);
 
 class AssertionOutcome
 {
@@ -157,10 +300,19 @@ public:
   auto operator=(Test const &other) -> Test & = delete;
   auto operator=(Test &&other) noexcept -> Test & = delete;
 
-  auto run(BodyFnPtr const &body) -> Test &;
+  template<typename F>
+  // NOLINTNEXTLINE forwarding reference used without std::forward
+  auto run(F &&body) -> Test &
+  {
+    register_body(internal::TestBody{static_cast<F &&>(body)});
+
+    return *this;
+  }
 
 private:
   explicit Test(internal::Test_impl *impl);
+
+  void register_body(internal::TestBody &&body) const;
 
   internal::UniquePtr<internal::Test_impl> impl_;
 

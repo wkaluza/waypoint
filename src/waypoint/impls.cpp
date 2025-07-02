@@ -97,8 +97,8 @@ auto TestOutcome_impl::get_index() const -> unsigned long long
   return this->test_index_;
 }
 
-TestRecord::TestRecord(BodyFnPtr const body, TestId const test_id) :
-  body_(body),
+TestRecord::TestRecord(TestBody body, TestId const test_id) :
+  body_(std::move(body)),
   test_id_{test_id}
 {
 }
@@ -108,7 +108,7 @@ auto TestRecord::test_id() const -> TestId
   return this->test_id_;
 }
 
-auto TestRecord::body() const -> BodyFnPtr
+auto TestRecord::body() const -> TestBody const &
 {
   return this->body_;
 }
@@ -462,9 +462,9 @@ void Engine_impl::initialize(Engine &engine)
   this->engine_ = &engine;
 }
 
-void Engine_impl::register_test_body(BodyFnPtr body, TestId const test_id)
+void Engine_impl::register_test_body(TestBody &&body, TestId const test_id)
 {
-  this->bodies_.emplace_back(body, test_id);
+  this->bodies_.emplace_back(std::move(body), test_id);
 }
 
 auto Engine_impl::test_bodies() -> std::vector<TestRecord> &

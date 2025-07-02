@@ -80,18 +80,18 @@ private:
 class TestRecord
 {
 public:
-  TestRecord(BodyFnPtr body, TestId test_id);
+  TestRecord(TestBody body, TestId test_id);
 
   [[nodiscard]]
   auto test_id() const -> TestId;
   [[nodiscard]]
-  auto body() const -> BodyFnPtr;
+  auto body() const -> TestBody const &;
 
   [[nodiscard]]
   auto operator<(TestRecord const &other) const -> bool;
 
 private:
-  BodyFnPtr body_;
+  TestBody body_;
   TestId test_id_;
 };
 
@@ -193,7 +193,7 @@ private:
 
 public:
   void initialize(Engine &engine);
-  void register_test_body(BodyFnPtr body, TestId test_id);
+  void register_test_body(TestBody &&body, TestId test_id);
   [[nodiscard]]
   auto test_bodies() -> std::vector<TestRecord> &;
   [[nodiscard]]

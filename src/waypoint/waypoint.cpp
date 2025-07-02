@@ -3,6 +3,7 @@
 #include "impls.hpp"
 
 #include <optional>
+#include <utility>
 
 namespace waypoint
 {
@@ -101,12 +102,10 @@ Test::Test(internal::Test_impl *const impl) :
 {
 }
 
-auto Test::run(BodyFnPtr const &body) -> Test &
+void Test::register_body(internal::TestBody &&body) const
 {
   internal::get_impl(this->impl_->get_engine())
-    .register_test_body(body, this->impl_->get_id());
-
-  return *this;
+    .register_test_body(std::move(body), this->impl_->get_id());
 }
 
 auto Engine::group(char const *name) const -> Group
