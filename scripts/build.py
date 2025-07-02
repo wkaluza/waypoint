@@ -240,15 +240,12 @@ def run(cmd) -> typing.Tuple[bool, str | None]:
     with tempfile.TemporaryFile("r+") as f:
         result = subprocess.run(cmd, stdout=f, stderr=f)
 
-        if result.returncode == 0:
-            return True, None
-
         output = "\n"
         f.seek(0)
         output += f.read()
         output += "\n"
 
-        return False, output
+        return (result.returncode == 0), output
 
 
 def is_linux():
