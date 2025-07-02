@@ -180,12 +180,11 @@ public:
   explicit UniquePtr(T *ptr);
   UniquePtr(UniquePtr const &other) = delete;
   auto operator=(UniquePtr const &other) -> UniquePtr & = delete;
-  UniquePtr(UniquePtr &&other) noexcept;
-  auto operator=(UniquePtr &&other) noexcept -> UniquePtr &;
+  UniquePtr(UniquePtr &&other) noexcept = delete;
+  auto operator=(UniquePtr &&other) noexcept -> UniquePtr & = delete;
 
   explicit operator bool() const;
   auto operator->() const -> T *;
-  auto operator*() -> T &;
   auto operator*() const -> T &;
 
 private:
@@ -217,7 +216,7 @@ class AssertionOutcome
 public:
   ~AssertionOutcome();
   AssertionOutcome(AssertionOutcome const &other) = delete;
-  AssertionOutcome(AssertionOutcome &&other) noexcept;
+  AssertionOutcome(AssertionOutcome &&other) noexcept = delete;
   auto operator=(AssertionOutcome const &other) -> AssertionOutcome & = delete;
   auto operator=(AssertionOutcome &&other) noexcept
     -> AssertionOutcome & = delete;
@@ -236,7 +235,7 @@ public:
 private:
   explicit AssertionOutcome(internal::AssertionOutcome_impl *impl);
 
-  internal::UniquePtr<internal::AssertionOutcome_impl> impl_;
+  internal::UniquePtr<internal::AssertionOutcome_impl> const impl_;
 
   friend class internal::Engine_impl;
 };
@@ -246,7 +245,7 @@ class TestOutcome
 public:
   ~TestOutcome();
   TestOutcome(TestOutcome const &other) = delete;
-  TestOutcome(TestOutcome &&other) noexcept;
+  TestOutcome(TestOutcome &&other) noexcept = delete;
   auto operator=(TestOutcome const &other) -> TestOutcome & = delete;
   auto operator=(TestOutcome &&other) noexcept -> TestOutcome & = delete;
 
@@ -269,7 +268,7 @@ public:
 private:
   explicit TestOutcome(internal::TestOutcome_impl *impl);
 
-  internal::UniquePtr<internal::TestOutcome_impl> impl_;
+  internal::UniquePtr<internal::TestOutcome_impl> const impl_;
 
   friend class internal::Engine_impl;
 };
@@ -286,7 +285,7 @@ public:
 private:
   explicit Group(internal::Group_impl *impl);
 
-  internal::UniquePtr<internal::Group_impl> impl_;
+  internal::UniquePtr<internal::Group_impl> const impl_;
 
   friend class internal::Engine_impl;
 };
@@ -314,7 +313,7 @@ private:
 
   void register_body(internal::TestBody &&body) const;
 
-  internal::UniquePtr<internal::Test_impl> impl_;
+  internal::UniquePtr<internal::Test_impl> const impl_;
 
   friend class internal::Engine_impl;
 };
@@ -334,7 +333,7 @@ public:
 private:
   explicit Context(internal::Context_impl *impl);
 
-  internal::UniquePtr<internal::Context_impl> impl_;
+  internal::UniquePtr<internal::Context_impl> const impl_;
 
   friend class internal::Engine_impl;
 };
@@ -358,7 +357,7 @@ public:
 private:
   explicit RunResult(internal::RunResult_impl *impl);
 
-  internal::UniquePtr<internal::RunResult_impl> impl_;
+  internal::UniquePtr<internal::RunResult_impl> const impl_;
 
   friend class internal::Engine_impl;
 };
@@ -378,7 +377,7 @@ public:
 private:
   explicit Engine(internal::Engine_impl *impl);
 
-  internal::UniquePtr<internal::Engine_impl> impl_;
+  internal::UniquePtr<internal::Engine_impl> const impl_;
 
   friend auto internal::get_impl(Engine const &engine)
     -> internal::Engine_impl &;

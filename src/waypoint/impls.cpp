@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <format>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <random>
 #include <ranges>
@@ -48,7 +49,7 @@ TestOutcome_impl::TestOutcome_impl() :
 void TestOutcome_impl::initialize(
   TestId const test_id,
   GroupId const group_id,
-  std::vector<AssertionOutcome> assertion_outcomes,
+  std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes,
   std::string group_name,
   std::string test_name,
   unsigned long long const index)
@@ -86,10 +87,10 @@ auto TestOutcome_impl::get_assertion_count() const -> unsigned long long
   return this->assertion_outcomes_.size();
 }
 
-auto TestOutcome_impl::get_assertion_outcome(unsigned long long index) const
-  -> AssertionOutcome const &
+auto TestOutcome_impl::get_assertion_outcome(
+  unsigned long long const index) const -> AssertionOutcome const &
 {
-  return this->assertion_outcomes_[index];
+  return *this->assertion_outcomes_[index];
 }
 
 auto TestOutcome_impl::get_index() const -> unsigned long long
@@ -279,9 +280,10 @@ auto Engine_impl::test_count() const -> unsigned long long
   return test_id_counter_;
 }
 
-auto Engine_impl::make_test_outcome(TestId const test_id) const -> TestOutcome
+auto Engine_impl::make_test_outcome(TestId const test_id) const
+  -> std::unique_ptr<TestOutcome>
 {
-  std::vector<AssertionOutcome> assertion_outcomes;
+  std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes;
 
   auto assertions = this->get_assertions() |
     std::ranges::views::filter(
@@ -302,8 +304,8 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const -> TestOutcome
       assertion.passed(),
       assertion.index());
 
-    AssertionOutcome assertion_outcome{assertion_impl};
-    assertion_outcomes.push_back(std::move(assertion_outcome));
+    assertion_outcomes.emplace_back(
+      std::unique_ptr<AssertionOutcome>(new AssertionOutcome{assertion_impl}));
   }
 
   auto *impl = new TestOutcome_impl{};
@@ -316,7 +318,7 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const -> TestOutcome
     this->get_test_name(test_id),
     this->get_test_index(test_id));
 
-  return TestOutcome{impl};
+  return std::unique_ptr<TestOutcome>(new TestOutcome{impl});
 }
 
 auto Engine_impl::register_test(
@@ -525,7 +527,7 @@ void RunResult_impl::initialize(Engine const &engine)
     {
       unsigned long long const n = get_impl(engine).test_count();
 
-      std::vector<TestOutcome> output;
+      std::vector<std::unique_ptr<TestOutcome>> output;
       output.reserve(n);
 
       for(unsigned long long id = 0; id < n; ++id)
@@ -555,7 +557,7 @@ auto RunResult_impl::test_outcome_count() const -> unsigned long long
 auto RunResult_impl::get_test_outcome(unsigned long long const index) const
   -> TestOutcome const &
 {
-  return this->test_outcomes_[index];
+  return *this->test_outcomes_[index];
 }
 
 } // namespace waypoint::internal

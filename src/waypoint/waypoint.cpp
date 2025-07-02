@@ -16,8 +16,6 @@ AssertionOutcome::AssertionOutcome(
 {
 }
 
-AssertionOutcome::AssertionOutcome(AssertionOutcome &&other) noexcept = default;
-
 auto AssertionOutcome::group() const -> char const *
 {
   return this->impl_->group_name.c_str();
@@ -49,8 +47,6 @@ TestOutcome::TestOutcome(internal::TestOutcome_impl *const impl) :
   impl_{internal::UniquePtr{impl}}
 {
 }
-
-TestOutcome::TestOutcome(TestOutcome &&other) noexcept = default;
 
 auto TestOutcome::group_name() const -> char const *
 {

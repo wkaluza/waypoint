@@ -4,6 +4,7 @@
 #include "waypoint.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -47,7 +48,7 @@ public:
   void initialize(
     TestId test_id,
     GroupId group_id,
-    std::vector<AssertionOutcome> assertion_outcomes,
+    std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes,
     std::string group_name,
     std::string test_name,
     unsigned long long index);
@@ -69,7 +70,7 @@ public:
   auto get_index() const -> unsigned long long;
 
 private:
-  std::vector<AssertionOutcome> assertion_outcomes_;
+  std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes_;
   TestId test_id_;
   GroupId group_id_;
   std::string group_name_;
@@ -227,7 +228,7 @@ public:
   [[nodiscard]]
   auto test_count() const -> unsigned long long;
   [[nodiscard]]
-  auto make_test_outcome(TestId test_id) const -> TestOutcome;
+  auto make_test_outcome(TestId test_id) const -> std::unique_ptr<TestOutcome>;
   void report_error(ErrorType type, std::string const &message);
   void report_duplicate_test_name(
     GroupName const &group_name,
@@ -277,7 +278,7 @@ public:
 private:
   bool has_failing_assertions_;
   bool has_errors_;
-  std::vector<TestOutcome> test_outcomes_;
+  std::vector<std::unique_ptr<TestOutcome>> test_outcomes_;
 };
 
 } // namespace waypoint::internal
