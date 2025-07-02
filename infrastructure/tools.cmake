@@ -26,7 +26,10 @@ function(new_target)
     add_library(${arg_TARGET} STATIC)
   endif()
 
-  target_compile_features(${arg_TARGET} PRIVATE cxx_std_23)
+  target_compile_features(
+    ${arg_TARGET}
+    PRIVATE cxx_std_23
+    PUBLIC cxx_std_23)
 
   if(DEFINED PRESET_ENABLE_COVERAGE)
     target_compile_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
