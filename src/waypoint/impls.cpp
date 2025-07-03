@@ -535,6 +535,13 @@ void RunResult_impl::initialize(Engine const &engine)
         output.emplace_back(get_impl(engine).make_test_outcome(id));
       }
 
+      std::ranges::sort(
+        output,
+        [](auto const &a, auto const &b)
+        {
+          return a->test_id() < b->test_id();
+        });
+
       return output;
     });
 }
