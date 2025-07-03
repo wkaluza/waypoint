@@ -141,7 +141,7 @@ public:
   ~TestBody();
 
   template<typename F>
-  requires requires { !is_same_v<remove_reference_t<F>, TestBody>; }
+  requires requires { !is_same_v<remove_cv_ref_t<F>, TestBody>; }
   // NOLINTNEXTLINE forwarding reference used without std::forward
   explicit TestBody(F &&f) :
     fn_{new Function<remove_reference_t<F>>(static_cast<F &&>(f))}
