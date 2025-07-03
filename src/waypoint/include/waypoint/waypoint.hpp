@@ -138,10 +138,7 @@ private:
 class TestBody
 {
 public:
-  ~TestBody()
-  {
-    delete this->fn_;
-  }
+  ~TestBody();
 
   template<typename F>
   requires requires { !is_same_v<remove_reference_t<F>, TestBody>; }
@@ -153,19 +150,12 @@ public:
 
   TestBody(TestBody const &other) = delete;
 
-  TestBody(TestBody &&other) noexcept :
-    fn_{other.fn_}
-  {
-    other.fn_ = nullptr;
-  }
+  TestBody(TestBody &&other) noexcept;
 
   auto operator=(TestBody const &other) -> TestBody & = delete;
   auto operator=(TestBody &&other) noexcept -> TestBody & = delete;
 
-  void operator()(Context &ctx) const
-  {
-    this->fn_->invoke(ctx);
-  }
+  void operator()(Context &ctx) const;
 
 private:
   FunctionBase *fn_;

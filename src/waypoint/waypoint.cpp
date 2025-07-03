@@ -5,6 +5,27 @@
 #include <optional>
 #include <utility>
 
+namespace waypoint::internal
+{
+
+TestBody::~TestBody()
+{
+  delete this->fn_;
+}
+
+TestBody::TestBody(TestBody &&other) noexcept :
+  fn_{other.fn_}
+{
+  other.fn_ = nullptr;
+}
+
+void TestBody::operator()(Context &ctx) const
+{
+  this->fn_->invoke(ctx);
+}
+
+} // namespace waypoint::internal
+
 namespace waypoint
 {
 
