@@ -114,11 +114,6 @@ auto TestRecord::body() const -> TestBody const &
   return this->body_;
 }
 
-auto TestRecord::operator<(TestRecord const &other) const -> bool
-{
-  return this->test_id_ < other.test_id_;
-}
-
 AssertionRecord::AssertionRecord(
   bool const condition,
   TestId const test_id,
@@ -424,7 +419,7 @@ auto get_body_ptrs(Engine const &t) -> std::vector<TestRecord const *>
     body_ptrs,
     [](auto *a, auto *b)
     {
-      return *a < *b;
+      return a->test_id() < b->test_id();
     });
 
   return body_ptrs;

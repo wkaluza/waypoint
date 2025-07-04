@@ -88,9 +88,6 @@ public:
   [[nodiscard]]
   auto body() const -> TestBody const &;
 
-  [[nodiscard]]
-  auto operator<(TestRecord const &other) const -> bool;
-
 private:
   TestBody body_;
   TestId test_id_;
