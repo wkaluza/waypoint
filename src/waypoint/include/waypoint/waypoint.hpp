@@ -748,12 +748,13 @@ private:
 } // namespace waypoint
 
 #define _INTERNAL_WAYPOINT_AUTORUN_IMPL2_(engine, section_name, counter, line) \
-  void _INTERNAL_WAYPOINT_TEST##_##counter##_##line( \
+  static void _INTERNAL_WAYPOINT_TEST##_##counter##_##line( \
     waypoint::Engine &(engine)); \
-  void (*_INTERNAL_WAYPOINT_TEST_PTR##_##counter##_##line)(waypoint::Engine &) \
-    __attribute__((used, section(#section_name))) = \
-      _INTERNAL_WAYPOINT_TEST##_##counter##_##line; \
-  void _INTERNAL_WAYPOINT_TEST##_##counter##_##line(waypoint::Engine &(engine))
+  static void (*_INTERNAL_WAYPOINT_TEST_PTR##_##counter##_##line)( \
+    waypoint::Engine &) __attribute__((used, section(#section_name))) = \
+    _INTERNAL_WAYPOINT_TEST##_##counter##_##line; \
+  static void _INTERNAL_WAYPOINT_TEST##_##counter##_##line( \
+    waypoint::Engine &(engine))
 
 #define _INTERNAL_WAYPOINT_AUTORUN_IMPL1_(engine, section_name, counter, line) \
   _INTERNAL_WAYPOINT_AUTORUN_IMPL2_(engine, section_name, counter, line)

@@ -183,6 +183,8 @@ void register_test_unique_ptr_moveable(
       });
 }
 
+} // namespace
+
 WAYPOINT_AUTORUN(t)
 {
   register_test_unique_ptr<waypoint::internal::AssertionOutcome_impl>(
@@ -203,8 +205,6 @@ WAYPOINT_AUTORUN(t)
     t,
     "Registrar_impl");
 }
-
-} // namespace
 
 auto main() -> int
 {

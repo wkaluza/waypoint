@@ -6,9 +6,6 @@
 #include <utility>
 #include <vector>
 
-namespace
-{
-
 class CopyableImmovable
 {
 public:
@@ -62,8 +59,6 @@ WAYPOINT_AUTORUN(t)
         ctx.assert(captured5.foo == 42);
       });
 }
-
-} // namespace
 
 auto main() -> int
 {

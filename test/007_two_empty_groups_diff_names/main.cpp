@@ -1,8 +1,5 @@
 #include "waypoint/waypoint.hpp"
 
-namespace
-{
-
 WAYPOINT_AUTORUN(t)
 {
   [[maybe_unused]]
@@ -10,8 +7,6 @@ WAYPOINT_AUTORUN(t)
   [[maybe_unused]]
   auto g2 = t.group("Test group 2");
 }
-
-} // namespace
 
 auto main() -> int
 {

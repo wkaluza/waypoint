@@ -1,8 +1,5 @@
 #include "waypoint/waypoint.hpp"
 
-namespace
-{
-
 WAYPOINT_AUTORUN(t)
 {
   auto g1 = t.group("Test group 1");
@@ -14,8 +11,6 @@ WAYPOINT_AUTORUN(t)
         ctx.assert(true);
       });
 }
-
-} // namespace
 
 auto main() -> int
 {

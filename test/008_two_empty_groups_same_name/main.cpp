@@ -1,15 +1,10 @@
 #include "waypoint/waypoint.hpp"
 
-namespace
-{
-
 WAYPOINT_AUTORUN(t)
 {
   auto g1 = t.group("Test group 1");
   auto g2 = t.group("Test group 1");
 }
-
-} // namespace
 
 auto main() -> int
 {

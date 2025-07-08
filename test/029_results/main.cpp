@@ -6,9 +6,6 @@
 #include <string>
 #include <unordered_map>
 
-namespace
-{
-
 WAYPOINT_AUTORUN(t)
 {
   auto const g1 = t.group("Test group 1");
@@ -57,8 +54,6 @@ WAYPOINT_AUTORUN(t)
         ctx.assert(true, "Condition must be true");
       });
 }
-
-} // namespace
 
 auto main() -> int
 {

@@ -10,6 +10,8 @@ struct X
   int foo;
 };
 
+} // namespace
+
 WAYPOINT_AUTORUN(t)
 {
   auto g1 = t.group("Test group 1");
@@ -117,8 +119,6 @@ WAYPOINT_AUTORUN(t)
         x = 1'000'000;
       });
 }
-
-} // namespace
 
 auto main() -> int
 {

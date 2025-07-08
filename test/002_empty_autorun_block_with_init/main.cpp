@@ -3,12 +3,15 @@
 namespace
 {
 
-WAYPOINT_AUTORUN(t)
-{
-  (void)t;
-}
+int x = 0;
 
 } // namespace
+
+WAYPOINT_AUTORUN(t)
+{
+  ++x;
+  (void)t;
+}
 
 auto main() -> int
 {
@@ -16,6 +19,11 @@ auto main() -> int
 
   auto const result = waypoint::run_all_tests(t);
   if(!result.success())
+  {
+    return 1;
+  }
+
+  if(x != 1)
   {
     return 1;
   }
