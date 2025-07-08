@@ -395,7 +395,7 @@ def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str |
     )
     duration = time.time_ns() - start_time
 
-    return success, file, duration, None if success else output
+    return success, file, duration, None if success else output.strip()
 
 
 def run_clang_tidy(preset) -> bool:
