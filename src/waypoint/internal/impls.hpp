@@ -81,15 +81,15 @@ private:
 class TestRecord
 {
 public:
-  TestRecord(TestBody body, TestId test_id);
+  TestRecord(TestBodyNoFixture body, TestId test_id);
 
   [[nodiscard]]
   auto test_id() const -> TestId;
   [[nodiscard]]
-  auto body() const -> TestBody const &;
+  auto body() const -> TestBodyNoFixture const &;
 
 private:
-  TestBody body_;
+  TestBodyNoFixture body_;
   TestId test_id_;
 };
 
@@ -131,6 +131,24 @@ private:
   GroupId id_;
 };
 
+class Registrar_impl
+{
+public:
+  ~Registrar_impl() = default;
+  Registrar_impl();
+  Registrar_impl(Registrar_impl const &) = delete;
+  Registrar_impl(Registrar_impl &&) noexcept = delete;
+  auto operator=(Registrar_impl const &) -> Registrar_impl & = delete;
+  auto operator=(Registrar_impl &&) noexcept -> Registrar_impl & = delete;
+
+  void initialize(Engine *engine);
+  [[nodiscard]]
+  auto get_engine() const -> Engine &;
+
+private:
+  Engine *engine_;
+};
+
 class Test_impl
 {
 public:
@@ -142,10 +160,13 @@ public:
   auto get_engine() const -> Engine &;
   [[nodiscard]]
   auto get_id() const -> TestId;
+  [[nodiscard]]
+  auto registrar() -> Registrar;
 
 private:
   Engine *engine_;
   TestId id_;
+  Registrar registrar_;
 };
 
 class Context_impl
@@ -191,7 +212,7 @@ private:
 
 public:
   void initialize(Engine &engine);
-  void register_test_body(TestBody &&body, TestId test_id);
+  void register_test_body(TestBodyNoFixture body, TestId test_id);
   [[nodiscard]]
   auto test_bodies() -> std::vector<TestRecord> &;
   [[nodiscard]]
@@ -226,6 +247,7 @@ public:
   auto test_count() const -> unsigned long long;
   [[nodiscard]]
   auto make_test_outcome(TestId test_id) const -> std::unique_ptr<TestOutcome>;
+  auto make_registrar() const -> Registrar;
   void report_error(ErrorType type, std::string const &message);
   void report_duplicate_test_name(
     GroupName const &group_name,

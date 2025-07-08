@@ -19,6 +19,7 @@ class AssertionOutcome_impl;
 class Context_impl;
 class Engine_impl;
 class Group_impl;
+class Registrar_impl;
 class RunResult_impl;
 class Test_impl;
 class TestOutcome_impl;
@@ -83,6 +84,26 @@ struct remove_cv_ref
 template<typename T>
 using remove_cv_ref_t = typename remove_cv_ref<T>::type;
 
+template<typename T>
+// NOLINTNEXTLINE missing std::forward
+constexpr auto move(T &&t) noexcept -> remove_reference_t<T> &&
+{
+  return static_cast<remove_reference_t<T> &&>(t);
+}
+
+template<typename T>
+constexpr auto forward(remove_reference_t<T> &t) noexcept -> T &&
+{
+  return static_cast<T &&>(t);
+}
+
+template<typename T>
+// NOLINTNEXTLINE missing std::move
+constexpr auto forward(remove_reference_t<T> &&t) noexcept -> T &&
+{
+  return static_cast<T &&>(t);
+}
+
 template<typename T, typename U>
 struct is_same
 {
@@ -98,67 +119,272 @@ struct is_same<T, T>
 template<typename T, typename U>
 constexpr bool is_same_v = is_same<T, U>::value;
 
-class FunctionBase
+template<typename T>
+struct is_void
 {
-public:
-  virtual ~FunctionBase() = default;
-  FunctionBase() = default;
-  FunctionBase(FunctionBase const &other) = delete;
-  FunctionBase(FunctionBase &&other) noexcept = default;
-  auto operator=(FunctionBase const &other) -> FunctionBase & = delete;
-  auto operator=(FunctionBase &&other) noexcept -> FunctionBase & = delete;
-
-  virtual void invoke(Context &ctx) = 0;
+  constexpr static bool value = false;
 };
+
+template<>
+struct is_void<void>
+{
+  constexpr static bool value = true;
+};
+
+template<typename T>
+constexpr bool is_void_v = is_void<T>::value;
+
+template<bool B, typename T = void>
+struct enable_if
+{
+};
+
+template<typename T>
+struct enable_if<true, T>
+{
+  using type = T;
+};
+
+template<bool B, typename T>
+using enable_if_t = typename enable_if<B, T>::type;
+
+template<typename T>
+auto declval() -> T;
+
+template<typename F, typename... Args>
+auto invoke_impl(F &&f, Args &&...args)
+  -> decltype(forward<F>(f)(forward<Args>(args)...));
+
+template<typename F, typename... Args>
+struct invoke_result
+{
+  using type = decltype(invoke_impl(declval<F>(), declval<Args>()...));
+};
+
+template<typename F, typename... Args>
+using invoke_result_t = typename invoke_result<F, Args...>::type;
 
 template<typename F>
-class Function final : public FunctionBase
+using setup_invoke_result_t = typename invoke_result<F, Context &>::type;
+
+template<typename T>
+class Function;
+
+template<typename R, typename... Args>
+class Function<R(Args...)>
 {
 public:
-  explicit Function(F const &f) :
-    fn_(f)
+  ~Function()
   {
+    delete callable_;
   }
 
-  // NOLINTNEXTLINE rvalue reference used without std::move
-  explicit Function(F &&f) :
-    fn_(static_cast<remove_reference_t<F> &&>(f))
+  Function() = delete;
+  Function(Function const &other) = delete;
+  auto operator=(Function const &other) -> Function & = delete;
+
+  Function(Function &&other) noexcept :
+    callable_{other.callable_}
   {
+    other.callable_ = nullptr;
   }
 
-  void invoke(Context &ctx) override
+  auto operator=(Function &&other) noexcept -> Function &
   {
-    this->fn_(ctx);
+    // No need to handle self-assignment
+    this->callable_ = other.callable_;
+    other.callable_ = nullptr;
+
+    return *this;
   }
-
-private:
-  F fn_;
-};
-
-class TestBody
-{
-public:
-  ~TestBody();
 
   template<typename F>
-  requires requires { !is_same_v<remove_cv_ref_t<F>, TestBody>; }
-  // NOLINTNEXTLINE forwarding reference used without std::forward
-  explicit TestBody(F &&f) :
-    fn_{new Function<remove_reference_t<F>>(static_cast<F &&>(f))}
+  requires requires { !is_same_v<F, Function<R(Args...)>>; }
+  // NOLINTNEXTLINE missing std::forward, missing explicit
+  Function(F &&f) :
+    callable_{new callable<F>{internal::forward<F>(f)}}
   {
   }
 
-  TestBody(TestBody const &other) = delete;
-
-  TestBody(TestBody &&other) noexcept;
-
-  auto operator=(TestBody const &other) -> TestBody & = delete;
-  auto operator=(TestBody &&other) noexcept -> TestBody & = delete;
-
-  void operator()(Context &ctx) const;
+  auto operator()(Args &&...args) const -> R
+  {
+    return this->callable_->invoke(internal::forward<Args>(args)...);
+  }
 
 private:
-  FunctionBase *fn_;
+  class callable_interface
+  {
+  public:
+    virtual ~callable_interface() = default;
+    callable_interface() = default;
+    callable_interface(callable_interface const &other) = default;
+    callable_interface(callable_interface &&other) noexcept = default;
+    auto operator=(callable_interface const &other)
+      -> callable_interface & = delete;
+    auto operator=(callable_interface &&other) noexcept
+      -> callable_interface & = delete;
+
+    virtual auto invoke(Args &&...args) -> R = 0;
+  };
+
+  template<typename F>
+  class callable final : public callable_interface
+  {
+  public:
+    ~callable() override = default;
+    callable() = delete;
+    auto operator=(callable const &other) -> callable & = delete;
+    auto operator=(callable &&other) noexcept -> callable & = delete;
+
+    callable(callable const &other) :
+      fn_{other.fn_}
+    {
+    }
+
+    callable(callable &&other) noexcept :
+      fn_{internal::move(other.fn_)}
+    {
+    }
+
+    // NOLINTNEXTLINE missing std::move
+    explicit callable(F &&f) :
+      fn_{internal::forward<F>(f)}
+    {
+    }
+
+    auto invoke(Args &&...args) -> R override
+    {
+      return fn_(internal::move<Args>(args)...);
+    }
+
+  private:
+    F fn_;
+  };
+
+  callable_interface *callable_;
+};
+
+template<typename... Args>
+class Function<void(Args...)>
+{
+public:
+  ~Function()
+  {
+    delete callable_;
+  }
+
+  Function() = delete;
+  Function(Function const &other) = delete;
+  auto operator=(Function const &other) -> Function & = delete;
+
+  Function(Function &&other) noexcept :
+    callable_{other.callable_}
+  {
+    other.callable_ = nullptr;
+  }
+
+  auto operator=(Function &&other) noexcept -> Function &
+  {
+    // No need to handle self-assignment
+    this->callable_ = other.callable_;
+    other.callable_ = nullptr;
+
+    return *this;
+  }
+
+  template<typename F>
+  requires requires { !is_same_v<F, Function<void(Args...)>>; }
+  // NOLINTNEXTLINE missing std::forward, missing explicit
+  Function(F &&f) :
+    callable_{new callable<F>{internal::forward<F>(f)}}
+  {
+  }
+
+  void operator()(Args &&...args) const
+  {
+    this->callable_->invoke(internal::forward<Args>(args)...);
+  }
+
+private:
+  class callable_interface
+  {
+  public:
+    virtual ~callable_interface() = default;
+    callable_interface() = default;
+    callable_interface(callable_interface const &other) = default;
+    callable_interface(callable_interface &&other) noexcept = default;
+    auto operator=(callable_interface const &other)
+      -> callable_interface & = delete;
+    auto operator=(callable_interface &&other) noexcept
+      -> callable_interface & = delete;
+
+    virtual void invoke(Args &&...args) = 0;
+  };
+
+  template<typename F>
+  class callable final : public callable_interface
+  {
+  public:
+    ~callable() override = default;
+    callable() = delete;
+    auto operator=(callable const &other) -> callable & = delete;
+    auto operator=(callable &&other) noexcept -> callable & = delete;
+
+    callable(callable const &other) :
+      fn_{other.fn_}
+    {
+    }
+
+    callable(callable &&other) noexcept :
+      fn_{internal::move(other.fn_)}
+    {
+    }
+
+    // NOLINTNEXTLINE missing std::move
+    explicit callable(F &&f) :
+      fn_{internal::move(f)}
+    {
+    }
+
+    void invoke(Args &&...args) override
+    {
+      fn_(internal::forward<Args>(args)...);
+    }
+
+  private:
+    F fn_;
+  };
+
+  callable_interface *callable_;
+};
+
+using VoidSetup = Function<void(Context &)>;
+using TestBodyNoFixture = Function<void(Context &)>;
+
+template<typename FixtureT>
+using NonVoidSetup = Function<FixtureT(Context &)>;
+template<typename FixtureT>
+using TestBodyWithFixture = Function<void(Context &, FixtureT)>;
+
+template<typename T>
+class UniquePtrMoveable
+{
+public:
+  ~UniquePtrMoveable();
+  UniquePtrMoveable() = delete;
+  explicit UniquePtrMoveable(T *ptr);
+  UniquePtrMoveable(UniquePtrMoveable const &other) = delete;
+  auto operator=(UniquePtrMoveable const &other)
+    -> UniquePtrMoveable & = delete;
+  UniquePtrMoveable(UniquePtrMoveable &&other) noexcept;
+  auto operator=(UniquePtrMoveable &&other) noexcept -> UniquePtrMoveable &;
+
+  explicit operator bool() const;
+  auto operator->() const -> T *;
+  auto operator*() const -> T &;
+
+private:
+  T *ptr_;
 };
 
 template<typename T>
@@ -188,6 +414,29 @@ extern template class UniquePtr<Group_impl>;
 extern template class UniquePtr<RunResult_impl>;
 extern template class UniquePtr<Test_impl>;
 extern template class UniquePtr<TestOutcome_impl>;
+
+extern template class UniquePtrMoveable<Registrar_impl>;
+
+class Registrar
+{
+public:
+  ~Registrar();
+
+  Registrar();
+  Registrar(Registrar const &other) = delete;
+  Registrar(Registrar &&other) noexcept;
+  auto operator=(Registrar const &other) -> Registrar & = delete;
+  auto operator=(Registrar &&other) noexcept -> Registrar &;
+
+  void register_body(unsigned long long test_id, TestBodyNoFixture f) const;
+
+private:
+  explicit Registrar(Registrar_impl *impl);
+
+  UniquePtrMoveable<Registrar_impl> impl_;
+
+  friend class Engine_impl;
+};
 
 } // namespace waypoint::internal
 
@@ -280,6 +529,9 @@ private:
   friend class internal::Engine_impl;
 };
 
+template<typename FixtureT>
+class Test2;
+
 class Test
 {
 public:
@@ -290,22 +542,140 @@ public:
   auto operator=(Test &&other) noexcept -> Test & = delete;
 
   template<typename F>
-  // NOLINTNEXTLINE forwarding reference used without std::forward
-  auto run(F &&body) -> Test &
+  // NOLINTNEXTLINE missing std::forward
+  auto setup(F &&f) -> internal::enable_if_t<
+    internal::is_void_v<internal::setup_invoke_result_t<F>>,
+    Test2<void>>
   {
-    register_body(internal::TestBody{static_cast<F &&>(body)});
+    return this->make_Test2<void>(internal::forward<F>(f));
+  }
 
-    return *this;
+  template<typename F>
+  // NOLINTNEXTLINE missing std::forward
+  auto setup(F &&f) -> internal::enable_if_t<
+    !internal::is_void_v<internal::setup_invoke_result_t<F>>,
+    Test2<internal::setup_invoke_result_t<F>>>
+  {
+    return this->make_Test2<internal::setup_invoke_result_t<F>>(
+      internal::forward<F>(f));
+  }
+
+  template<typename F>
+  // NOLINTNEXTLINE missing std::forward
+  void run(F &&f) const
+  {
+    this->registrar().register_body(
+      this->test_id(),
+      internal::TestBodyNoFixture{internal::forward<F>(f)});
   }
 
 private:
   explicit Test(internal::Test_impl *impl);
 
-  void register_body(internal::TestBody &&body) const;
+  [[nodiscard]]
+  auto registrar() const -> internal::Registrar;
+  [[nodiscard]]
+  auto test_id() const -> unsigned long long;
+
+  template<typename R, typename F>
+  [[nodiscard]]
+  // NOLINTNEXTLINE missing std::forward
+  auto make_Test2(F &&f)
+  {
+    return Test2<R>{
+      internal::forward<F>(f),
+      this->registrar(),
+      this->test_id()};
+  }
 
   internal::UniquePtr<internal::Test_impl> const impl_;
 
   friend class internal::Engine_impl;
+  template<typename FixtureT>
+  friend class Test2;
+};
+
+template<typename FixtureT>
+class Test2
+{
+public:
+  ~Test2() = default;
+  Test2() = delete;
+  Test2(Test2 const &other) = delete;
+  Test2(Test2 &&other) noexcept = delete;
+  auto operator=(Test2 const &other) -> Test2 & = delete;
+  auto operator=(Test2 &&other) noexcept -> Test2 & = delete;
+
+  Test2(
+    internal::NonVoidSetup<FixtureT> setup,
+    internal::Registrar registrar,
+    unsigned long long const test_id) :
+    setup_{internal::move(setup)},
+    registrar_{internal::move(registrar)},
+    test_id_{test_id}
+  {
+  }
+
+  template<typename F>
+  // NOLINTNEXTLINE missing std::forward
+  void run(F &&f)
+  {
+    this->registrar_.register_body(
+      this->test_id_,
+      internal::TestBodyNoFixture{
+        [setup = internal::move(this->setup_),
+         test_body = internal::forward<F>(f)](Context &ctx)
+        {
+          test_body(ctx, setup(ctx));
+        }});
+  }
+
+private:
+  internal::NonVoidSetup<FixtureT> setup_;
+  internal::Registrar registrar_;
+  unsigned long long test_id_;
+};
+
+template<>
+class Test2<void>
+{
+public:
+  ~Test2() = default;
+  Test2() = delete;
+  Test2(Test2 const &other) = delete;
+  Test2(Test2 &&other) noexcept = delete;
+  auto operator=(Test2 const &other) -> Test2 & = delete;
+  auto operator=(Test2 &&other) noexcept -> Test2 & = delete;
+
+  Test2(
+    internal::VoidSetup setup,
+    internal::Registrar registrar,
+    unsigned long long const test_id) :
+    setup_{internal::move(setup)},
+    registrar_{internal::move(registrar)},
+    test_id_{test_id}
+  {
+  }
+
+  template<typename F>
+  // NOLINTNEXTLINE missing std::forward
+  void run(F &&f)
+  {
+    this->registrar_.register_body(
+      this->test_id_,
+      internal::TestBodyNoFixture{
+        [setup = internal::move(this->setup_),
+         test_body = internal::forward<F>(f)](Context &ctx)
+        {
+          setup(ctx);
+          test_body(ctx);
+        }});
+  }
+
+private:
+  internal::VoidSetup setup_;
+  internal::Registrar registrar_;
+  unsigned long long test_id_;
 };
 
 class Context

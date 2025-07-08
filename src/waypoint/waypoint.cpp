@@ -8,20 +8,33 @@
 namespace waypoint::internal
 {
 
-TestBody::~TestBody()
+Registrar::~Registrar() = default;
+
+Registrar::Registrar() :
+  impl_{nullptr}
 {
-  delete this->fn_;
 }
 
-TestBody::TestBody(TestBody &&other) noexcept :
-  fn_{other.fn_}
+Registrar::Registrar(Registrar &&other) noexcept = default;
+
+auto Registrar::operator=(Registrar &&other) noexcept -> Registrar &
 {
-  other.fn_ = nullptr;
+  // No need to handle self-assignment
+  this->impl_ = std::move(other.impl_);
+
+  return *this;
 }
 
-void TestBody::operator()(Context &ctx) const
+Registrar::Registrar(Registrar_impl *impl) :
+  impl_{impl}
 {
-  this->fn_->invoke(ctx);
+}
+
+void Registrar::register_body(
+  unsigned long long const test_id,
+  TestBodyNoFixture f) const
+{
+  get_impl(this->impl_->get_engine()).register_test_body(std::move(f), test_id);
 }
 
 } // namespace waypoint::internal
@@ -119,10 +132,14 @@ Test::Test(internal::Test_impl *const impl) :
 {
 }
 
-void Test::register_body(internal::TestBody &&body) const
+auto Test::registrar() const -> internal::Registrar
 {
-  internal::get_impl(this->impl_->get_engine())
-    .register_test_body(std::move(body), this->impl_->get_id());
+  return this->impl_->registrar();
+}
+
+auto Test::test_id() const -> unsigned long long
+{
+  return this->impl_->get_id();
 }
 
 auto Engine::group(char const *name) const -> Group

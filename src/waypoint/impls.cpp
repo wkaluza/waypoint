@@ -98,7 +98,7 @@ auto TestOutcome_impl::get_index() const -> unsigned long long
   return this->test_index_;
 }
 
-TestRecord::TestRecord(TestBody body, TestId const test_id) :
+TestRecord::TestRecord(TestBodyNoFixture body, TestId const test_id) :
   body_(std::move(body)),
   test_id_{test_id}
 {
@@ -109,7 +109,7 @@ auto TestRecord::test_id() const -> TestId
   return this->test_id_;
 }
 
-auto TestRecord::body() const -> TestBody const &
+auto TestRecord::body() const -> TestBodyNoFixture const &
 {
   return this->body_;
 }
@@ -161,6 +161,21 @@ auto Group_impl::get_id() const -> GroupId
   return this->id_;
 }
 
+Registrar_impl::Registrar_impl() :
+  engine_{nullptr}
+{
+}
+
+void Registrar_impl::initialize(Engine *engine)
+{
+  this->engine_ = engine;
+}
+
+auto Registrar_impl::get_engine() const -> Engine &
+{
+  return *engine_;
+}
+
 Test_impl::Test_impl() :
   engine_{},
   id_{}
@@ -171,6 +186,7 @@ void Test_impl::initialize(Engine &engine, TestId const id)
 {
   this->engine_ = &engine;
   this->id_ = id;
+  this->registrar_ = get_impl(this->get_engine()).make_registrar();
 }
 
 auto Test_impl::get_engine() const -> Engine &
@@ -181,6 +197,11 @@ auto Test_impl::get_engine() const -> Engine &
 auto Test_impl::get_id() const -> TestId
 {
   return this->id_;
+}
+
+auto Test_impl::registrar() -> Registrar
+{
+  return std::move(this->registrar_);
 }
 
 Context_impl::Context_impl() :
@@ -314,6 +335,15 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const
     this->get_test_index(test_id));
 
   return std::unique_ptr<TestOutcome>(new TestOutcome{impl});
+}
+
+auto Engine_impl::make_registrar() const -> Registrar
+{
+  auto *impl = new Registrar_impl{};
+
+  impl->initialize(this->engine_);
+
+  return Registrar{impl};
 }
 
 auto Engine_impl::register_test(
@@ -459,7 +489,9 @@ void Engine_impl::initialize(Engine &engine)
   this->engine_ = &engine;
 }
 
-void Engine_impl::register_test_body(TestBody &&body, TestId const test_id)
+void Engine_impl::register_test_body(
+  TestBodyNoFixture body,
+  TestId const test_id)
 {
   this->bodies_.emplace_back(std::move(body), test_id);
 }
