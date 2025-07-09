@@ -256,7 +256,7 @@ QualifierOrder:
   - restrict
   - volatile
 ReferenceAlignment: Pointer
-ReflowComments: Always
+ReflowComments: IndentOnly
 RemoveBracesLLVM: false
 RemoveEmptyLinesInUnwrappedLines: true
 RemoveParentheses: Leave
