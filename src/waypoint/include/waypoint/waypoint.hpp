@@ -516,62 +516,6 @@ private:
 };
 
 template<typename FixtureT>
-class Test2;
-
-class Test
-{
-public:
-  ~Test();
-  Test(Test const &other) = delete;
-  Test(Test &&other) noexcept = delete;
-  auto operator=(Test const &other) -> Test & = delete;
-  auto operator=(Test &&other) noexcept -> Test & = delete;
-
-  template<typename F>
-  [[nodiscard]]
-  // NOLINTNEXTLINE missing std::forward
-  auto setup(F &&f) -> Test2<internal::setup_invoke_result_t<F>>
-  {
-    return this->make_Test2<internal::setup_invoke_result_t<F>>(
-      internal::forward<F>(f));
-  }
-
-  template<typename F>
-  // NOLINTNEXTLINE missing std::forward
-  void run(F &&f) const
-  {
-    this->registrar().register_body(
-      this->test_id(),
-      internal::TestBodyNoFixture{internal::forward<F>(f)});
-  }
-
-private:
-  explicit Test(internal::Test_impl *impl);
-
-  [[nodiscard]]
-  auto registrar() const -> internal::Registrar;
-  [[nodiscard]]
-  auto test_id() const -> unsigned long long;
-
-  template<typename R, typename F>
-  [[nodiscard]]
-  // NOLINTNEXTLINE missing std::forward
-  auto make_Test2(F &&f)
-  {
-    return Test2<R>{
-      internal::forward<F>(f),
-      this->registrar(),
-      this->test_id()};
-  }
-
-  internal::UniquePtr<internal::Test_impl> const impl_;
-
-  friend class internal::Engine_impl;
-  template<typename FixtureT>
-  friend class Test2;
-};
-
-template<typename FixtureT>
 class Test2
 {
 public:
@@ -656,6 +600,59 @@ private:
   internal::VoidSetup setup_;
   internal::Registrar registrar_;
   unsigned long long test_id_;
+};
+
+class Test
+{
+public:
+  ~Test();
+  Test(Test const &other) = delete;
+  Test(Test &&other) noexcept = delete;
+  auto operator=(Test const &other) -> Test & = delete;
+  auto operator=(Test &&other) noexcept -> Test & = delete;
+
+  template<typename F>
+  [[nodiscard]]
+  // NOLINTNEXTLINE missing std::forward
+  auto setup(F &&f) -> Test2<internal::setup_invoke_result_t<F>>
+  {
+    return this->make_Test2<internal::setup_invoke_result_t<F>>(
+      internal::forward<F>(f));
+  }
+
+  template<typename F>
+  // NOLINTNEXTLINE missing std::forward
+  void run(F &&f) const
+  {
+    this->registrar().register_body(
+      this->test_id(),
+      internal::TestBodyNoFixture{internal::forward<F>(f)});
+  }
+
+private:
+  explicit Test(internal::Test_impl *impl);
+
+  [[nodiscard]]
+  auto registrar() const -> internal::Registrar;
+  [[nodiscard]]
+  auto test_id() const -> unsigned long long;
+
+  template<typename R, typename F>
+  [[nodiscard]]
+  // NOLINTNEXTLINE missing std::forward
+  auto make_Test2(F &&f)
+  {
+    return Test2<R>{
+      internal::forward<F>(f),
+      this->registrar(),
+      this->test_id()};
+  }
+
+  internal::UniquePtr<internal::Test_impl> const impl_;
+
+  friend class internal::Engine_impl;
+  template<typename FixtureT>
+  friend class Test2;
 };
 
 class Context
