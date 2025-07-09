@@ -49,42 +49,6 @@ template<typename T>
 using remove_reference_t = typename remove_reference<T>::type;
 
 template<typename T>
-struct remove_cv
-{
-  using type = T;
-};
-
-template<typename T>
-struct remove_cv<T const>
-{
-  using type = T;
-};
-
-template<typename T>
-struct remove_cv<T volatile>
-{
-  using type = T;
-};
-
-template<typename T>
-struct remove_cv<T const volatile>
-{
-  using type = T;
-};
-
-template<typename T>
-using remove_cv_t = typename remove_cv<T>::type;
-
-template<typename T>
-struct remove_cv_ref
-{
-  using type = remove_cv_t<remove_reference_t<T>>;
-};
-
-template<typename T>
-using remove_cv_ref_t = typename remove_cv_ref<T>::type;
-
-template<typename T>
 // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr auto move(T &&t) noexcept -> remove_reference_t<T> &&
 {
@@ -118,21 +82,6 @@ struct is_same<T, T>
 
 template<typename T, typename U>
 constexpr bool is_same_v = is_same<T, U>::value;
-
-template<typename T>
-struct is_void
-{
-  constexpr static bool value = false;
-};
-
-template<>
-struct is_void<void>
-{
-  constexpr static bool value = true;
-};
-
-template<typename T>
-constexpr bool is_void_v = is_void<T>::value;
 
 template<typename T>
 auto declval() -> T;
