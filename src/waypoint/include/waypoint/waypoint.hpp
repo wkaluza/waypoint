@@ -364,7 +364,7 @@ using TestBodyNoFixture = Function<void(Context &)>;
 template<typename FixtureT>
 using NonVoidSetup = Function<FixtureT(Context &)>;
 template<typename FixtureT>
-using TestBodyWithFixture = Function<void(Context &, FixtureT)>;
+using TestBodyWithFixture = Function<void(Context &, FixtureT &)>;
 
 template<typename T>
 class UniquePtrMoveable
@@ -625,10 +625,13 @@ public:
     this->registrar_.register_body(
       this->test_id_,
       internal::TestBodyNoFixture{
-        [setup = internal::move(this->setup_),
-         test_body = internal::forward<F>(f)](Context &ctx)
+        [setup = internal::NonVoidSetup{internal::move(this->setup_)},
+         test_body =
+           internal::TestBodyWithFixture<FixtureT>{internal::forward<F>(f)}](
+          Context &ctx)
         {
-          test_body(ctx, setup(ctx));
+          FixtureT fixture{setup(ctx)};
+          test_body(ctx, fixture);
         }});
   }
 
@@ -666,8 +669,9 @@ public:
     this->registrar_.register_body(
       this->test_id_,
       internal::TestBodyNoFixture{
-        [setup = internal::move(this->setup_),
-         test_body = internal::forward<F>(f)](Context &ctx)
+        [setup = internal::VoidSetup{internal::move(this->setup_)},
+         test_body =
+           internal::TestBodyNoFixture{internal::forward<F>(f)}](Context &ctx)
         {
           setup(ctx);
           test_body(ctx);

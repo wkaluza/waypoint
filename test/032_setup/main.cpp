@@ -40,7 +40,7 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
         return 42;
       })
     .run(
-      [](waypoint::Context const &ctx, int const fixture)
+      [](waypoint::Context const &ctx, int const &fixture)
       {
         ctx.assert(x == 2);
         ctx.assert(fixture == 42);
@@ -48,6 +48,25 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
       });
 
   t.test(g1, "Test 3")
+    .setup(
+      [](waypoint::Context const &ctx)
+      {
+        ctx.assert(x == 1'000'000);
+        x = 2;
+
+        return 42;
+      })
+    .run(
+      [](waypoint::Context const &ctx, int fixture)
+      {
+        ctx.assert(x == 2);
+        ctx.assert(fixture == 42);
+        ++fixture;
+        ctx.assert(fixture == 43);
+        x = 1'000'000;
+      });
+
+  t.test(g1, "Test 4")
     .setup(
       [](waypoint::Context const &ctx)
       {
@@ -60,7 +79,7 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
         return f;
       })
     .run(
-      [](waypoint::Context const &ctx, X const fixture)
+      [](waypoint::Context const &ctx, X const &fixture)
       {
         ctx.assert(x == 3);
         ctx.assert(fixture.foo == 123);
@@ -73,7 +92,7 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
     x = 111;
   };
 
-  t.test(g1, "Test 4")
+  t.test(g1, "Test 5")
     .setup(void_shared_setup)
     .run(
       [](waypoint::Context const &ctx)
@@ -82,7 +101,7 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
         x = 1'000'000;
       });
 
-  t.test(g1, "Test 5")
+  t.test(g1, "Test 6")
     .setup(void_shared_setup)
     .run(
       [](waypoint::Context const &ctx)
@@ -99,23 +118,25 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
     return X{42};
   };
 
-  t.test(g1, "Test 6")
+  t.test(g1, "Test 7")
     .setup(non_void_shared_setup)
     .run(
-      [](waypoint::Context const &ctx, X const fixture)
+      [](waypoint::Context const &ctx, X const &fixture)
       {
         ctx.assert(x == 112);
         ctx.assert(fixture.foo == 42);
         x = 1'000'000;
       });
 
-  t.test(g1, "Test 7")
+  t.test(g1, "Test 8")
     .setup(non_void_shared_setup)
     .run(
-      [](waypoint::Context const &ctx, X const fixture)
+      [](waypoint::Context const &ctx, X &fixture)
       {
         ctx.assert(x == 112);
         ctx.assert(fixture.foo == 42);
+        ++fixture.foo;
+        ctx.assert(fixture.foo == 43);
         x = 1'000'000;
       });
 }
