@@ -216,7 +216,6 @@ auto RunResult::test_outcome(unsigned long long const index) const
 
 } // namespace waypoint
 
-// NOLINTNEXTLINE param may be const
 WAYPOINT_AUTORUN(waypoint::Engine const &)
 {
 }

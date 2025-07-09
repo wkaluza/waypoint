@@ -65,7 +65,7 @@ void register_test_unique_ptr_moveable(
 
         pi2 = std::move(pi1);
 
-        // NOLINTNEXTLINE use after move
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         ctx.assert(!static_cast<bool>(pi1));
         ctx.assert(!static_cast<bool>(pi2));
       });
@@ -91,7 +91,7 @@ void register_test_unique_ptr_moveable(
 
         pi2 = std::move(pi1);
 
-        // NOLINTNEXTLINE use after move
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         ctx.assert(!static_cast<bool>(pi1));
         ctx.assert(static_cast<bool>(pi2));
 
@@ -120,7 +120,7 @@ void register_test_unique_ptr_moveable(
 
         pi2 = std::move(pi1);
 
-        // NOLINTNEXTLINE use after move
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         ctx.assert(!static_cast<bool>(pi1));
         ctx.assert(!static_cast<bool>(pi2));
       });
@@ -146,7 +146,7 @@ void register_test_unique_ptr_moveable(
 
         pi2 = std::move(pi1);
 
-        // NOLINTNEXTLINE use after move
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         ctx.assert(!static_cast<bool>(pi1));
         ctx.assert(static_cast<bool>(pi2));
 
@@ -162,7 +162,7 @@ void register_test_unique_ptr_moveable(
         auto pi1 = waypoint::internal::UniquePtrMoveable<T>{nullptr};
         waypoint::internal::UniquePtrMoveable const pi2{std::move(pi1)};
 
-        // NOLINTNEXTLINE use after move
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         ctx.assert(!static_cast<bool>(pi1));
         ctx.assert(!static_cast<bool>(pi2));
       });
@@ -175,7 +175,7 @@ void register_test_unique_ptr_moveable(
         auto pi1 = waypoint::internal::UniquePtrMoveable{pi1_original};
         waypoint::internal::UniquePtrMoveable const pi2{std::move(pi1)};
 
-        // NOLINTNEXTLINE use after move
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         ctx.assert(!static_cast<bool>(pi1));
         ctx.assert(static_cast<bool>(pi2));
 

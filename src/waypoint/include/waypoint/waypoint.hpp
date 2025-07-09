@@ -85,7 +85,7 @@ template<typename T>
 using remove_cv_ref_t = typename remove_cv_ref<T>::type;
 
 template<typename T>
-// NOLINTNEXTLINE missing std::forward
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr auto move(T &&t) noexcept -> remove_reference_t<T> &&
 {
   return static_cast<remove_reference_t<T> &&>(t);
@@ -98,7 +98,7 @@ constexpr auto forward(remove_reference_t<T> &t) noexcept -> T &&
 }
 
 template<typename T>
-// NOLINTNEXTLINE missing std::move
+// NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
 constexpr auto forward(remove_reference_t<T> &&t) noexcept -> T &&
 {
   return static_cast<T &&>(t);
@@ -186,7 +186,7 @@ public:
 
   template<typename F>
   requires requires { !is_same_v<F, Function<R(Args...)>>; }
-  // NOLINTNEXTLINE missing std::forward, missing explicit
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
   Function(F &&f)
     : callable_{new callable<F>{internal::forward<F>(f)}}
   {
@@ -232,7 +232,7 @@ private:
     {
     }
 
-    // NOLINTNEXTLINE missing std::move
+    // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
     explicit callable(F &&f)
       : fn_{internal::forward<F>(f)}
     {
@@ -280,7 +280,7 @@ public:
 
   template<typename F>
   requires requires { !is_same_v<F, Function<void(Args...)>>; }
-  // NOLINTNEXTLINE missing std::forward, missing explicit
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
   Function(F &&f)
     : callable_{new callable<F>{internal::forward<F>(f)}}
   {
@@ -326,7 +326,7 @@ private:
     {
     }
 
-    // NOLINTNEXTLINE missing std::move
+    // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
     explicit callable(F &&f)
       : fn_{internal::move(f)}
     {
@@ -346,11 +346,14 @@ private:
 
 using VoidSetup = Function<void(Context &)>;
 using TestBodyNoFixture = Function<void(Context &)>;
+using TeardownNoFixture = Function<void(Context &)>;
 
 template<typename FixtureT>
 using NonVoidSetup = Function<FixtureT(Context &)>;
 template<typename FixtureT>
 using TestBodyWithFixture = Function<void(Context &, FixtureT &)>;
+template<typename FixtureT>
+using TeardownWithFixture = Function<void(Context &, FixtureT &)>;
 
 template<typename T>
 class UniquePtrMoveable
@@ -516,6 +519,105 @@ private:
 };
 
 template<typename FixtureT>
+class Test3
+{
+public:
+  ~Test3() = default;
+  Test3() = delete;
+  Test3(Test3 const &other) = delete;
+  Test3(Test3 &&other) noexcept = delete;
+  auto operator=(Test3 const &other) -> Test3 & = delete;
+  auto operator=(Test3 &&other) noexcept -> Test3 & = delete;
+
+  Test3(
+    internal::NonVoidSetup<FixtureT> setup,
+    internal::TeardownWithFixture<FixtureT> teardown,
+    internal::Registrar registrar,
+    unsigned long long const test_id)
+    : setup_{internal::move(setup)},
+      teardown_{internal::move(teardown)},
+      registrar_{internal::move(registrar)},
+      test_id_{test_id}
+  {
+  }
+
+  template<typename F>
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+  void run(F &&f)
+  {
+    this->registrar_.register_body(
+      this->test_id_,
+      internal::TestBodyNoFixture{
+        [setup = internal::NonVoidSetup{internal::move(this->setup_)},
+         teardown =
+           internal::TeardownWithFixture{internal::move(this->teardown_)},
+         test_body =
+           internal::TestBodyWithFixture<FixtureT>{internal::forward<F>(f)}](
+          Context &ctx)
+        {
+          FixtureT fixture{setup(ctx)};
+          test_body(ctx, fixture);
+          teardown(ctx, fixture);
+        }});
+  }
+
+private:
+  internal::NonVoidSetup<FixtureT> setup_;
+  internal::TeardownWithFixture<FixtureT> teardown_;
+  internal::Registrar registrar_;
+  unsigned long long test_id_;
+};
+
+template<>
+class Test3<void>
+{
+public:
+  ~Test3() = default;
+  Test3() = delete;
+  Test3(Test3 const &other) = delete;
+  Test3(Test3 &&other) noexcept = delete;
+  auto operator=(Test3 const &other) -> Test3 & = delete;
+  auto operator=(Test3 &&other) noexcept -> Test3 & = delete;
+
+  Test3(
+    internal::VoidSetup setup,
+    internal::TeardownNoFixture teardown,
+    internal::Registrar registrar,
+    unsigned long long const test_id)
+    : setup_{internal::move(setup)},
+      teardown_{internal::move(teardown)},
+      registrar_{internal::move(registrar)},
+      test_id_{test_id}
+  {
+  }
+
+  template<typename F>
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+  void run(F &&f)
+  {
+    this->registrar_.register_body(
+      this->test_id_,
+      internal::TestBodyNoFixture{
+        [setup = internal::VoidSetup{internal::move(this->setup_)},
+         teardown =
+           internal::TeardownNoFixture{internal::move(this->teardown_)},
+         test_body =
+           internal::TestBodyNoFixture{internal::forward<F>(f)}](Context &ctx)
+        {
+          setup(ctx);
+          test_body(ctx);
+          teardown(ctx);
+        }});
+  }
+
+private:
+  internal::VoidSetup setup_;
+  internal::TeardownNoFixture teardown_;
+  internal::Registrar registrar_;
+  unsigned long long test_id_;
+};
+
+template<typename FixtureT>
 class Test2
 {
 public:
@@ -537,7 +639,15 @@ public:
   }
 
   template<typename F>
-  // NOLINTNEXTLINE missing std::forward
+  [[nodiscard]]
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+  auto teardown(F &&f) -> Test3<FixtureT>
+  {
+    return this->template make_Test3<FixtureT>(internal::forward<F>(f));
+  }
+
+  template<typename F>
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   void run(F &&f)
   {
     this->registrar_.register_body(
@@ -554,6 +664,18 @@ public:
   }
 
 private:
+  template<typename R, typename F>
+  [[nodiscard]]
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+  auto make_Test3(F &&f)
+  {
+    return Test3<R>{
+      internal::move(this->setup_),
+      internal::forward<F>(f),
+      internal::move(this->registrar_),
+      this->test_id_};
+  }
+
   internal::NonVoidSetup<FixtureT> setup_;
   internal::Registrar registrar_;
   unsigned long long test_id_;
@@ -581,7 +703,15 @@ public:
   }
 
   template<typename F>
-  // NOLINTNEXTLINE missing std::forward
+  [[nodiscard]]
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+  auto teardown(F &&f) -> Test3<void>
+  {
+    return this->make_Test3<void>(internal::forward<F>(f));
+  }
+
+  template<typename F>
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   void run(F &&f)
   {
     this->registrar_.register_body(
@@ -597,6 +727,18 @@ public:
   }
 
 private:
+  template<typename R, typename F>
+  [[nodiscard]]
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+  auto make_Test3(F &&f)
+  {
+    return Test3<R>{
+      internal::move(this->setup_),
+      internal::forward<F>(f),
+      internal::move(this->registrar_),
+      this->test_id_};
+  }
+
   internal::VoidSetup setup_;
   internal::Registrar registrar_;
   unsigned long long test_id_;
@@ -613,7 +755,7 @@ public:
 
   template<typename F>
   [[nodiscard]]
-  // NOLINTNEXTLINE missing std::forward
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto setup(F &&f) -> Test2<internal::setup_invoke_result_t<F>>
   {
     return this->make_Test2<internal::setup_invoke_result_t<F>>(
@@ -621,7 +763,15 @@ public:
   }
 
   template<typename F>
-  // NOLINTNEXTLINE missing std::forward
+  [[nodiscard]]
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+  auto teardown(F &&f) -> Test3<void>
+  {
+    return this->make_Test3<void>(internal::forward<F>(f));
+  }
+
+  template<typename F>
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   void run(F &&f) const
   {
     this->registrar().register_body(
@@ -639,10 +789,24 @@ private:
 
   template<typename R, typename F>
   [[nodiscard]]
-  // NOLINTNEXTLINE missing std::forward
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto make_Test2(F &&f)
   {
     return Test2<R>{
+      internal::forward<F>(f),
+      this->registrar(),
+      this->test_id()};
+  }
+
+  template<typename R, typename F>
+  [[nodiscard]]
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+  auto make_Test3(F &&f)
+  {
+    return Test3<R>{
+      internal::VoidSetup{[](Context const &)
+                          {
+                          }},
       internal::forward<F>(f),
       this->registrar(),
       this->test_id()};
