@@ -21,7 +21,7 @@ public:
   int foo{42};
 };
 
-WAYPOINT_AUTORUN(t)
+WAYPOINT_AUTORUN(waypoint::Engine const &t)
 {
   int const *const captured0 = nullptr;
   std::string const captured1 = "42";

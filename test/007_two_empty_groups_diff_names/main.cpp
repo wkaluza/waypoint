@@ -1,6 +1,6 @@
 #include "waypoint/waypoint.hpp"
 
-WAYPOINT_AUTORUN(t)
+WAYPOINT_AUTORUN(waypoint::Engine const &t)
 {
   [[maybe_unused]]
   auto g1 = t.group("Test group 1");

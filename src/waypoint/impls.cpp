@@ -166,12 +166,12 @@ Registrar_impl::Registrar_impl()
 {
 }
 
-void Registrar_impl::initialize(Engine *engine)
+void Registrar_impl::initialize(Engine const *engine)
 {
   this->engine_ = engine;
 }
 
-auto Registrar_impl::get_engine() const -> Engine &
+auto Registrar_impl::get_engine() const -> Engine const &
 {
   return *engine_;
 }
@@ -182,14 +182,14 @@ Test_impl::Test_impl()
 {
 }
 
-void Test_impl::initialize(Engine &engine, TestId const id)
+void Test_impl::initialize(Engine const &engine, TestId const id)
 {
   this->engine_ = &engine;
   this->id_ = id;
   this->registrar_ = get_impl(this->get_engine()).make_registrar();
 }
 
-auto Test_impl::get_engine() const -> Engine &
+auto Test_impl::get_engine() const -> Engine const &
 {
   return *engine_;
 }
@@ -211,14 +211,14 @@ Context_impl::Context_impl()
 {
 }
 
-void Context_impl::initialize(Engine &engine, TestId const test_id)
+void Context_impl::initialize(Engine const &engine, TestId const test_id)
 {
   this->engine_ = &engine;
   this->test_id_ = test_id;
   this->assertion_index_ = 0;
 }
 
-auto Context_impl::get_engine() const -> Engine &
+auto Context_impl::get_engine() const -> Engine const &
 {
   return *engine_;
 }
@@ -484,7 +484,7 @@ auto Engine_impl::has_errors() const -> bool
   return !this->errors_.empty();
 }
 
-void Engine_impl::initialize(Engine &engine)
+void Engine_impl::initialize(Engine const &engine)
 {
   this->engine_ = &engine;
 }

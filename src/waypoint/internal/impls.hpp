@@ -141,12 +141,12 @@ public:
   auto operator=(Registrar_impl const &) -> Registrar_impl & = delete;
   auto operator=(Registrar_impl &&) noexcept -> Registrar_impl & = delete;
 
-  void initialize(Engine *engine);
+  void initialize(Engine const *engine);
   [[nodiscard]]
-  auto get_engine() const -> Engine &;
+  auto get_engine() const -> Engine const &;
 
 private:
-  Engine *engine_;
+  Engine const *engine_;
 };
 
 class Test_impl
@@ -154,17 +154,17 @@ class Test_impl
 public:
   Test_impl();
 
-  void initialize(Engine &engine, TestId id);
+  void initialize(Engine const &engine, TestId id);
 
   [[nodiscard]]
-  auto get_engine() const -> Engine &;
+  auto get_engine() const -> Engine const &;
   [[nodiscard]]
   auto get_id() const -> TestId;
   [[nodiscard]]
   auto registrar() -> Registrar;
 
 private:
-  Engine *engine_;
+  Engine const *engine_;
   TestId id_;
   Registrar registrar_;
 };
@@ -174,10 +174,10 @@ class Context_impl
 public:
   Context_impl();
 
-  void initialize(Engine &engine, TestId test_id);
+  void initialize(Engine const &engine, TestId test_id);
 
   [[nodiscard]]
-  auto get_engine() const -> Engine &;
+  auto get_engine() const -> Engine const &;
   [[nodiscard]]
   auto generate_assertion_index() -> AssertionIndex;
 
@@ -185,7 +185,7 @@ public:
   auto test_id() const -> TestId;
 
 private:
-  Engine *engine_;
+  Engine const *engine_;
   TestId test_id_;
   AssertionIndex assertion_index_;
 };
@@ -211,7 +211,7 @@ private:
   };
 
 public:
-  void initialize(Engine &engine);
+  void initialize(Engine const &engine);
   void register_test_body(TestBodyNoFixture body, TestId test_id);
   [[nodiscard]]
   auto test_bodies() -> std::vector<TestRecord> &;
@@ -263,7 +263,7 @@ public:
     -> std::vector<TestRecord const *> const &;
 
 private:
-  Engine *engine_;
+  Engine const *engine_;
   GroupId group_id_counter_;
   TestId test_id_counter_;
   std::unordered_map<GroupId, GroupName> group_id2name_map_;

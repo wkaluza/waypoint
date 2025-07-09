@@ -7,7 +7,7 @@ int x = 0;
 
 } // namespace
 
-WAYPOINT_AUTORUN(t)
+WAYPOINT_AUTORUN(waypoint::Engine const &t)
 {
   ++x;
   (void)t;

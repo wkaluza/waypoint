@@ -6,7 +6,7 @@
 #include <string>
 #include <unordered_map>
 
-WAYPOINT_AUTORUN(t)
+WAYPOINT_AUTORUN(waypoint::Engine const &t)
 {
   auto const g1 = t.group("Test group 1");
 

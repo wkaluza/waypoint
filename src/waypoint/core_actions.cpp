@@ -26,19 +26,19 @@ auto get_autorun_section_boundaries() -> AutorunSectionBoundaries
   return {begin, end};
 }
 
-void initialize(waypoint::Engine &t)
+void initialize(waypoint::Engine const &t)
 {
   auto const section = get_autorun_section_boundaries();
   auto const begin = section.begin;
   auto const end = section.end;
 
-  std::vector<void (*)(waypoint::Engine &)> functions;
+  using AutorunFunctionPtr = void (*)(waypoint::Engine const &);
 
-  for(auto fn_ptr = begin; fn_ptr < end;
-      fn_ptr += sizeof(void (*)(waypoint::Engine &)))
+  std::vector<AutorunFunctionPtr> functions;
+
+  for(auto fn_ptr = begin; fn_ptr < end; fn_ptr += sizeof(AutorunFunctionPtr))
   {
-    functions.push_back(
-      *reinterpret_cast<void (**)(waypoint::Engine &)>(fn_ptr));
+    functions.push_back(*reinterpret_cast<AutorunFunctionPtr *>(fn_ptr));
   }
 
   auto is_not_null = [](auto *ptr)
@@ -74,7 +74,7 @@ auto make_default_engine() -> Engine
   return Engine{impl};
 }
 
-auto run_all_tests(Engine &t) -> RunResult
+auto run_all_tests(Engine const &t) -> RunResult
 {
   initialize(t);
   if(internal::get_impl(t).has_errors())

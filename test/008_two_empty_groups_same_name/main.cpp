@@ -1,6 +1,6 @@
 #include "waypoint/waypoint.hpp"
 
-WAYPOINT_AUTORUN(t)
+WAYPOINT_AUTORUN(waypoint::Engine const &t)
 {
   auto g1 = t.group("Test group 1");
   auto g2 = t.group("Test group 1");

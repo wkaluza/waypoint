@@ -8,7 +8,9 @@ namespace
 {
 
 template<typename T>
-void register_test_unique_ptr(waypoint::Engine &t, std::string const &suffix)
+void register_test_unique_ptr(
+  waypoint::Engine const &t,
+  std::string const &suffix)
 {
   auto g1 = t.group(("Test group 1 " + suffix).c_str());
 
@@ -38,7 +40,7 @@ void register_test_unique_ptr(waypoint::Engine &t, std::string const &suffix)
 
 template<typename T>
 void register_test_unique_ptr_moveable(
-  waypoint::Engine &t,
+  waypoint::Engine const &t,
   std::string const &suffix)
 {
   auto g1 = t.group(("Test group 1 " + suffix).c_str());
@@ -185,7 +187,7 @@ void register_test_unique_ptr_moveable(
 
 } // namespace
 
-WAYPOINT_AUTORUN(t)
+WAYPOINT_AUTORUN(waypoint::Engine const &t)
 {
   register_test_unique_ptr<waypoint::internal::AssertionOutcome_impl>(
     t,
