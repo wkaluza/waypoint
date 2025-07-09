@@ -542,6 +542,7 @@ public:
   auto operator=(Test &&other) noexcept -> Test & = delete;
 
   template<typename F>
+  [[nodiscard]]
   // NOLINTNEXTLINE missing std::forward
   auto setup(F &&f) -> internal::enable_if_t<
     internal::is_void_v<internal::setup_invoke_result_t<F>>,
@@ -551,6 +552,7 @@ public:
   }
 
   template<typename F>
+  [[nodiscard]]
   // NOLINTNEXTLINE missing std::forward
   auto setup(F &&f) -> internal::enable_if_t<
     !internal::is_void_v<internal::setup_invoke_result_t<F>>,

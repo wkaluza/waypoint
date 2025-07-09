@@ -247,6 +247,7 @@ public:
   auto test_count() const -> unsigned long long;
   [[nodiscard]]
   auto make_test_outcome(TestId test_id) const -> std::unique_ptr<TestOutcome>;
+  [[nodiscard]]
   auto make_registrar() const -> Registrar;
   void report_error(ErrorType type, std::string const &message);
   void report_duplicate_test_name(
