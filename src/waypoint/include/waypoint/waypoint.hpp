@@ -134,20 +134,6 @@ struct is_void<void>
 template<typename T>
 constexpr bool is_void_v = is_void<T>::value;
 
-template<bool B, typename T = void>
-struct enable_if
-{
-};
-
-template<typename T>
-struct enable_if<true, T>
-{
-  using type = T;
-};
-
-template<bool B, typename T>
-using enable_if_t = typename enable_if<B, T>::type;
-
 template<typename T>
 auto declval() -> T;
 
@@ -544,19 +530,7 @@ public:
   template<typename F>
   [[nodiscard]]
   // NOLINTNEXTLINE missing std::forward
-  auto setup(F &&f) -> internal::enable_if_t<
-    internal::is_void_v<internal::setup_invoke_result_t<F>>,
-    Test2<void>>
-  {
-    return this->make_Test2<void>(internal::forward<F>(f));
-  }
-
-  template<typename F>
-  [[nodiscard]]
-  // NOLINTNEXTLINE missing std::forward
-  auto setup(F &&f) -> internal::enable_if_t<
-    !internal::is_void_v<internal::setup_invoke_result_t<F>>,
-    Test2<internal::setup_invoke_result_t<F>>>
+  auto setup(F &&f) -> Test2<internal::setup_invoke_result_t<F>>
   {
     return this->make_Test2<internal::setup_invoke_result_t<F>>(
       internal::forward<F>(f));
