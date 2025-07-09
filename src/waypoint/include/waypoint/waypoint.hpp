@@ -183,8 +183,8 @@ public:
   Function(Function const &other) = delete;
   auto operator=(Function const &other) -> Function & = delete;
 
-  Function(Function &&other) noexcept :
-    callable_{other.callable_}
+  Function(Function &&other) noexcept
+    : callable_{other.callable_}
   {
     other.callable_ = nullptr;
   }
@@ -201,8 +201,8 @@ public:
   template<typename F>
   requires requires { !is_same_v<F, Function<R(Args...)>>; }
   // NOLINTNEXTLINE missing std::forward, missing explicit
-  Function(F &&f) :
-    callable_{new callable<F>{internal::forward<F>(f)}}
+  Function(F &&f)
+    : callable_{new callable<F>{internal::forward<F>(f)}}
   {
   }
 
@@ -236,19 +236,19 @@ private:
     auto operator=(callable const &other) -> callable & = delete;
     auto operator=(callable &&other) noexcept -> callable & = delete;
 
-    callable(callable const &other) :
-      fn_{other.fn_}
+    callable(callable const &other)
+      : fn_{other.fn_}
     {
     }
 
-    callable(callable &&other) noexcept :
-      fn_{internal::move(other.fn_)}
+    callable(callable &&other) noexcept
+      : fn_{internal::move(other.fn_)}
     {
     }
 
     // NOLINTNEXTLINE missing std::move
-    explicit callable(F &&f) :
-      fn_{internal::forward<F>(f)}
+    explicit callable(F &&f)
+      : fn_{internal::forward<F>(f)}
     {
     }
 
@@ -277,8 +277,8 @@ public:
   Function(Function const &other) = delete;
   auto operator=(Function const &other) -> Function & = delete;
 
-  Function(Function &&other) noexcept :
-    callable_{other.callable_}
+  Function(Function &&other) noexcept
+    : callable_{other.callable_}
   {
     other.callable_ = nullptr;
   }
@@ -295,8 +295,8 @@ public:
   template<typename F>
   requires requires { !is_same_v<F, Function<void(Args...)>>; }
   // NOLINTNEXTLINE missing std::forward, missing explicit
-  Function(F &&f) :
-    callable_{new callable<F>{internal::forward<F>(f)}}
+  Function(F &&f)
+    : callable_{new callable<F>{internal::forward<F>(f)}}
   {
   }
 
@@ -330,19 +330,19 @@ private:
     auto operator=(callable const &other) -> callable & = delete;
     auto operator=(callable &&other) noexcept -> callable & = delete;
 
-    callable(callable const &other) :
-      fn_{other.fn_}
+    callable(callable const &other)
+      : fn_{other.fn_}
     {
     }
 
-    callable(callable &&other) noexcept :
-      fn_{internal::move(other.fn_)}
+    callable(callable &&other) noexcept
+      : fn_{internal::move(other.fn_)}
     {
     }
 
     // NOLINTNEXTLINE missing std::move
-    explicit callable(F &&f) :
-      fn_{internal::move(f)}
+    explicit callable(F &&f)
+      : fn_{internal::move(f)}
     {
     }
 
@@ -609,10 +609,10 @@ public:
   Test2(
     internal::NonVoidSetup<FixtureT> setup,
     internal::Registrar registrar,
-    unsigned long long const test_id) :
-    setup_{internal::move(setup)},
-    registrar_{internal::move(registrar)},
-    test_id_{test_id}
+    unsigned long long const test_id)
+    : setup_{internal::move(setup)},
+      registrar_{internal::move(registrar)},
+      test_id_{test_id}
   {
   }
 
@@ -650,10 +650,10 @@ public:
   Test2(
     internal::VoidSetup setup,
     internal::Registrar registrar,
-    unsigned long long const test_id) :
-    setup_{internal::move(setup)},
-    registrar_{internal::move(registrar)},
-    test_id_{test_id}
+    unsigned long long const test_id)
+    : setup_{internal::move(setup)},
+      registrar_{internal::move(registrar)},
+      test_id_{test_id}
   {
   }
 

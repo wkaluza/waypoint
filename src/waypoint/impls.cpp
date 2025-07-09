@@ -19,9 +19,9 @@
 namespace waypoint::internal
 {
 
-AssertionOutcome_impl::AssertionOutcome_impl() :
-  passed{},
-  index{}
+AssertionOutcome_impl::AssertionOutcome_impl()
+  : passed{},
+    index{}
 {
 }
 
@@ -39,10 +39,10 @@ void AssertionOutcome_impl::initialize(
   this->index = index;
 }
 
-TestOutcome_impl::TestOutcome_impl() :
-  test_id_{},
-  group_id_{},
-  test_index_{}
+TestOutcome_impl::TestOutcome_impl()
+  : test_id_{},
+    group_id_{},
+    test_index_{}
 {
 }
 
@@ -98,9 +98,9 @@ auto TestOutcome_impl::get_index() const -> unsigned long long
   return this->test_index_;
 }
 
-TestRecord::TestRecord(TestBodyNoFixture body, TestId const test_id) :
-  body_(std::move(body)),
-  test_id_{test_id}
+TestRecord::TestRecord(TestBodyNoFixture body, TestId const test_id)
+  : body_(std::move(body)),
+    test_id_{test_id}
 {
 }
 
@@ -118,11 +118,11 @@ AssertionRecord::AssertionRecord(
   bool const condition,
   TestId const test_id,
   AssertionIndex const index,
-  std::optional<std::string> maybe_message) :
-  condition_{condition},
-  test_id_{test_id},
-  index_{index},
-  maybe_message_{std::move(maybe_message)}
+  std::optional<std::string> maybe_message)
+  : condition_{condition},
+    test_id_{test_id},
+    index_{index},
+    maybe_message_{std::move(maybe_message)}
 {
 }
 
@@ -146,8 +146,8 @@ auto AssertionRecord::message() const -> std::optional<std::string>
   return this->maybe_message_;
 }
 
-Group_impl::Group_impl() :
-  id_{}
+Group_impl::Group_impl()
+  : id_{}
 {
 }
 
@@ -161,8 +161,8 @@ auto Group_impl::get_id() const -> GroupId
   return this->id_;
 }
 
-Registrar_impl::Registrar_impl() :
-  engine_{nullptr}
+Registrar_impl::Registrar_impl()
+  : engine_{nullptr}
 {
 }
 
@@ -176,9 +176,9 @@ auto Registrar_impl::get_engine() const -> Engine &
   return *engine_;
 }
 
-Test_impl::Test_impl() :
-  engine_{},
-  id_{}
+Test_impl::Test_impl()
+  : engine_{},
+    id_{}
 {
 }
 
@@ -204,10 +204,10 @@ auto Test_impl::registrar() -> Registrar
   return std::move(this->registrar_);
 }
 
-Context_impl::Context_impl() :
-  engine_{},
-  test_id_{},
-  assertion_index_{}
+Context_impl::Context_impl()
+  : engine_{},
+    test_id_{},
+    assertion_index_{}
 {
 }
 
@@ -233,10 +233,10 @@ auto Context_impl::test_id() const -> TestId
   return this->test_id_;
 }
 
-Engine_impl::Engine_impl() :
-  engine_{nullptr},
-  group_id_counter_{0},
-  test_id_counter_{0}
+Engine_impl::Engine_impl()
+  : engine_{nullptr},
+    group_id_counter_{0},
+    test_id_counter_{0}
 {
 }
 
@@ -520,9 +520,9 @@ void Engine_impl::register_assertion(
     .emplace_back(condition, test_id, index, std::move(maybe_message));
 }
 
-RunResult_impl::RunResult_impl() :
-  has_failing_assertions_{false},
-  has_errors_{false}
+RunResult_impl::RunResult_impl()
+  : has_failing_assertions_{false},
+    has_errors_{false}
 {
 }
 

@@ -11,8 +11,8 @@ UniquePtrMoveable<T>::~UniquePtrMoveable()
 }
 
 template<typename T>
-UniquePtrMoveable<T>::UniquePtrMoveable(UniquePtrMoveable &&other) noexcept :
-  ptr_{other.ptr_}
+UniquePtrMoveable<T>::UniquePtrMoveable(UniquePtrMoveable &&other) noexcept
+  : ptr_{other.ptr_}
 {
   other.ptr_ = nullptr;
 }
@@ -35,8 +35,8 @@ auto UniquePtrMoveable<T>::operator=(UniquePtrMoveable &&other) noexcept
 }
 
 template<typename T>
-UniquePtrMoveable<T>::UniquePtrMoveable(T *ptr) :
-  ptr_{ptr}
+UniquePtrMoveable<T>::UniquePtrMoveable(T *ptr)
+  : ptr_{ptr}
 {
 }
 
@@ -65,8 +65,8 @@ UniquePtr<T>::~UniquePtr()
 }
 
 template<typename T>
-UniquePtr<T>::UniquePtr(T *ptr) :
-  ptr_{ptr}
+UniquePtr<T>::UniquePtr(T *ptr)
+  : ptr_{ptr}
 {
 }
 

@@ -10,8 +10,8 @@ namespace waypoint::internal
 
 Registrar::~Registrar() = default;
 
-Registrar::Registrar() :
-  impl_{nullptr}
+Registrar::Registrar()
+  : impl_{nullptr}
 {
 }
 
@@ -25,8 +25,8 @@ auto Registrar::operator=(Registrar &&other) noexcept -> Registrar &
   return *this;
 }
 
-Registrar::Registrar(Registrar_impl *impl) :
-  impl_{impl}
+Registrar::Registrar(Registrar_impl *impl)
+  : impl_{impl}
 {
 }
 
@@ -44,9 +44,8 @@ namespace waypoint
 
 AssertionOutcome::~AssertionOutcome() = default;
 
-AssertionOutcome::AssertionOutcome(
-  internal::AssertionOutcome_impl *const impl) :
-  impl_{internal::UniquePtr{impl}}
+AssertionOutcome::AssertionOutcome(internal::AssertionOutcome_impl *const impl)
+  : impl_{internal::UniquePtr{impl}}
 {
 }
 
@@ -77,8 +76,8 @@ auto AssertionOutcome::index() const -> unsigned long long
 
 TestOutcome::~TestOutcome() = default;
 
-TestOutcome::TestOutcome(internal::TestOutcome_impl *const impl) :
-  impl_{internal::UniquePtr{impl}}
+TestOutcome::TestOutcome(internal::TestOutcome_impl *const impl)
+  : impl_{internal::UniquePtr{impl}}
 {
 }
 
@@ -120,15 +119,15 @@ auto TestOutcome::assertion_outcome(unsigned long long const index) const
 
 Group::~Group() = default;
 
-Group::Group(internal::Group_impl *const impl) :
-  impl_{impl}
+Group::Group(internal::Group_impl *const impl)
+  : impl_{impl}
 {
 }
 
 Test::~Test() = default;
 
-Test::Test(internal::Test_impl *const impl) :
-  impl_{internal::UniquePtr{impl}}
+Test::Test(internal::Test_impl *const impl)
+  : impl_{internal::UniquePtr{impl}}
 {
 }
 
@@ -159,8 +158,8 @@ auto Engine::test(Group const &group, char const *name) const -> Test
 
 Engine::~Engine() = default;
 
-Engine::Engine(internal::Engine_impl *const impl) :
-  impl_{internal::UniquePtr{impl}}
+Engine::Engine(internal::Engine_impl *const impl)
+  : impl_{internal::UniquePtr{impl}}
 {
   impl->initialize(*this);
 }
@@ -187,15 +186,15 @@ void Context::assert(bool const condition, char const *const message) const
 
 Context::~Context() = default;
 
-Context::Context(internal::Context_impl *const impl) :
-  impl_{internal::UniquePtr{impl}}
+Context::Context(internal::Context_impl *const impl)
+  : impl_{internal::UniquePtr{impl}}
 {
 }
 
 RunResult::~RunResult() = default;
 
-RunResult::RunResult(internal::RunResult_impl *const impl) :
-  impl_{internal::UniquePtr{impl}}
+RunResult::RunResult(internal::RunResult_impl *const impl)
+  : impl_{internal::UniquePtr{impl}}
 {
 }
 
