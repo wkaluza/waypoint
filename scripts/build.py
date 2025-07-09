@@ -50,6 +50,7 @@ class ModeConfig:
     test: bool = False
     valgrind: bool = False
     coverage: bool = False
+    misc: bool = False
 
 
 @enum.unique
@@ -72,6 +73,7 @@ class Mode(enum.Enum):
         test=True,
         valgrind=True,
         coverage=True,
+        misc=True,
     )
     Clean = ModeConfig(
         clean=True,
@@ -87,6 +89,7 @@ class Mode(enum.Enum):
         test=True,
         valgrind=True,
         coverage=True,
+        misc=True,
     )
     # Tool-specific modes
     Coverage = ModeConfig(
@@ -164,6 +167,10 @@ class Mode(enum.Enum):
     @property
     def coverage(self):
         return self.config.coverage
+
+    @property
+    def misc(self):
+        return self.config.misc
 
 
 @enum.unique
@@ -250,6 +257,24 @@ def run(cmd) -> typing.Tuple[bool, str | None]:
 
 def is_linux():
     return platform.system() == "Linux"
+
+
+def check_waypoint_hpp_has_no_includes_() -> bool:
+    path = f"{PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp"
+    with open(path, "r") as f:
+        contents = f.read()
+
+    return re.search(r"# *include", contents) is None
+
+
+def run_misc_checks() -> bool:
+    success = check_waypoint_hpp_has_no_includes_()
+    if not success:
+        print("Error: waypoint.hpp must include no other headers")
+
+        return False
+
+    return True
 
 
 def build_dir_from_preset(preset) -> str:
@@ -936,6 +961,11 @@ def main() -> int:
 
         print("Running clang-tidy analysis...")
         success = run_clang_tidy(CMakePresets.LinuxClang)
+        if not success:
+            return 1
+
+    if mode.misc:
+        success = run_misc_checks()
         if not success:
             return 1
 
