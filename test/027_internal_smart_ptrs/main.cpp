@@ -16,7 +16,7 @@ void register_test_unique_ptr(
 
   t.test(g1, ("Test 1 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 = waypoint::internal::UniquePtr<T>{static_cast<T *>(nullptr)};
 
@@ -25,7 +25,7 @@ void register_test_unique_ptr(
 
   t.test(g1, ("Test 2 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UniquePtr<T>{pi1_original};
@@ -47,7 +47,7 @@ void register_test_unique_ptr_moveable(
 
   t.test(g1, ("Test 1 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UniquePtrMoveable<T>{static_cast<T *>(nullptr)};
@@ -74,7 +74,7 @@ void register_test_unique_ptr_moveable(
 
   t.test(g1, ("Test 2 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UniquePtrMoveable<T>{pi1_original};
@@ -105,7 +105,7 @@ void register_test_unique_ptr_moveable(
 
   t.test(g1, ("Test 3 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UniquePtrMoveable<T>{static_cast<T *>(nullptr)};
@@ -131,7 +131,7 @@ void register_test_unique_ptr_moveable(
 
   t.test(g1, ("Test 4" + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UniquePtrMoveable<T>{pi1_original};
@@ -161,7 +161,7 @@ void register_test_unique_ptr_moveable(
 
   t.test(g1, ("Test 5 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UniquePtrMoveable<T>{static_cast<T *>(nullptr)};
@@ -174,7 +174,7 @@ void register_test_unique_ptr_moveable(
 
   t.test(g1, ("Test 6 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UniquePtrMoveable<T>{pi1_original};
@@ -199,7 +199,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 1 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UnsafeSharedPtr<T>{static_cast<T *>(nullptr)};
@@ -226,7 +226,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 2 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UnsafeSharedPtr<T>{pi1_original};
@@ -257,7 +257,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 3 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UnsafeSharedPtr<T>{static_cast<T *>(nullptr)};
@@ -283,7 +283,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 4" + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UnsafeSharedPtr<T>{pi1_original};
@@ -313,7 +313,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 5 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UnsafeSharedPtr<T>{static_cast<T *>(nullptr)};
@@ -326,7 +326,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 6 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UnsafeSharedPtr<T>{pi1_original};
@@ -343,7 +343,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 7 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UnsafeSharedPtr<T>{pi1_original};
@@ -362,7 +362,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 8 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto *pi2_original = new T{};
@@ -385,7 +385,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 9 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto *pi2_original = new T{};
@@ -405,7 +405,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 10" + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UnsafeSharedPtr<T>{pi1_original};
@@ -435,7 +435,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 11 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UnsafeSharedPtr<T>{static_cast<T *>(nullptr)};
@@ -461,7 +461,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 12 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UnsafeSharedPtr<T>{pi1_original};
@@ -493,7 +493,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 13 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UnsafeSharedPtr<T>{static_cast<T *>(nullptr)};
@@ -518,7 +518,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 14" + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UnsafeSharedPtr<T>{pi1_original};
@@ -549,7 +549,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 15 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UnsafeSharedPtr<T>{static_cast<T *>(nullptr)};
@@ -562,7 +562,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 16 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UnsafeSharedPtr<T>{pi1_original};
@@ -581,7 +581,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 17 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UnsafeSharedPtr<T>{static_cast<T *>(nullptr)};
@@ -613,7 +613,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 18 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UnsafeSharedPtr<T>{pi1_original};
@@ -651,7 +651,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 19 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UnsafeSharedPtr<T>{static_cast<T *>(nullptr)};
@@ -682,7 +682,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 20" + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UnsafeSharedPtr<T>{pi1_original};
@@ -721,7 +721,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 21 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UnsafeSharedPtr<T>{static_cast<T *>(nullptr)};
@@ -754,7 +754,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 22 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UnsafeSharedPtr<T>{pi1_original};
@@ -791,7 +791,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 23 " + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto pi1 =
           waypoint::internal::UnsafeSharedPtr<T>{static_cast<T *>(nullptr)};
@@ -823,7 +823,7 @@ void register_test_shared_ptr(
 
   t.test(g1, ("Test 24" + suffix).c_str())
     .run(
-      [](waypoint::Context const &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UnsafeSharedPtr<T>{pi1_original};
