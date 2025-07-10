@@ -19,7 +19,7 @@ new_target(
   ${PROJECT_ROOT_DIR}/src/waypoint/core_actions.cpp
   ${PROJECT_ROOT_DIR}/src/waypoint/get_impl.cpp
   ${PROJECT_ROOT_DIR}/src/waypoint/impls.cpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/unique_ptr.cpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/smart_ptrs.cpp
   PUBLIC_HEADERS
   ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp
   PRIVATE_HEADERS
@@ -54,10 +54,11 @@ new_basic_test(024_failing_test_with_auto)
 new_basic_test(025_failing_test_with_auto)
 new_basic_test(026_multiple_tests)
 
-new_basic_test(027_impl_unique_ptr)
+new_basic_test(027_internal_smart_ptrs)
 target_include_directories(
-  027_impl_unique_ptr PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
-                              ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
+  027_internal_smart_ptrs
+  PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
+          ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
 
 new_basic_test(028_assertion_messages)
 new_basic_test(029_results)
@@ -65,3 +66,9 @@ new_basic_test(030_capturing_lambda_as_test_body)
 new_basic_test(031_mutable_lambda_as_test_body)
 new_basic_test(032_setup)
 new_basic_test(033_teardown)
+
+new_basic_test(034_internal_function)
+target_include_directories(
+  034_internal_function
+  PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
+          ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)

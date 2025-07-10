@@ -68,7 +68,7 @@ constexpr auto forward(remove_reference_t<T> &&t) noexcept -> T &&
   return static_cast<T &&>(t);
 }
 
-template<typename T, typename U>
+template<typename /*T*/, typename /*U*/>
 struct is_same
 {
   constexpr static bool value = false;
@@ -103,41 +103,159 @@ template<typename F>
 using setup_invoke_result_t = typename invoke_result<F, Context &>::type;
 
 template<typename T>
+class UnsafeSharedPtr
+{
+public:
+  ~UnsafeSharedPtr()
+  {
+    if(this->ref_count_ != nullptr)
+    {
+      *this->ref_count_ -= 1;
+    }
+
+    if(this->ref_count_ == nullptr || *this->ref_count_ == 0)
+    {
+      delete this->ptr_;
+      delete this->ref_count_;
+    }
+  }
+
+  UnsafeSharedPtr() = delete;
+
+  template<typename U>
+  explicit UnsafeSharedPtr(U *ptr)
+    : ptr_{ptr},
+      ref_count_{ptr_ == nullptr ? nullptr : new unsigned long long{1}}
+  {
+  }
+
+  UnsafeSharedPtr(UnsafeSharedPtr const &other)
+    : ptr_{other.ptr_},
+      ref_count_{other.ref_count_}
+  {
+    if(this->ref_count_ == nullptr)
+    {
+      return;
+    }
+
+    *this->ref_count_ += 1;
+  }
+
+  auto operator=(UnsafeSharedPtr const &other) -> UnsafeSharedPtr &
+  {
+    if(this == &other)
+    {
+      return *this;
+    }
+
+    if(this->ptr_ == other.ptr_)
+    {
+      return *this;
+    }
+
+    if(this->ref_count_ != nullptr)
+    {
+      *this->ref_count_ -= 1;
+    }
+
+    if(this->ref_count_ == nullptr || *this->ref_count_ == 0)
+    {
+      delete this->ptr_;
+      delete this->ref_count_;
+    }
+
+    this->ptr_ = other.ptr_;
+    this->ref_count_ = other.ref_count_;
+
+    if(this->ref_count_ == nullptr)
+    {
+      return *this;
+    }
+
+    *this->ref_count_ += 1;
+
+    return *this;
+  }
+
+  UnsafeSharedPtr(UnsafeSharedPtr &&other) noexcept
+    : ptr_{other.ptr_},
+      ref_count_{other.ref_count_}
+  {
+    other.ptr_ = nullptr;
+    other.ref_count_ = nullptr;
+  }
+
+  auto operator=(UnsafeSharedPtr &&other) noexcept -> UnsafeSharedPtr &
+  {
+    if(this == &other)
+    {
+      return *this;
+    }
+
+    if(this->ptr_ == other.ptr_)
+    {
+      return *this;
+    }
+
+    if(this->ref_count_ != nullptr)
+    {
+      *this->ref_count_ -= 1;
+    }
+
+    if(this->ref_count_ == nullptr || *this->ref_count_ == 0)
+    {
+      delete this->ptr_;
+      delete this->ref_count_;
+    }
+
+    this->ref_count_ = other.ref_count_;
+    this->ptr_ = other.ptr_;
+    other.ptr_ = nullptr;
+    other.ref_count_ = nullptr;
+
+    return *this;
+  }
+
+  explicit operator bool() const
+  {
+    return ptr_ != nullptr;
+  }
+
+  auto operator->() const -> T *
+  {
+    return ptr_;
+  }
+
+  auto operator*() const -> T &
+  {
+    return *ptr_;
+  }
+
+private:
+  T *ptr_;
+  unsigned long long *ref_count_;
+};
+
+template<typename T>
 class Function;
 
 template<typename R, typename... Args>
 class Function<R(Args...)>
 {
 public:
-  ~Function()
-  {
-    delete callable_;
-  }
-
+  ~Function() = default;
   Function() = delete;
-  Function(Function const &other) = delete;
-  auto operator=(Function const &other) -> Function & = delete;
-
-  Function(Function &&other) noexcept
-    : callable_{other.callable_}
-  {
-    other.callable_ = nullptr;
-  }
-
-  auto operator=(Function &&other) noexcept -> Function &
-  {
-    // No need to handle self-assignment
-    this->callable_ = other.callable_;
-    other.callable_ = nullptr;
-
-    return *this;
-  }
+  Function(Function const &other) = default;
+  Function(Function &&other) noexcept = default;
+  auto operator=(Function const &other) -> Function & = default;
+  auto operator=(Function &&other) noexcept -> Function & = default;
 
   template<typename F>
   requires requires { !is_same_v<F, Function<R(Args...)>>; }
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
   Function(F &&f)
-    : callable_{new callable<F>{internal::forward<F>(f)}}
+    : callable_{UnsafeSharedPtr<callable_interface>{
+        new callable<F>{internal::forward<F>(f)}}}
   {
   }
 
@@ -152,8 +270,8 @@ private:
   public:
     virtual ~callable_interface() = default;
     callable_interface() = default;
-    callable_interface(callable_interface const &other) = default;
-    callable_interface(callable_interface &&other) noexcept = default;
+    callable_interface(callable_interface const &other) = delete;
+    callable_interface(callable_interface &&other) noexcept = delete;
     auto operator=(callable_interface const &other)
       -> callable_interface & = delete;
     auto operator=(callable_interface &&other) noexcept
@@ -168,70 +286,46 @@ private:
   public:
     ~callable() override = default;
     callable() = delete;
+    callable(callable const &other) = delete;
+    callable(callable &&other) noexcept = delete;
     auto operator=(callable const &other) -> callable & = delete;
     auto operator=(callable &&other) noexcept -> callable & = delete;
 
-    callable(callable const &other)
-      : fn_{other.fn_}
-    {
-    }
-
-    callable(callable &&other) noexcept
-      : fn_{internal::move(other.fn_)}
-    {
-    }
-
     // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
     explicit callable(F &&f)
-      : fn_{internal::forward<F>(f)}
+      : fn_{internal::move(f)}
     {
     }
 
     auto invoke(Args &&...args) -> R override
     {
-      return fn_(internal::move<Args>(args)...);
+      return fn_(internal::forward<Args>(args)...);
     }
 
   private:
     F fn_;
   };
 
-  callable_interface *callable_;
+  UnsafeSharedPtr<callable_interface> callable_;
 };
 
 template<typename... Args>
 class Function<void(Args...)>
 {
 public:
-  ~Function()
-  {
-    delete callable_;
-  }
-
+  ~Function() = default;
   Function() = delete;
-  Function(Function const &other) = delete;
-  auto operator=(Function const &other) -> Function & = delete;
-
-  Function(Function &&other) noexcept
-    : callable_{other.callable_}
-  {
-    other.callable_ = nullptr;
-  }
-
-  auto operator=(Function &&other) noexcept -> Function &
-  {
-    // No need to handle self-assignment
-    this->callable_ = other.callable_;
-    other.callable_ = nullptr;
-
-    return *this;
-  }
+  Function(Function const &other) = default;
+  Function(Function &&other) noexcept = default;
+  auto operator=(Function const &other) -> Function & = default;
+  auto operator=(Function &&other) noexcept -> Function & = default;
 
   template<typename F>
   requires requires { !is_same_v<F, Function<void(Args...)>>; }
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
   Function(F &&f)
-    : callable_{new callable<F>{internal::forward<F>(f)}}
+    : callable_{UnsafeSharedPtr<callable_interface>{
+        new callable<F>{internal::forward<F>(f)}}}
   {
   }
 
@@ -246,8 +340,8 @@ private:
   public:
     virtual ~callable_interface() = default;
     callable_interface() = default;
-    callable_interface(callable_interface const &other) = default;
-    callable_interface(callable_interface &&other) noexcept = default;
+    callable_interface(callable_interface const &other) = delete;
+    callable_interface(callable_interface &&other) noexcept = delete;
     auto operator=(callable_interface const &other)
       -> callable_interface & = delete;
     auto operator=(callable_interface &&other) noexcept
@@ -262,18 +356,10 @@ private:
   public:
     ~callable() override = default;
     callable() = delete;
+    callable(callable const &other) = delete;
+    callable(callable &&other) noexcept = delete;
     auto operator=(callable const &other) -> callable & = delete;
     auto operator=(callable &&other) noexcept -> callable & = delete;
-
-    callable(callable const &other)
-      : fn_{other.fn_}
-    {
-    }
-
-    callable(callable &&other) noexcept
-      : fn_{internal::move(other.fn_)}
-    {
-    }
 
     // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
     explicit callable(F &&f)
@@ -290,7 +376,7 @@ private:
     F fn_;
   };
 
-  callable_interface *callable_;
+  UnsafeSharedPtr<callable_interface> callable_;
 };
 
 using VoidSetup = Function<void(Context &)>;
