@@ -12,11 +12,11 @@ void register_test_unique_ptr(
   waypoint::Engine const &t,
   std::string const &suffix)
 {
-  auto g1 = t.group(("Test group 1 " + suffix).c_str());
+  auto const g1 = t.group(("Test group 1 " + suffix).c_str());
 
   t.test(g1, ("Test 1 " + suffix).c_str())
     .run(
-      [](auto &ctx)
+      [](auto const &ctx)
       {
         auto pi1 = waypoint::internal::UniquePtr<T>{nullptr};
 
@@ -25,7 +25,7 @@ void register_test_unique_ptr(
 
   t.test(g1, ("Test 2 " + suffix).c_str())
     .run(
-      [](auto &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UniquePtr{pi1_original};
@@ -43,11 +43,11 @@ void register_test_unique_ptr_moveable(
   waypoint::Engine const &t,
   std::string const &suffix)
 {
-  auto g1 = t.group(("Test group 1 " + suffix).c_str());
+  auto const g1 = t.group(("Test group 1 " + suffix).c_str());
 
   t.test(g1, ("Test 1 " + suffix).c_str())
     .run(
-      [](auto &ctx)
+      [](auto const &ctx)
       {
         auto pi1 = waypoint::internal::UniquePtrMoveable<T>{nullptr};
         auto pi2 = waypoint::internal::UniquePtrMoveable<T>{nullptr};
@@ -72,7 +72,7 @@ void register_test_unique_ptr_moveable(
 
   t.test(g1, ("Test 2 " + suffix).c_str())
     .run(
-      [](auto &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UniquePtrMoveable{pi1_original};
@@ -102,7 +102,7 @@ void register_test_unique_ptr_moveable(
 
   t.test(g1, ("Test 3 " + suffix).c_str())
     .run(
-      [](auto &ctx)
+      [](auto const &ctx)
       {
         auto pi1 = waypoint::internal::UniquePtrMoveable<T>{nullptr};
         auto pi2 = waypoint::internal::UniquePtrMoveable{new T{}};
@@ -127,7 +127,7 @@ void register_test_unique_ptr_moveable(
 
   t.test(g1, ("Test 4" + suffix).c_str())
     .run(
-      [](auto &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UniquePtrMoveable{pi1_original};
@@ -157,7 +157,7 @@ void register_test_unique_ptr_moveable(
 
   t.test(g1, ("Test 5 " + suffix).c_str())
     .run(
-      [](auto &ctx)
+      [](auto const &ctx)
       {
         auto pi1 = waypoint::internal::UniquePtrMoveable<T>{nullptr};
         waypoint::internal::UniquePtrMoveable const pi2{std::move(pi1)};
@@ -169,7 +169,7 @@ void register_test_unique_ptr_moveable(
 
   t.test(g1, ("Test 6 " + suffix).c_str())
     .run(
-      [](auto &ctx)
+      [](auto const &ctx)
       {
         auto *pi1_original = new T{};
         auto pi1 = waypoint::internal::UniquePtrMoveable{pi1_original};
@@ -210,7 +210,7 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
 
 auto main() -> int
 {
-  auto t = waypoint::make_default_engine();
+  auto const t = waypoint::make_default_engine();
 
   auto const results = run_all_tests(t);
   if(!results.success())

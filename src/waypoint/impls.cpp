@@ -301,12 +301,13 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const
 {
   std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes;
 
-  auto assertions = this->get_assertions() |
+  auto const assertions = this->get_assertions() |
     std::ranges::views::filter(
-                      [test_id](auto const &assertion)
-                      {
-                        return assertion.test_id() == test_id;
-                      });
+                            [test_id](auto const &assertion)
+                            {
+                              return assertion.test_id() == test_id;
+                            }) |
+    std::ranges::to<std::vector<AssertionRecord>>();
 
   for(auto const &assertion : assertions)
   {

@@ -2,20 +2,20 @@
 
 WAYPOINT_AUTORUN(waypoint::Engine const &t)
 {
-  auto g1 = t.group("Test group 1");
+  auto const g1 = t.group("Test group 1");
 
   t.test(g1, "Test 1")
     .run(
-      [](waypoint::Context &ctx)
+      [](waypoint::Context const &ctx)
       {
         ctx.assert(true);
       });
 
-  auto g2 = t.group("Test group 2");
+  auto const g2 = t.group("Test group 2");
 
   t.test(g2, "Test 2")
     .run(
-      [](waypoint::Context &ctx)
+      [](waypoint::Context const &ctx)
       {
         ctx.assert(true);
       });
@@ -23,7 +23,7 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
 
 auto main() -> int
 {
-  auto t = waypoint::make_default_engine();
+  auto const t = waypoint::make_default_engine();
 
   auto const result = waypoint::run_all_tests(t);
   if(!result.success())
