@@ -423,12 +423,15 @@ def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str |
     return success, file, duration, None if success else output.strip()
 
 
-def run_clang_tidy(preset) -> bool:
+def run_clang_tidy(preset, files) -> bool:
     build_dir = build_dir_from_preset(preset)
 
-    files = find_files_by_name(is_cpp_file)
-
     inputs = [(f, build_dir) for f in files]
+    if len(files) == 0:
+        print("No files to analyze")
+
+        return True
+
     start_time = time.time_ns()
     with multiprocessing.Pool(JOBS) as pool:
         results = pool.map(clang_tidy_process_single_file, inputs)
@@ -960,7 +963,9 @@ def main() -> int:
         print("")
 
         print("Running clang-tidy analysis...")
-        success = run_clang_tidy(CMakePresets.LinuxClang)
+        success = run_clang_tidy(
+            CMakePresets.LinuxClang, find_files_by_name(is_cpp_file)
+        )
         if not success:
             return 1
 
