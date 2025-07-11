@@ -26,6 +26,19 @@ auto get_autorun_section_boundaries() -> AutorunSectionBoundaries
   return {begin, end};
 }
 
+void populate_test_indices(waypoint::Engine const &t)
+{
+  waypoint::internal::get_impl(t).set_shuffled_test_record_ptrs();
+  auto const &shuffled_ptrs =
+    waypoint::internal::get_impl(t).get_shuffled_test_record_ptrs();
+  for(unsigned long long i = 0; i < shuffled_ptrs.size(); ++i)
+  {
+    waypoint::internal::get_impl(t).set_test_index(
+      shuffled_ptrs[i]->test_id(),
+      i);
+  }
+}
+
 void initialize(waypoint::Engine const &t)
 {
   auto const section = get_autorun_section_boundaries();
@@ -51,15 +64,7 @@ void initialize(waypoint::Engine const &t)
     fn_ptr(t);
   }
 
-  waypoint::internal::get_impl(t).set_shuffled_body_ptrs();
-  auto const &shuffled_body_ptrs =
-    waypoint::internal::get_impl(t).get_shuffled_body_ptrs();
-  for(unsigned long long i = 0; i < shuffled_body_ptrs.size(); ++i)
-  {
-    waypoint::internal::get_impl(t).set_test_index(
-      shuffled_body_ptrs[i]->test_id(),
-      i);
-  }
+  populate_test_indices(t);
 }
 
 } // namespace
@@ -84,12 +89,12 @@ auto run_all_tests(Engine const &t) -> RunResult
   }
 
   std::ranges::for_each(
-    internal::get_impl(t).get_shuffled_body_ptrs(),
+    internal::get_impl(t).get_shuffled_test_record_ptrs(),
     [&t](auto const *ptr)
     {
       auto context = internal::get_impl(t).make_context(ptr->test_id());
       // Run test
-      ptr->body()(context);
+      ptr->test_assembly()(context);
     });
 
   return internal::get_impl(t).generate_results();

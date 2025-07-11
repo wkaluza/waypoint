@@ -98,8 +98,8 @@ auto TestOutcome_impl::get_index() const -> unsigned long long
   return this->test_index_;
 }
 
-TestRecord::TestRecord(TestBodyNoFixture body, TestId const test_id)
-  : body_(std::move(body)),
+TestRecord::TestRecord(TestAssembly assembly, TestId const test_id)
+  : test_assembly_(std::move(assembly)),
     test_id_{test_id}
 {
 }
@@ -109,9 +109,9 @@ auto TestRecord::test_id() const -> TestId
   return this->test_id_;
 }
 
-auto TestRecord::body() const -> TestBodyNoFixture const &
+auto TestRecord::test_assembly() const -> TestAssembly const &
 {
-  return this->body_;
+  return this->test_assembly_;
 }
 
 AssertionRecord::AssertionRecord(
@@ -161,21 +161,6 @@ auto Group_impl::get_id() const -> GroupId
   return this->id_;
 }
 
-Registrar_impl::Registrar_impl()
-  : engine_{nullptr}
-{
-}
-
-void Registrar_impl::initialize(Engine const *engine)
-{
-  this->engine_ = engine;
-}
-
-auto Registrar_impl::get_engine() const -> Engine const &
-{
-  return *engine_;
-}
-
 Test_impl::Test_impl()
   : engine_{},
     id_{}
@@ -186,7 +171,6 @@ void Test_impl::initialize(Engine const &engine, TestId const id)
 {
   this->engine_ = &engine;
   this->id_ = id;
-  this->registrar_ = get_impl(this->get_engine()).make_registrar();
 }
 
 auto Test_impl::get_engine() const -> Engine const &
@@ -197,11 +181,6 @@ auto Test_impl::get_engine() const -> Engine const &
 auto Test_impl::get_id() const -> TestId
 {
   return this->id_;
-}
-
-auto Test_impl::registrar() -> Registrar
-{
-  return std::move(this->registrar_);
 }
 
 Context_impl::Context_impl()
@@ -338,15 +317,6 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const
   return std::unique_ptr<TestOutcome>(new TestOutcome{impl});
 }
 
-auto Engine_impl::make_registrar() const -> Registrar
-{
-  auto *impl = new Registrar_impl{};
-
-  impl->initialize(this->engine_);
-
-  return Registrar{impl};
-}
-
 auto Engine_impl::register_test(
   GroupId const group_id,
   TestName const &test_name) -> TestId
@@ -433,51 +403,53 @@ auto get_random_number_generator() -> std::mt19937_64
   return rng;
 }
 
-auto get_body_ptrs(Engine const &t) -> std::vector<TestRecord const *>
+auto get_test_record_ptrs(Engine const &t) -> std::vector<TestRecord const *>
 {
-  auto const &bodies = get_impl(t).test_bodies();
-  std::vector<TestRecord const *> body_ptrs(bodies.size());
+  auto const &test_records = get_impl(t).test_records();
+  std::vector<TestRecord const *> ptrs(test_records.size());
 
   std::ranges::transform(
-    bodies,
-    body_ptrs.begin(),
-    [](auto &body)
+    test_records,
+    ptrs.begin(),
+    [](auto &test_record)
     {
-      return &body;
+      return &test_record;
     });
 
   std::ranges::sort(
-    body_ptrs,
+    ptrs,
     [](auto *a, auto *b)
     {
       return a->test_id() < b->test_id();
     });
 
-  return body_ptrs;
+  return ptrs;
 }
 
-auto get_shuffled_body_ptrs_(Engine const &t) -> std::vector<TestRecord const *>
+auto get_shuffled_test_record_ptrs_(Engine const &t)
+  -> std::vector<TestRecord const *>
 {
-  auto body_ptrs = get_body_ptrs(t);
+  auto ptrs = get_test_record_ptrs(t);
 
   auto rng = get_random_number_generator();
 
-  std::ranges::shuffle(body_ptrs, rng);
+  std::ranges::shuffle(ptrs, rng);
 
-  return body_ptrs;
+  return ptrs;
 }
 
 } // namespace
 
-void Engine_impl::set_shuffled_body_ptrs()
+void Engine_impl::set_shuffled_test_record_ptrs()
 {
-  this->shuffled_body_ptrs_ = get_shuffled_body_ptrs_(*this->engine_);
+  this->shuffled_test_record_ptrs_ =
+    get_shuffled_test_record_ptrs_(*this->engine_);
 }
 
-auto Engine_impl::get_shuffled_body_ptrs() const
+auto Engine_impl::get_shuffled_test_record_ptrs() const
   -> std::vector<TestRecord const *> const &
 {
-  return this->shuffled_body_ptrs_;
+  return this->shuffled_test_record_ptrs_;
 }
 
 auto Engine_impl::has_errors() const -> bool
@@ -490,16 +462,16 @@ void Engine_impl::initialize(Engine const &engine)
   this->engine_ = &engine;
 }
 
-void Engine_impl::register_test_body(
-  TestBodyNoFixture body,
+void Engine_impl::register_test_assembly(
+  TestAssembly assembly,
   TestId const test_id)
 {
-  this->bodies_.emplace_back(std::move(body), test_id);
+  this->test_records_.emplace_back(std::move(assembly), test_id);
 }
 
-auto Engine_impl::test_bodies() -> std::vector<TestRecord> &
+auto Engine_impl::test_records() -> std::vector<TestRecord> &
 {
-  return this->bodies_;
+  return this->test_records_;
 }
 
 auto Engine_impl::generate_results() const -> RunResult

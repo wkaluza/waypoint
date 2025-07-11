@@ -5,40 +5,6 @@
 #include <optional>
 #include <utility>
 
-namespace waypoint::internal
-{
-
-Registrar::~Registrar() = default;
-
-Registrar::Registrar()
-  : impl_{nullptr}
-{
-}
-
-Registrar::Registrar(Registrar &&other) noexcept = default;
-
-auto Registrar::operator=(Registrar &&other) noexcept -> Registrar &
-{
-  // No need to handle self-assignment
-  this->impl_ = std::move(other.impl_);
-
-  return *this;
-}
-
-Registrar::Registrar(Registrar_impl *impl)
-  : impl_{impl}
-{
-}
-
-void Registrar::register_body(
-  unsigned long long const test_id,
-  TestBodyNoFixture f) const
-{
-  get_impl(this->impl_->get_engine()).register_test_body(std::move(f), test_id);
-}
-
-} // namespace waypoint::internal
-
 namespace waypoint
 {
 
@@ -131,14 +97,14 @@ Test::Test(internal::Test_impl *const impl)
 {
 }
 
-auto Test::registrar() const -> internal::Registrar
-{
-  return this->impl_->registrar();
-}
-
 auto Test::test_id() const -> unsigned long long
 {
   return this->impl_->get_id();
+}
+
+auto Test::get_engine() const -> Engine const &
+{
+  return this->impl_->get_engine();
 }
 
 auto Engine::group(char const *name) const -> Group
@@ -154,6 +120,13 @@ auto Engine::test(Group const &group, char const *name) const -> Test
     this->impl_->register_test(this->impl_->get_group_id(group), name);
 
   return this->impl_->make_test(test_id);
+}
+
+void Engine::register_test_assembly(
+  internal::TestAssembly f,
+  unsigned long long const test_id) const
+{
+  this->impl_->register_test_assembly(std::move(f), test_id);
 }
 
 Engine::~Engine() = default;

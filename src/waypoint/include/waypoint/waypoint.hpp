@@ -19,7 +19,6 @@ class AssertionOutcome_impl;
 class Context_impl;
 class Engine_impl;
 class Group_impl;
-class Registrar_impl;
 class RunResult_impl;
 class Test_impl;
 class TestOutcome_impl;
@@ -82,6 +81,35 @@ struct is_same<T, T>
 
 template<typename T, typename U>
 constexpr bool is_same_v = is_same<T, U>::value;
+
+template<typename T>
+struct is_void
+{
+  constexpr static bool value = false;
+};
+
+template<>
+struct is_void<void>
+{
+  constexpr static bool value = true;
+};
+
+template<typename T>
+constexpr bool is_void_v = is_void<T>::value;
+
+template<bool B, typename T = void>
+struct enable_if
+{
+};
+
+template<typename T>
+struct enable_if<true, T>
+{
+  using type = T;
+};
+
+template<bool B, typename T>
+using enable_if_t = typename enable_if<B, T>::type;
 
 template<typename T>
 auto declval() -> T;
@@ -244,7 +272,12 @@ class Function<R(Args...)>
 {
 public:
   ~Function() = default;
-  Function() = delete;
+
+  Function()
+    : callable_{static_cast<callable_interface *>(nullptr)}
+  {
+  }
+
   Function(Function const &other) = default;
   Function(Function &&other) noexcept = default;
   auto operator=(Function const &other) -> Function & = default;
@@ -257,6 +290,11 @@ public:
     : callable_{UnsafeSharedPtr<callable_interface>{
         new callable<F>{internal::forward<F>(f)}}}
   {
+  }
+
+  explicit operator bool() const
+  {
+    return static_cast<bool>(this->callable_);
   }
 
   auto operator()(Args &&...args) const -> R
@@ -299,7 +337,7 @@ private:
 
     auto invoke(Args &&...args) -> R override
     {
-      return fn_(internal::forward<Args>(args)...);
+      return this->fn_(internal::forward<Args>(args)...);
     }
 
   private:
@@ -314,7 +352,12 @@ class Function<void(Args...)>
 {
 public:
   ~Function() = default;
-  Function() = delete;
+
+  Function()
+    : callable_{static_cast<callable_interface *>(nullptr)}
+  {
+  }
+
   Function(Function const &other) = default;
   Function(Function &&other) noexcept = default;
   auto operator=(Function const &other) -> Function & = default;
@@ -327,6 +370,11 @@ public:
     : callable_{UnsafeSharedPtr<callable_interface>{
         new callable<F>{internal::forward<F>(f)}}}
   {
+  }
+
+  explicit operator bool() const
+  {
+    return static_cast<bool>(this->callable_);
   }
 
   void operator()(Args &&...args) const
@@ -369,7 +417,7 @@ private:
 
     void invoke(Args &&...args) override
     {
-      fn_(internal::forward<Args>(args)...);
+      this->fn_(internal::forward<Args>(args)...);
     }
 
   private:
@@ -378,6 +426,8 @@ private:
 
   UnsafeSharedPtr<callable_interface> callable_;
 };
+
+using TestAssembly = Function<void(Context &)>;
 
 using VoidSetup = Function<void(Context &)>;
 using TestBodyNoFixture = Function<void(Context &)>;
@@ -389,27 +439,6 @@ template<typename FixtureT>
 using TestBodyWithFixture = Function<void(Context &, FixtureT &)>;
 template<typename FixtureT>
 using TeardownWithFixture = Function<void(Context &, FixtureT &)>;
-
-template<typename T>
-class UniquePtrMoveable
-{
-public:
-  ~UniquePtrMoveable();
-  UniquePtrMoveable() = delete;
-  explicit UniquePtrMoveable(T *ptr);
-  UniquePtrMoveable(UniquePtrMoveable const &other) = delete;
-  auto operator=(UniquePtrMoveable const &other)
-    -> UniquePtrMoveable & = delete;
-  UniquePtrMoveable(UniquePtrMoveable &&other) noexcept;
-  auto operator=(UniquePtrMoveable &&other) noexcept -> UniquePtrMoveable &;
-
-  explicit operator bool() const;
-  auto operator->() const -> T *;
-  auto operator*() const -> T &;
-
-private:
-  T *ptr_;
-};
 
 template<typename T>
 class UniquePtr
@@ -439,27 +468,189 @@ extern template class UniquePtr<RunResult_impl>;
 extern template class UniquePtr<Test_impl>;
 extern template class UniquePtr<TestOutcome_impl>;
 
-extern template class UniquePtrMoveable<Registrar_impl>;
+template<typename FixtureT>
+class Registrar;
 
+} // namespace waypoint::internal
+
+namespace waypoint
+{
+
+class Engine
+{
+public:
+  ~Engine();
+  Engine(Engine const &other) = delete;
+  Engine(Engine &&other) noexcept = delete;
+  auto operator=(Engine const &other) -> Engine & = delete;
+  auto operator=(Engine &&other) noexcept -> Engine & = delete;
+
+  auto group(char const *name) const -> Group;
+  auto test(Group const &group, char const *name) const -> Test;
+
+private:
+  explicit Engine(internal::Engine_impl *impl);
+
+  void register_test_assembly(
+    internal::TestAssembly f,
+    unsigned long long test_id) const;
+
+  internal::UniquePtr<internal::Engine_impl> const impl_;
+
+  friend auto internal::get_impl(Engine const &engine)
+    -> internal::Engine_impl &;
+
+  friend auto make_default_engine() -> Engine;
+
+  template<typename FixtureT>
+  friend class internal::Registrar;
+};
+
+class Context
+{
+public:
+  ~Context();
+  Context(Context const &other) = delete;
+  Context(Context &&other) noexcept = delete;
+  auto operator=(Context const &other) -> Context & = delete;
+  auto operator=(Context &&other) noexcept -> Context & = delete;
+
+  void assert(bool condition) const;
+  void assert(bool condition, char const *message) const;
+
+private:
+  explicit Context(internal::Context_impl *impl);
+
+  internal::UniquePtr<internal::Context_impl> const impl_;
+
+  friend class internal::Engine_impl;
+};
+
+} // namespace waypoint
+
+namespace waypoint::internal
+{
+
+template<typename FixtureT>
 class Registrar
 {
 public:
-  ~Registrar();
+  ~Registrar()
+  {
+    if(static_cast<bool>(this->body_))
+    {
+      this->engine_.register_test_assembly(
+        TestAssembly{[setup = move(this->setup_),
+                      body = move(this->body_),
+                      teardown = move(this->teardown_)](Context &ctx)
+                     {
+                       FixtureT fixture = setup(ctx);
+                       body(ctx, fixture);
+                       if(static_cast<bool>(teardown))
+                       {
+                         teardown(ctx, fixture);
+                       }
+                     }},
+        this->test_id_);
+    }
+  }
 
-  Registrar();
+  Registrar(Engine const &engine, unsigned long long const test_id)
+    : engine_{engine},
+      test_id_{test_id},
+      setup_{},
+      body_{},
+      teardown_{}
+  {
+  }
+
   Registrar(Registrar const &other) = delete;
-  Registrar(Registrar &&other) noexcept;
+  Registrar(Registrar &&other) noexcept = default;
   auto operator=(Registrar const &other) -> Registrar & = delete;
-  auto operator=(Registrar &&other) noexcept -> Registrar &;
+  auto operator=(Registrar &&other) noexcept -> Registrar & = delete;
 
-  void register_body(unsigned long long test_id, TestBodyNoFixture f) const;
+  void register_setup(NonVoidSetup<FixtureT> f)
+  {
+    this->setup_ = move(f);
+  }
+
+  void register_body(TestBodyWithFixture<FixtureT> f)
+  {
+    this->body_ = move(f);
+  }
+
+  void register_teardown(TeardownWithFixture<FixtureT> f)
+  {
+    this->teardown_ = move(f);
+  }
 
 private:
-  explicit Registrar(Registrar_impl *impl);
+  Engine const &engine_;
+  unsigned long long test_id_;
+  NonVoidSetup<FixtureT> setup_;
+  TestBodyWithFixture<FixtureT> body_;
+  TeardownWithFixture<FixtureT> teardown_;
+};
 
-  UniquePtrMoveable<Registrar_impl> impl_;
+template<>
+class Registrar<void>
+{
+public:
+  ~Registrar()
+  {
+    if(static_cast<bool>(this->body_))
+    {
+      this->engine_.register_test_assembly(
+        TestAssembly{[setup = move(this->setup_),
+                      body = move(this->body_),
+                      teardown = move(this->teardown_)](Context &ctx)
+                     {
+                       if(static_cast<bool>(setup))
+                       {
+                         setup(ctx);
+                       }
+                       body(ctx);
+                       if(static_cast<bool>(teardown))
+                       {
+                         teardown(ctx);
+                       }
+                     }},
+        this->test_id_);
+    }
+  }
 
-  friend class Engine_impl;
+  Registrar(Engine const &engine, unsigned long long const test_id)
+    : engine_{engine},
+      test_id_{test_id}
+  {
+  }
+
+  Registrar(Registrar const &other) = delete;
+  Registrar(Registrar &&other) noexcept = default;
+  auto operator=(Registrar const &other) -> Registrar & = delete;
+  auto operator=(Registrar &&other) noexcept -> Registrar & = delete;
+
+  void register_setup(VoidSetup f)
+  {
+    this->setup_ = move(f);
+  }
+
+  void register_body(TestBodyNoFixture f)
+  {
+    this->body_ = move(f);
+  }
+
+  void register_teardown(TeardownNoFixture f)
+  {
+    this->teardown_ = move(f);
+  }
+
+private:
+  Engine const &engine_;
+  unsigned long long test_id_;
+  VoidSetup setup_;
+  TestBodyNoFixture body_;
+  TeardownNoFixture teardown_;
 };
 
 } // namespace waypoint::internal
@@ -564,43 +755,21 @@ public:
   auto operator=(Test3 const &other) -> Test3 & = delete;
   auto operator=(Test3 &&other) noexcept -> Test3 & = delete;
 
-  Test3(
-    internal::NonVoidSetup<FixtureT> setup,
-    internal::TeardownWithFixture<FixtureT> teardown,
-    internal::Registrar registrar,
-    unsigned long long const test_id)
-    : setup_{internal::move(setup)},
-      teardown_{internal::move(teardown)},
-      registrar_{internal::move(registrar)},
-      test_id_{test_id}
+  explicit Test3(internal::Registrar<FixtureT> registrar)
+    : registrar_{internal::move(registrar)}
   {
   }
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  void run(F &&f)
+  void teardown(F &&f)
   {
-    this->registrar_.register_body(
-      this->test_id_,
-      internal::TestBodyNoFixture{
-        [setup = internal::NonVoidSetup{internal::move(this->setup_)},
-         teardown =
-           internal::TeardownWithFixture{internal::move(this->teardown_)},
-         test_body =
-           internal::TestBodyWithFixture<FixtureT>{internal::forward<F>(f)}](
-          Context &ctx)
-        {
-          FixtureT fixture{setup(ctx)};
-          test_body(ctx, fixture);
-          teardown(ctx, fixture);
-        }});
+    this->registrar_.register_teardown(
+      internal::TeardownWithFixture<FixtureT>{internal::forward<F>(f)});
   }
 
 private:
-  internal::NonVoidSetup<FixtureT> setup_;
-  internal::TeardownWithFixture<FixtureT> teardown_;
-  internal::Registrar registrar_;
-  unsigned long long test_id_;
+  internal::Registrar<FixtureT> registrar_;
 };
 
 template<>
@@ -614,42 +783,21 @@ public:
   auto operator=(Test3 const &other) -> Test3 & = delete;
   auto operator=(Test3 &&other) noexcept -> Test3 & = delete;
 
-  Test3(
-    internal::VoidSetup setup,
-    internal::TeardownNoFixture teardown,
-    internal::Registrar registrar,
-    unsigned long long const test_id)
-    : setup_{internal::move(setup)},
-      teardown_{internal::move(teardown)},
-      registrar_{internal::move(registrar)},
-      test_id_{test_id}
+  explicit Test3(internal::Registrar<void> registrar)
+    : registrar_{internal::move(registrar)}
   {
   }
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  void run(F &&f)
+  void teardown(F &&f)
   {
-    this->registrar_.register_body(
-      this->test_id_,
-      internal::TestBodyNoFixture{
-        [setup = internal::VoidSetup{internal::move(this->setup_)},
-         teardown =
-           internal::TeardownNoFixture{internal::move(this->teardown_)},
-         test_body =
-           internal::TestBodyNoFixture{internal::forward<F>(f)}](Context &ctx)
-        {
-          setup(ctx);
-          test_body(ctx);
-          teardown(ctx);
-        }});
+    this->registrar_.register_teardown(
+      internal::TeardownNoFixture{internal::forward<F>(f)});
   }
 
 private:
-  internal::VoidSetup setup_;
-  internal::TeardownNoFixture teardown_;
-  internal::Registrar registrar_;
-  unsigned long long test_id_;
+  internal::Registrar<void> registrar_;
 };
 
 template<typename FixtureT>
@@ -663,57 +811,23 @@ public:
   auto operator=(Test2 const &other) -> Test2 & = delete;
   auto operator=(Test2 &&other) noexcept -> Test2 & = delete;
 
-  Test2(
-    internal::NonVoidSetup<FixtureT> setup,
-    internal::Registrar registrar,
-    unsigned long long const test_id)
-    : setup_{internal::move(setup)},
-      registrar_{internal::move(registrar)},
-      test_id_{test_id}
+  explicit Test2(internal::Registrar<FixtureT> registrar)
+    : registrar_{internal::move(registrar)}
   {
   }
 
   template<typename F>
-  [[nodiscard]]
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto teardown(F &&f) -> Test3<FixtureT>
-  {
-    return this->template make_Test3<FixtureT>(internal::forward<F>(f));
-  }
-
-  template<typename F>
-  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  void run(F &&f)
+  auto run(F &&f) -> Test3<FixtureT>
   {
     this->registrar_.register_body(
-      this->test_id_,
-      internal::TestBodyNoFixture{
-        [setup = internal::NonVoidSetup{internal::move(this->setup_)},
-         test_body =
-           internal::TestBodyWithFixture<FixtureT>{internal::forward<F>(f)}](
-          Context &ctx)
-        {
-          FixtureT fixture{setup(ctx)};
-          test_body(ctx, fixture);
-        }});
+      internal::TestBodyWithFixture<FixtureT>{internal::forward<F>(f)});
+
+    return Test3<FixtureT>{internal::move(this->registrar_)};
   }
 
 private:
-  template<typename R, typename F>
-  [[nodiscard]]
-  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto make_Test3(F &&f)
-  {
-    return Test3<R>{
-      internal::move(this->setup_),
-      internal::forward<F>(f),
-      internal::move(this->registrar_),
-      this->test_id_};
-  }
-
-  internal::NonVoidSetup<FixtureT> setup_;
-  internal::Registrar registrar_;
-  unsigned long long test_id_;
+  internal::Registrar<FixtureT> registrar_;
 };
 
 template<>
@@ -727,56 +841,23 @@ public:
   auto operator=(Test2 const &other) -> Test2 & = delete;
   auto operator=(Test2 &&other) noexcept -> Test2 & = delete;
 
-  Test2(
-    internal::VoidSetup setup,
-    internal::Registrar registrar,
-    unsigned long long const test_id)
-    : setup_{internal::move(setup)},
-      registrar_{internal::move(registrar)},
-      test_id_{test_id}
+  explicit Test2(internal::Registrar<void> registrar)
+    : registrar_{internal::move(registrar)}
   {
   }
 
   template<typename F>
-  [[nodiscard]]
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto teardown(F &&f) -> Test3<void>
-  {
-    return this->make_Test3<void>(internal::forward<F>(f));
-  }
-
-  template<typename F>
-  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  void run(F &&f)
+  auto run(F &&f) -> Test3<void>
   {
     this->registrar_.register_body(
-      this->test_id_,
-      internal::TestBodyNoFixture{
-        [setup = internal::VoidSetup{internal::move(this->setup_)},
-         test_body =
-           internal::TestBodyNoFixture{internal::forward<F>(f)}](Context &ctx)
-        {
-          setup(ctx);
-          test_body(ctx);
-        }});
+      internal::TestBodyNoFixture{internal::forward<F>(f)});
+
+    return Test3<void>{internal::move(this->registrar_)};
   }
 
 private:
-  template<typename R, typename F>
-  [[nodiscard]]
-  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto make_Test3(F &&f)
-  {
-    return Test3<R>{
-      internal::move(this->setup_),
-      internal::forward<F>(f),
-      internal::move(this->registrar_),
-      this->test_id_};
-  }
-
-  internal::VoidSetup setup_;
-  internal::Registrar registrar_;
-  unsigned long long test_id_;
+  internal::Registrar<void> registrar_;
 };
 
 class Test
@@ -791,87 +872,60 @@ public:
   template<typename F>
   [[nodiscard]]
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto setup(F &&f) -> Test2<internal::setup_invoke_result_t<F>>
+  auto setup(F &&f) -> internal::enable_if_t<
+    !internal::is_void_v<internal::setup_invoke_result_t<F>>,
+    Test2<internal::setup_invoke_result_t<F>>>
   {
-    return this->make_Test2<internal::setup_invoke_result_t<F>>(
-      internal::forward<F>(f));
+    auto registrar = internal::Registrar<internal::setup_invoke_result_t<F>>{
+      this->get_engine(),
+      this->test_id()};
+
+    registrar.register_setup(internal::forward<F>(f));
+
+    return Test2<internal::setup_invoke_result_t<F>>{internal::move(registrar)};
   }
 
   template<typename F>
   [[nodiscard]]
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto teardown(F &&f) -> Test3<void>
+  auto setup(F &&f) -> internal::enable_if_t<
+    internal::is_void_v<internal::setup_invoke_result_t<F>>,
+    Test2<void>>
   {
-    return this->make_Test3<void>(internal::forward<F>(f));
+    auto registrar =
+      internal::Registrar<void>{this->get_engine(), this->test_id()};
+
+    registrar.register_setup(internal::forward<F>(f));
+
+    return Test2<internal::setup_invoke_result_t<F>>{internal::move(registrar)};
   }
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  void run(F &&f) const
+  auto run(F &&f) -> Test3<void>
   {
-    this->registrar().register_body(
-      this->test_id(),
+    auto registrar =
+      internal::Registrar<void>{this->get_engine(), this->test_id()};
+
+    registrar.register_body(
       internal::TestBodyNoFixture{internal::forward<F>(f)});
+
+    return Test3<void>{internal::move(registrar)};
   }
 
 private:
   explicit Test(internal::Test_impl *impl);
 
   [[nodiscard]]
-  auto registrar() const -> internal::Registrar;
-  [[nodiscard]]
   auto test_id() const -> unsigned long long;
-
-  template<typename R, typename F>
   [[nodiscard]]
-  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto make_Test2(F &&f)
-  {
-    return Test2<R>{
-      internal::forward<F>(f),
-      this->registrar(),
-      this->test_id()};
-  }
-
-  template<typename R, typename F>
-  [[nodiscard]]
-  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto make_Test3(F &&f)
-  {
-    return Test3<R>{
-      internal::VoidSetup{[](Context const &)
-                          {
-                          }},
-      internal::forward<F>(f),
-      this->registrar(),
-      this->test_id()};
-  }
+  auto get_engine() const -> Engine const &;
 
   internal::UniquePtr<internal::Test_impl> const impl_;
 
   friend class internal::Engine_impl;
   template<typename FixtureT>
   friend class Test2;
-};
-
-class Context
-{
-public:
-  ~Context();
-  Context(Context const &other) = delete;
-  Context(Context &&other) noexcept = delete;
-  auto operator=(Context const &other) -> Context & = delete;
-  auto operator=(Context &&other) noexcept -> Context & = delete;
-
-  void assert(bool condition) const;
-  void assert(bool condition, char const *message) const;
-
-private:
-  explicit Context(internal::Context_impl *impl);
-
-  internal::UniquePtr<internal::Context_impl> const impl_;
-
-  friend class internal::Engine_impl;
 };
 
 class RunResult
@@ -896,29 +950,6 @@ private:
   internal::UniquePtr<internal::RunResult_impl> const impl_;
 
   friend class internal::Engine_impl;
-};
-
-class Engine
-{
-public:
-  ~Engine();
-  Engine(Engine const &other) = delete;
-  Engine(Engine &&other) noexcept = delete;
-  auto operator=(Engine const &other) -> Engine & = delete;
-  auto operator=(Engine &&other) noexcept -> Engine & = delete;
-
-  auto group(char const *name) const -> Group;
-  auto test(Group const &group, char const *name) const -> Test;
-
-private:
-  explicit Engine(internal::Engine_impl *impl);
-
-  internal::UniquePtr<internal::Engine_impl> const impl_;
-
-  friend auto internal::get_impl(Engine const &engine)
-    -> internal::Engine_impl &;
-
-  friend auto make_default_engine() -> Engine;
 };
 
 } // namespace waypoint
