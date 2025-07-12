@@ -748,6 +748,14 @@ private:
   friend class internal::Engine_impl;
 };
 
+} // namespace waypoint
+
+namespace waypoint::internal
+{
+
+template<typename>
+class Test2;
+
 template<typename FixtureT>
 class Test3
 {
@@ -776,7 +784,7 @@ private:
   internal::Registrar<FixtureT> registrar_;
 
   template<typename>
-  friend class Test2;
+  friend class internal::Test2;
 };
 
 template<>
@@ -807,8 +815,8 @@ private:
   internal::Registrar<void> registrar_;
 
   template<typename>
-  friend class Test2;
-  friend class Test;
+  friend class internal::Test2;
+  friend class waypoint::Test;
 };
 
 template<typename FixtureT>
@@ -840,7 +848,7 @@ private:
 
   internal::Registrar<FixtureT> registrar_;
 
-  friend class Test;
+  friend class waypoint::Test;
 };
 
 template<>
@@ -872,8 +880,13 @@ private:
 
   internal::Registrar<void> registrar_;
 
-  friend class Test;
+  friend class waypoint::Test;
 };
+
+} // namespace waypoint::internal
+
+namespace waypoint
+{
 
 class Test
 {
@@ -889,7 +902,7 @@ public:
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto setup(F &&f) -> internal::enable_if_t<
     !internal::is_void_v<internal::setup_invoke_result_t<F>>,
-    Test2<internal::setup_invoke_result_t<F>>>
+    internal::Test2<internal::setup_invoke_result_t<F>>>
   {
     internal::Registrar<internal::setup_invoke_result_t<F>> registrar{
       this->get_engine(),
@@ -897,7 +910,8 @@ public:
 
     registrar.register_setup(internal::forward<F>(f));
 
-    return Test2<internal::setup_invoke_result_t<F>>{internal::move(registrar)};
+    return internal::Test2<internal::setup_invoke_result_t<F>>{
+      internal::move(registrar)};
   }
 
   template<typename F>
@@ -905,25 +919,26 @@ public:
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto setup(F &&f) -> internal::enable_if_t<
     internal::is_void_v<internal::setup_invoke_result_t<F>>,
-    Test2<void>>
+    internal::Test2<void>>
   {
     internal::Registrar<void> registrar{this->get_engine(), this->test_id()};
 
     registrar.register_setup(internal::forward<F>(f));
 
-    return Test2<internal::setup_invoke_result_t<F>>{internal::move(registrar)};
+    return internal::Test2<internal::setup_invoke_result_t<F>>{
+      internal::move(registrar)};
   }
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto run(F &&f) -> Test3<void>
+  auto run(F &&f) -> internal::Test3<void>
   {
     internal::Registrar<void> registrar{this->get_engine(), this->test_id()};
 
     registrar.register_body(
       internal::TestBodyNoFixture{internal::forward<F>(f)});
 
-    return Test3<void>{internal::move(registrar)};
+    return internal::Test3<void>{internal::move(registrar)};
   }
 
 private:
