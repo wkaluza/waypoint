@@ -66,9 +66,3 @@ new_basic_test(030_capturing_lambda_as_test_body)
 new_basic_test(031_mutable_lambda_as_test_body)
 new_basic_test(032_setup)
 new_basic_test(033_teardown)
-
-new_basic_test(034_internal_function)
-target_include_directories(
-  034_internal_function
-  PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
-          ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)

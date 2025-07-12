@@ -267,8 +267,8 @@ private:
 template<typename T>
 class Function;
 
-template<typename R, typename... Args>
-class Function<R(Args...)>
+template<typename R>
+class Function<R(Context const &)>
 {
 public:
   ~Function() = default;
@@ -284,7 +284,7 @@ public:
   auto operator=(Function &&other) noexcept -> Function & = default;
 
   template<typename F>
-  requires requires { !is_same_v<F, Function<R(Args...)>>; }
+  requires requires { !is_same_v<F, Function<R(Context const &)>>; }
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
   Function(F &&f)
     : callable_{UnsafeSharedPtr<callable_interface>{
@@ -297,9 +297,9 @@ public:
     return static_cast<bool>(this->callable_);
   }
 
-  auto operator()(Args &&...args) const -> R
+  auto operator()(Context const &ctx) const -> R
   {
-    return this->callable_->invoke(internal::forward<Args>(args)...);
+    return this->callable_->invoke(ctx);
   }
 
 private:
@@ -315,7 +315,7 @@ private:
     auto operator=(callable_interface &&other) noexcept
       -> callable_interface & = delete;
 
-    virtual auto invoke(Args &&...args) -> R = 0;
+    virtual auto invoke(Context const &ctx) -> R = 0;
   };
 
   template<typename F>
@@ -335,9 +335,9 @@ private:
     {
     }
 
-    auto invoke(Args &&...args) -> R override
+    auto invoke(Context const &ctx) -> R override
     {
-      return this->fn_(internal::forward<Args>(args)...);
+      return this->fn_(ctx);
     }
 
   private:
@@ -347,8 +347,8 @@ private:
   UnsafeSharedPtr<callable_interface> callable_;
 };
 
-template<typename... Args>
-class Function<void(Args...)>
+template<>
+class Function<void(Context const &)>
 {
 public:
   ~Function() = default;
@@ -364,7 +364,7 @@ public:
   auto operator=(Function &&other) noexcept -> Function & = default;
 
   template<typename F>
-  requires requires { !is_same_v<F, Function<void(Args...)>>; }
+  requires requires { !is_same_v<F, Function<void(Context const &)>>; }
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
   Function(F &&f)
     : callable_{UnsafeSharedPtr<callable_interface>{
@@ -377,9 +377,9 @@ public:
     return static_cast<bool>(this->callable_);
   }
 
-  void operator()(Args &&...args) const
+  void operator()(Context const &ctx) const
   {
-    this->callable_->invoke(internal::forward<Args>(args)...);
+    this->callable_->invoke(ctx);
   }
 
 private:
@@ -395,7 +395,7 @@ private:
     auto operator=(callable_interface &&other) noexcept
       -> callable_interface & = delete;
 
-    virtual void invoke(Args &&...args) = 0;
+    virtual void invoke(Context const &ctx) = 0;
   };
 
   template<typename F>
@@ -415,9 +415,9 @@ private:
     {
     }
 
-    void invoke(Args &&...args) override
+    void invoke(Context const &ctx) override
     {
-      this->fn_(internal::forward<Args>(args)...);
+      this->fn_(ctx);
     }
 
   private:
@@ -427,18 +427,100 @@ private:
   UnsafeSharedPtr<callable_interface> callable_;
 };
 
-using TestAssembly = Function<void(Context &)>;
+template<typename FixtureT>
+class Function<void(Context const &, FixtureT &)>
+{
+public:
+  ~Function() = default;
 
-using VoidSetup = Function<void(Context &)>;
-using TestBodyNoFixture = Function<void(Context &)>;
-using TeardownNoFixture = Function<void(Context &)>;
+  Function()
+    : callable_{static_cast<callable_interface *>(nullptr)}
+  {
+  }
+
+  Function(Function const &other) = default;
+  Function(Function &&other) noexcept = default;
+  auto operator=(Function const &other) -> Function & = default;
+  auto operator=(Function &&other) noexcept -> Function & = default;
+
+  template<typename F>
+  requires requires {
+    !is_same_v<F, Function<void(Context const &, FixtureT &)>>;
+  }
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
+  Function(F &&f)
+    : callable_{UnsafeSharedPtr<callable_interface>{
+        new callable<F>{internal::forward<F>(f)}}}
+  {
+  }
+
+  explicit operator bool() const
+  {
+    return static_cast<bool>(this->callable_);
+  }
+
+  void operator()(Context const &ctx, FixtureT &f) const
+  {
+    this->callable_->invoke(ctx, f);
+  }
+
+private:
+  class callable_interface
+  {
+  public:
+    virtual ~callable_interface() = default;
+    callable_interface() = default;
+    callable_interface(callable_interface const &other) = delete;
+    callable_interface(callable_interface &&other) noexcept = delete;
+    auto operator=(callable_interface const &other)
+      -> callable_interface & = delete;
+    auto operator=(callable_interface &&other) noexcept
+      -> callable_interface & = delete;
+
+    virtual void invoke(Context const &ctx, FixtureT &f) = 0;
+  };
+
+  template<typename F>
+  class callable final : public callable_interface
+  {
+  public:
+    ~callable() override = default;
+    callable() = delete;
+    callable(callable const &other) = delete;
+    callable(callable &&other) noexcept = delete;
+    auto operator=(callable const &other) -> callable & = delete;
+    auto operator=(callable &&other) noexcept -> callable & = delete;
+
+    // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
+    explicit callable(F &&f)
+      : fn_{internal::move(f)}
+    {
+    }
+
+    void invoke(Context const &ctx, FixtureT &f) override
+    {
+      this->fn_(ctx, f);
+    }
+
+  private:
+    F fn_;
+  };
+
+  UnsafeSharedPtr<callable_interface> callable_;
+};
+
+using TestAssembly = Function<void(Context const &)>;
+
+using VoidSetup = Function<void(Context const &)>;
+using TestBodyNoFixture = Function<void(Context const &)>;
+using TeardownNoFixture = Function<void(Context const &)>;
 
 template<typename FixtureT>
-using NonVoidSetup = Function<FixtureT(Context &)>;
+using NonVoidSetup = Function<FixtureT(Context const &)>;
 template<typename FixtureT>
-using TestBodyWithFixture = Function<void(Context &, FixtureT &)>;
+using TestBodyWithFixture = Function<void(Context const &, FixtureT &)>;
 template<typename FixtureT>
-using TeardownWithFixture = Function<void(Context &, FixtureT &)>;
+using TeardownWithFixture = Function<void(Context const &, FixtureT &)>;
 
 template<typename T>
 class UniquePtr
@@ -542,7 +624,7 @@ public:
       this->engine_.register_test_assembly(
         TestAssembly{[setup = move(this->setup_),
                       body = move(this->body_),
-                      teardown = move(this->teardown_)](Context &ctx)
+                      teardown = move(this->teardown_)](Context const &ctx)
                      {
                        FixtureT fixture = setup(ctx);
                        body(ctx, fixture);
@@ -605,7 +687,7 @@ public:
       this->engine_.register_test_assembly(
         TestAssembly{[setup = move(this->setup_),
                       body = move(this->body_),
-                      teardown = move(this->teardown_)](Context &ctx)
+                      teardown = move(this->teardown_)](Context const &ctx)
                      {
                        if(static_cast<bool>(setup))
                        {
