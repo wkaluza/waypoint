@@ -555,15 +555,6 @@ public:
     }
   }
 
-  Registrar(Engine const &engine, unsigned long long const test_id)
-    : engine_{engine},
-      test_id_{test_id},
-      setup_{},
-      body_{},
-      teardown_{}
-  {
-  }
-
   Registrar(Registrar const &other) = delete;
   Registrar(Registrar &&other) noexcept = default;
   auto operator=(Registrar const &other) -> Registrar & = delete;
@@ -585,11 +576,22 @@ public:
   }
 
 private:
+  Registrar(Engine const &engine, unsigned long long const test_id)
+    : engine_{engine},
+      test_id_{test_id},
+      setup_{},
+      body_{},
+      teardown_{}
+  {
+  }
+
   Engine const &engine_;
   unsigned long long test_id_;
   NonVoidSetup<FixtureT> setup_;
   TestBodyWithFixture<FixtureT> body_;
   TeardownWithFixture<FixtureT> teardown_;
+
+  friend class waypoint::Test;
 };
 
 template<>
@@ -619,12 +621,6 @@ public:
     }
   }
 
-  Registrar(Engine const &engine, unsigned long long const test_id)
-    : engine_{engine},
-      test_id_{test_id}
-  {
-  }
-
   Registrar(Registrar const &other) = delete;
   Registrar(Registrar &&other) noexcept = default;
   auto operator=(Registrar const &other) -> Registrar & = delete;
@@ -646,11 +642,19 @@ public:
   }
 
 private:
+  Registrar(Engine const &engine, unsigned long long const test_id)
+    : engine_{engine},
+      test_id_{test_id}
+  {
+  }
+
   Engine const &engine_;
   unsigned long long test_id_;
   VoidSetup setup_;
   TestBodyNoFixture body_;
   TeardownNoFixture teardown_;
+
+  friend class waypoint::Test;
 };
 
 } // namespace waypoint::internal
@@ -755,11 +759,6 @@ public:
   auto operator=(Test3 const &other) -> Test3 & = delete;
   auto operator=(Test3 &&other) noexcept -> Test3 & = delete;
 
-  explicit Test3(internal::Registrar<FixtureT> registrar)
-    : registrar_{internal::move(registrar)}
-  {
-  }
-
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   void teardown(F &&f)
@@ -769,7 +768,15 @@ public:
   }
 
 private:
+  explicit Test3(internal::Registrar<FixtureT> registrar)
+    : registrar_{internal::move(registrar)}
+  {
+  }
+
   internal::Registrar<FixtureT> registrar_;
+
+  template<typename>
+  friend class Test2;
 };
 
 template<>
@@ -783,11 +790,6 @@ public:
   auto operator=(Test3 const &other) -> Test3 & = delete;
   auto operator=(Test3 &&other) noexcept -> Test3 & = delete;
 
-  explicit Test3(internal::Registrar<void> registrar)
-    : registrar_{internal::move(registrar)}
-  {
-  }
-
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   void teardown(F &&f)
@@ -797,7 +799,16 @@ public:
   }
 
 private:
+  explicit Test3(internal::Registrar<void> registrar)
+    : registrar_{internal::move(registrar)}
+  {
+  }
+
   internal::Registrar<void> registrar_;
+
+  template<typename>
+  friend class Test2;
+  friend class Test;
 };
 
 template<typename FixtureT>
@@ -811,11 +822,6 @@ public:
   auto operator=(Test2 const &other) -> Test2 & = delete;
   auto operator=(Test2 &&other) noexcept -> Test2 & = delete;
 
-  explicit Test2(internal::Registrar<FixtureT> registrar)
-    : registrar_{internal::move(registrar)}
-  {
-  }
-
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto run(F &&f) -> Test3<FixtureT>
@@ -827,7 +833,14 @@ public:
   }
 
 private:
+  explicit Test2(internal::Registrar<FixtureT> registrar)
+    : registrar_{internal::move(registrar)}
+  {
+  }
+
   internal::Registrar<FixtureT> registrar_;
+
+  friend class Test;
 };
 
 template<>
@@ -841,11 +854,6 @@ public:
   auto operator=(Test2 const &other) -> Test2 & = delete;
   auto operator=(Test2 &&other) noexcept -> Test2 & = delete;
 
-  explicit Test2(internal::Registrar<void> registrar)
-    : registrar_{internal::move(registrar)}
-  {
-  }
-
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto run(F &&f) -> Test3<void>
@@ -857,7 +865,14 @@ public:
   }
 
 private:
+  explicit Test2(internal::Registrar<void> registrar)
+    : registrar_{internal::move(registrar)}
+  {
+  }
+
   internal::Registrar<void> registrar_;
+
+  friend class Test;
 };
 
 class Test
@@ -876,7 +891,7 @@ public:
     !internal::is_void_v<internal::setup_invoke_result_t<F>>,
     Test2<internal::setup_invoke_result_t<F>>>
   {
-    auto registrar = internal::Registrar<internal::setup_invoke_result_t<F>>{
+    internal::Registrar<internal::setup_invoke_result_t<F>> registrar{
       this->get_engine(),
       this->test_id()};
 
@@ -892,8 +907,7 @@ public:
     internal::is_void_v<internal::setup_invoke_result_t<F>>,
     Test2<void>>
   {
-    auto registrar =
-      internal::Registrar<void>{this->get_engine(), this->test_id()};
+    internal::Registrar<void> registrar{this->get_engine(), this->test_id()};
 
     registrar.register_setup(internal::forward<F>(f));
 
@@ -904,8 +918,7 @@ public:
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto run(F &&f) -> Test3<void>
   {
-    auto registrar =
-      internal::Registrar<void>{this->get_engine(), this->test_id()};
+    internal::Registrar<void> registrar{this->get_engine(), this->test_id()};
 
     registrar.register_body(
       internal::TestBodyNoFixture{internal::forward<F>(f)});
@@ -924,8 +937,6 @@ private:
   internal::UniquePtr<internal::Test_impl> const impl_;
 
   friend class internal::Engine_impl;
-  template<typename FixtureT>
-  friend class Test2;
 };
 
 class RunResult
