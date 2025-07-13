@@ -371,27 +371,30 @@ def configure_cmake(preset, env_patch) -> bool:
     return True
 
 
-def build_cmake(config, preset) -> bool:
-    with contextlib.chdir(CMAKE_SOURCE_DIR):
-        success, output = run(
-            [
-                "cmake",
-                "--build",
-                "--preset",
-                f"{preset.build}",
-                "--config",
-                f"{config}",
-                "--parallel",
-                f"{JOBS}",
-            ]
-        )
-        if not success:
-            if output is not None:
-                print(output)
+def build_cmake(config, preset, env_patch):
+    env = os.environ.copy()
+    env.update(env_patch)
+    with NewEnv(env):
+        with contextlib.chdir(CMAKE_SOURCE_DIR):
+            success, output = run(
+                [
+                    "cmake",
+                    "--build",
+                    "--preset",
+                    f"{preset.build}",
+                    "--config",
+                    f"{config}",
+                    "--parallel",
+                    f"{JOBS}",
+                ]
+            )
+            if not success:
+                if output is not None:
+                    print(output)
 
-            return False
+                return False
 
-        return True
+    return True
 
 
 def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
@@ -650,7 +653,7 @@ def configure_cmake_gcc_coverage_fn() -> bool:
 
 
 def build_gcc_coverage_fn() -> bool:
-    return _linux_compile(
+    return build_cmake(
         CMakeBuildConfig.Debug, CMakePresets.LinuxGccCoverage, GCC15_ENV_PATCH
     )
 
@@ -683,51 +686,36 @@ def analyze_gcc_coverage_fn() -> bool:
     return True
 
 
-def _linux_compile(config, preset, env_patch):
-    env = os.environ.copy()
-    env.update(env_patch)
-    with NewEnv(env):
-        success = build_cmake(config, preset)
-        if not success:
-            return False
-
-    return True
-
-
 def build_clang_debug_fn() -> bool:
-    return _linux_compile(
+    return build_cmake(
         CMakeBuildConfig.Debug, CMakePresets.LinuxClang, CLANG20_ENV_PATCH
     )
 
 
 def build_clang_relwithdebinfo_fn() -> bool:
-    return _linux_compile(
+    return build_cmake(
         CMakeBuildConfig.RelWithDebInfo, CMakePresets.LinuxClang, CLANG20_ENV_PATCH
     )
 
 
 def build_clang_release_fn() -> bool:
-    return _linux_compile(
+    return build_cmake(
         CMakeBuildConfig.Release, CMakePresets.LinuxClang, CLANG20_ENV_PATCH
     )
 
 
 def build_gcc_debug_fn() -> bool:
-    return _linux_compile(
-        CMakeBuildConfig.Debug, CMakePresets.LinuxGcc, GCC15_ENV_PATCH
-    )
+    return build_cmake(CMakeBuildConfig.Debug, CMakePresets.LinuxGcc, GCC15_ENV_PATCH)
 
 
 def build_gcc_relwithdebinfo_fn() -> bool:
-    return _linux_compile(
+    return build_cmake(
         CMakeBuildConfig.RelWithDebInfo, CMakePresets.LinuxGcc, GCC15_ENV_PATCH
     )
 
 
 def build_gcc_release_fn() -> bool:
-    return _linux_compile(
-        CMakeBuildConfig.Release, CMakePresets.LinuxGcc, GCC15_ENV_PATCH
-    )
+    return build_cmake(CMakeBuildConfig.Release, CMakePresets.LinuxGcc, GCC15_ENV_PATCH)
 
 
 def is_json_file(f) -> bool:
