@@ -38,6 +38,10 @@ assert os.path.isfile(f"{INFRASTRUCTURE_DIR}/CMakeLists.txt") and os.path.isfile
 JOBS = os.process_cpu_count()
 
 
+CLANG20_ENV_PATCH = {"CC": "clang-20", "CXX": "clang++-20"}
+GCC15_ENV_PATCH = {"CC": "gcc-15", "CXX": "g++-15"}
+
+
 @dataclasses.dataclass(frozen=True)
 class ModeConfig:
     clean: bool = False
@@ -91,23 +95,13 @@ class Mode(enum.Enum):
         coverage=True,
         misc=True,
     )
-    # Tool-specific modes
     Coverage = ModeConfig(
-        gcc=True,
-        debug=True,
-        test=True,
         coverage=True,
     )
     StaticAnalysis = ModeConfig(
-        clang=True,
-        debug=True,
-        release=True,
         static_analysis=True,
     )
     Valgrind = ModeConfig(
-        clang=True,
-        gcc=True,
-        debug=True,
         valgrind=True,
     )
 
@@ -117,12 +111,18 @@ class Mode(enum.Enum):
     def __str__(self):
         if self == Mode.Clean:
             return "clean"
+        if self == Mode.Coverage:
+            return "coverage"
         elif self == Mode.Fast:
             return "fast"
         elif self == Mode.Format:
             return "format"
         elif self == Mode.Full:
             return "full"
+        elif self == Mode.StaticAnalysis:
+            return "static"
+        elif self == Mode.Valgrind:
+            return "valgrind"
         elif self == Mode.Verify:
             return "verify"
 
@@ -267,7 +267,7 @@ def check_waypoint_hpp_has_no_includes_() -> bool:
     return re.search(r"# *include", contents) is None
 
 
-def run_misc_checks() -> bool:
+def misc_checks_fn() -> bool:
     success = check_waypoint_hpp_has_no_includes_()
     if not success:
         print("Error: waypoint.hpp must include no other headers")
@@ -339,28 +339,36 @@ def find_files_by_name(pred):
     return output
 
 
-def configure_cmake(preset) -> bool:
-    build_dir = build_dir_from_preset(preset)
+def configure_cmake_clang_fn() -> bool:
+    return configure_cmake(CMakePresets.LinuxClang, CLANG20_ENV_PATCH)
 
-    if os.path.exists(build_dir):
-        return True
 
-    os.mkdir(build_dir)
+def configure_cmake_gcc_fn() -> bool:
+    return configure_cmake(CMakePresets.LinuxGcc, GCC15_ENV_PATCH)
 
-    with contextlib.chdir(CMAKE_SOURCE_DIR):
-        success, output = run(["cmake", "--preset", f"{preset.configure}"])
-        if not success:
-            print(output)
-            return False
 
-        return True
+def configure_cmake(preset, env_patch) -> bool:
+    env = os.environ.copy()
+    env.update(env_patch)
+    with NewEnv(env):
+        build_dir = build_dir_from_preset(preset)
+
+        if os.path.exists(build_dir):
+            return True
+
+        os.mkdir(build_dir)
+
+        with contextlib.chdir(CMAKE_SOURCE_DIR):
+            success, output = run(["cmake", "--preset", f"{preset.configure}"])
+            if not success:
+                print(output)
+                return False
+
+    return True
 
 
 def build_cmake(config, preset) -> bool:
     with contextlib.chdir(CMAKE_SOURCE_DIR):
-        print(f" {config}", end="")
-        sys.stdout.flush()
-
         success, output = run(
             [
                 "cmake",
@@ -382,9 +390,6 @@ def build_cmake(config, preset) -> bool:
 
 def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
     with contextlib.chdir(CMAKE_SOURCE_DIR):
-        print(f" {build_config}", end="")
-        sys.stdout.flush()
-
         success, output = run(
             [
                 "ctest",
@@ -423,6 +428,10 @@ def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str |
     return success, file, duration, None if success else output.strip()
 
 
+def run_clang_static_analysis_all_files_fn() -> bool:
+    return run_clang_tidy(CMakePresets.LinuxClang, find_files_by_name(is_cpp_file))
+
+
 def run_clang_tidy(preset, files) -> bool:
     build_dir = build_dir_from_preset(preset)
 
@@ -448,61 +457,67 @@ def run_clang_tidy(preset, files) -> bool:
 
             return False
 
-        durations = [duration for success, file, duration, stdout in results]
-        avg_duration = sum(durations) / len(durations)
-
-        # Select files taking more than x seconds
-        x = 1
-        threshold_duration_ns = x * 10**9
-        results = [
-            (file, duration)
-            for success, file, duration, stdout in results
-            if duration >= threshold_duration_ns
-        ]
-        # Sort by descending duration
-        results = sorted(results, reverse=True, key=lambda a: a[1])
-
-        # Print no more than y worst offenders
-        y = 10
-        max_results = min(y, len(results))
-        for file, duration in reversed(results[0:max_results]):
-            print(f"Info: {file} took {ns_to_string(duration)} to analyse")
-
-    print(f"Static analysis duration: {ns_to_string(time.time_ns() - start_time)}")
-    print(f"Average duration per file: {ns_to_string(avg_duration)}")
-
     return True
 
 
-def run_tests(mode, preset) -> bool:
+def test_gcc_debug_fn() -> bool:
     jobs = JOBS
     regex = r"^test$"
 
-    if mode.debug:
-        success = run_ctest(preset, CMakeBuildConfig.Debug, jobs, regex)
-        if not success:
-            return False
-
-    if mode.release:
-        success = run_ctest(preset, CMakeBuildConfig.RelWithDebInfo, jobs, regex)
-        if not success:
-            return False
-        success = run_ctest(preset, CMakeBuildConfig.Release, jobs, regex)
-        if not success:
-            return False
-
-    return True
+    return run_ctest(CMakePresets.LinuxGcc, CMakeBuildConfig.Debug, jobs, regex)
 
 
-def run_valgrind(mode, preset) -> bool:
+def test_gcc_relwithdebinfo_fn() -> bool:
+    jobs = JOBS
+    regex = r"^test$"
+
+    return run_ctest(
+        CMakePresets.LinuxGcc, CMakeBuildConfig.RelWithDebInfo, jobs, regex
+    )
+
+
+def test_gcc_release_fn() -> bool:
+    jobs = JOBS
+    regex = r"^test$"
+
+    return run_ctest(CMakePresets.LinuxGcc, CMakeBuildConfig.Release, jobs, regex)
+
+
+def test_clang_debug_fn() -> bool:
+    jobs = JOBS
+    regex = r"^test$"
+
+    return run_ctest(CMakePresets.LinuxClang, CMakeBuildConfig.Debug, jobs, regex)
+
+
+def test_clang_relwithdebinfo_fn() -> bool:
+    jobs = JOBS
+    regex = r"^test$"
+
+    return run_ctest(
+        CMakePresets.LinuxClang, CMakeBuildConfig.RelWithDebInfo, jobs, regex
+    )
+
+
+def test_clang_release_fn() -> bool:
+    jobs = JOBS
+    regex = r"^test$"
+
+    return run_ctest(CMakePresets.LinuxClang, CMakeBuildConfig.Release, jobs, regex)
+
+
+def test_gcc_valgrind_fn() -> bool:
+    jobs = JOBS
     regex = r"^valgrind$"
 
-    if mode.debug:
-        success = run_ctest(preset, CMakeBuildConfig.Debug, JOBS, regex)
-        if not success:
-            return False
+    return run_ctest(CMakePresets.LinuxGcc, CMakeBuildConfig.Debug, jobs, regex)
 
-    return True
+
+def test_clang_valgrind_fn() -> bool:
+    jobs = JOBS
+    regex = r"^valgrind$"
+
+    return run_ctest(CMakePresets.LinuxClang, CMakeBuildConfig.Debug, jobs, regex)
 
 
 def run_lcov(build_dir) -> bool:
@@ -599,8 +614,8 @@ def run_gcovr(build_dir) -> bool:
     return True
 
 
-def run_coverage(preset) -> bool:
-    build_dir = build_dir_from_preset(preset)
+def process_coverage_fn() -> bool:
+    build_dir = build_dir_from_preset(CMakePresets.LinuxGccCoverage)
 
     success = run_lcov(build_dir)
     if not success:
@@ -613,7 +628,24 @@ def run_coverage(preset) -> bool:
     return True
 
 
-def check_coverage() -> bool:
+def configure_cmake_gcc_coverage_fn() -> bool:
+    return configure_cmake(CMakePresets.LinuxGccCoverage, GCC15_ENV_PATCH)
+
+
+def build_gcc_coverage_fn() -> bool:
+    return _linux_compile(
+        CMakeBuildConfig.Debug, CMakePresets.LinuxGccCoverage, GCC15_ENV_PATCH
+    )
+
+
+def test_gcc_coverage_fn() -> bool:
+    jobs = JOBS
+    regex = r"^test$"
+
+    return run_ctest(CMakePresets.LinuxGccCoverage, CMakeBuildConfig.Debug, jobs, regex)
+
+
+def analyze_gcc_coverage_fn() -> bool:
     with open(COVERAGE_FILE_JSON_GCOVR, "r") as f:
         data = json.load(f)
 
@@ -634,36 +666,51 @@ def check_coverage() -> bool:
     return True
 
 
-def _linux_compile(mode, preset, env_patch):
+def _linux_compile(config, preset, env_patch):
     env = os.environ.copy()
     env.update(env_patch)
     with NewEnv(env):
-        success = configure_cmake(preset)
+        success = build_cmake(config, preset)
         if not success:
             return False
-
-        if mode.debug:
-            success = build_cmake(CMakeBuildConfig.Debug, preset)
-            if not success:
-                return False
-
-        if mode.release:
-            success = build_cmake(CMakeBuildConfig.RelWithDebInfo, preset)
-            if not success:
-                return False
-            success = build_cmake(CMakeBuildConfig.Release, preset)
-            if not success:
-                return False
 
     return True
 
 
-def build_gcc_linux(mode, preset) -> bool:
-    return _linux_compile(mode, preset, {"CC": "gcc-15", "CXX": "g++-15"})
+def build_clang_debug_fn() -> bool:
+    return _linux_compile(
+        CMakeBuildConfig.Debug, CMakePresets.LinuxClang, CLANG20_ENV_PATCH
+    )
 
 
-def build_clang_linux(mode, preset) -> bool:
-    return _linux_compile(mode, preset, {"CC": "clang-20", "CXX": "clang++-20"})
+def build_clang_relwithdebinfo_fn() -> bool:
+    return _linux_compile(
+        CMakeBuildConfig.RelWithDebInfo, CMakePresets.LinuxClang, CLANG20_ENV_PATCH
+    )
+
+
+def build_clang_release_fn() -> bool:
+    return _linux_compile(
+        CMakeBuildConfig.Release, CMakePresets.LinuxClang, CLANG20_ENV_PATCH
+    )
+
+
+def build_gcc_debug_fn() -> bool:
+    return _linux_compile(
+        CMakeBuildConfig.Debug, CMakePresets.LinuxGcc, GCC15_ENV_PATCH
+    )
+
+
+def build_gcc_relwithdebinfo_fn() -> bool:
+    return _linux_compile(
+        CMakeBuildConfig.RelWithDebInfo, CMakePresets.LinuxGcc, GCC15_ENV_PATCH
+    )
+
+
+def build_gcc_release_fn() -> bool:
+    return _linux_compile(
+        CMakeBuildConfig.Release, CMakePresets.LinuxGcc, GCC15_ENV_PATCH
+    )
 
 
 def is_json_file(f) -> bool:
@@ -698,7 +745,7 @@ def format_single_file(f) -> typing.Tuple[bool, str]:
     return False, f
 
 
-def format_files() -> bool:
+def format_sources_fn() -> bool:
     files = find_files_by_name(is_json_file)
     files += find_files_by_name(is_cmake_file)
     files += find_files_by_name(is_python_file)
@@ -736,6 +783,7 @@ def format_cmake(f) -> bool:
     success, output = run(["cmake-format", "-i", f])
     if not success:
         print(output)
+
         return False
 
     return True
@@ -779,12 +827,18 @@ class CliConfig:
 
         if mode_str == f"{Mode.Clean}":
             self.mode = Mode.Clean
+        if mode_str == f"{Mode.Coverage}":
+            self.mode = Mode.Coverage
         if mode_str == f"{Mode.Fast}":
             self.mode = Mode.Fast
         if mode_str == f"{Mode.Format}":
             self.mode = Mode.Format
         if mode_str == f"{Mode.Full}":
             self.mode = Mode.Full
+        if mode_str == f"{Mode.StaticAnalysis}":
+            self.mode = Mode.StaticAnalysis
+        if mode_str == f"{Mode.Valgrind}":
+            self.mode = Mode.Valgrind
         if mode_str == f"{Mode.Verify}":
             self.mode = Mode.Verify
 
@@ -801,20 +855,25 @@ def preamble() -> tuple[CliConfig | None, bool]:
         "mode",
         choices=[
             f"{Mode.Clean}",
+            f"{Mode.Coverage}",
             f"{Mode.Fast}",
             f"{Mode.Format}",
             f"{Mode.Full}",
+            f"{Mode.StaticAnalysis}",
+            f"{Mode.Valgrind}",
             f"{Mode.Verify}",
         ],
         metavar="mode",
         help=f"""Selects build mode.
                  Mode "{Mode.Clean}" deletes the build trees.
+                 Mode "{Mode.Coverage}" measures coverage.
                  Mode "{Mode.Format}" formats source files.
                  Mode "{Mode.Fast}" runs one build and the tests for quick
                  iterations.
                  Mode "{Mode.Full}" builds everything and runs all tools.
-                 Mode "{Mode.Verify}" runs "{Mode.Clean}" followed by
-                 "{Mode.Full}".""",
+                 Mode "{Mode.StaticAnalysis}" performs static analysis.
+                 Mode "{Mode.Valgrind}" runs Valgrind/memcheck.
+                 Mode "{Mode.Verify}" runs "{Mode.Clean}" followed by "{Mode.Full}".""",
     )
 
     parsed = parser.parse_args()
@@ -824,6 +883,79 @@ def preamble() -> tuple[CliConfig | None, bool]:
     return config, True
 
 
+def clean_fn() -> bool:
+    clean_build_dir(CMakePresets.LinuxClang)
+    clean_build_dir(CMakePresets.LinuxGcc)
+    clean_build_dir(CMakePresets.LinuxGccCoverage)
+    remove_dir(COVERAGE_DIR_GCOVR)
+    remove_dir(COVERAGE_DIR_LCOV)
+
+    return True
+
+
+def noop_fn() -> bool:
+    return True
+
+
+class Task:
+    def __init__(self, name: str = None, fn: typing.Callable[[], bool] = noop_fn):
+        self.name_ = name
+        self.fn_ = fn
+        self.task_attempted_ = False
+        self.deps_success_ = False
+        self.success_ = False
+        self.dependencies_ = []
+
+    def depends_on(self, deps: typing.List["Task"]):
+        for d in deps:
+            self.dependencies_.append(d)
+
+    def run(self) -> bool:
+        if self.task_attempted_ and not (self.deps_success_ and self.success_):
+            return False
+
+        if self.task_attempted_ and self.deps_success_ and self.success_:
+            return True
+
+        self.task_attempted_ = True
+
+        start_deps = time.time_ns()
+
+        if len(self.dependencies_) > 0 and self.name_ is not None:
+            print(f"Preparing task: {self.name_}")
+        for d in self.dependencies_:
+            success = d.run()
+            if not success:
+                return False
+
+        self.deps_success_ = True
+
+        if self.name_ is not None:
+            print(f"Running task: {self.name_}")
+        start = time.time_ns()
+        success = self.fn_()
+        if self.name_ is not None:
+            if len(self.dependencies_) > 0:
+                print(
+                    "Finished task:",
+                    f"{self.name_} ({ns_to_string(time.time_ns() - start)},",
+                    f"total: {ns_to_string(time.time_ns() - start_deps)})",
+                )
+            else:
+                print(
+                    "Finished task:",
+                    f"{self.name_} ({ns_to_string(time.time_ns() - start)})",
+                )
+        if not success:
+            print("Error running task", f"{self.name_}")
+
+            return False
+
+        self.success_ = True
+
+        return True
+
+
 def main() -> int:
     config, success = preamble()
     if not success:
@@ -831,150 +963,155 @@ def main() -> int:
 
     mode = config.mode
 
+    test_clang_debug = Task("Test Clang Debug", test_clang_debug_fn)
+    test_clang_relwithdebinfo = Task(
+        "Test Clang RelWithDebInfo", test_clang_relwithdebinfo_fn
+    )
+    test_clang_release = Task("Test Clang Release", test_clang_release_fn)
+    build_clang_debug = Task("Build Clang Debug", build_clang_debug_fn)
+    build_clang_relwithdebinfo = Task(
+        "Build Clang RelWithDebInfo", build_clang_relwithdebinfo_fn
+    )
+    build_clang_release = Task("Build Clang Release", build_clang_release_fn)
+
+    configure_cmake_clang = Task("Configure CMake for Clang", configure_cmake_clang_fn)
+
+    build_clang_debug.depends_on([configure_cmake_clang])
+    build_clang_relwithdebinfo.depends_on([configure_cmake_clang])
+    build_clang_release.depends_on([configure_cmake_clang])
+    test_clang_debug.depends_on([build_clang_debug])
+    test_clang_relwithdebinfo.depends_on([build_clang_relwithdebinfo])
+    test_clang_release.depends_on([build_clang_release])
+
+    test_gcc_debug = Task("Test GCC Debug", test_gcc_debug_fn)
+    test_gcc_relwithdebinfo = Task(
+        "Test GCC RelWithDebInfo", test_gcc_relwithdebinfo_fn
+    )
+    test_gcc_release = Task("Test GCC Release", test_gcc_release_fn)
+    build_gcc_debug = Task("Build GCC Debug", build_gcc_debug_fn)
+    build_gcc_relwithdebinfo = Task(
+        "Build GCC RelWithDebInfo", build_gcc_relwithdebinfo_fn
+    )
+    build_gcc_release = Task("Build GCC Release", build_gcc_release_fn)
+
+    configure_cmake_gcc = Task("Configure CMake for GCC", configure_cmake_gcc_fn)
+
+    build_gcc_debug.depends_on([configure_cmake_gcc])
+    build_gcc_relwithdebinfo.depends_on([configure_cmake_gcc])
+    build_gcc_release.depends_on([configure_cmake_gcc])
+    test_gcc_debug.depends_on([build_gcc_debug])
+    test_gcc_relwithdebinfo.depends_on([build_gcc_relwithdebinfo])
+    test_gcc_release.depends_on([build_gcc_release])
+
+    analyze_gcc_coverage = Task("Analyze GCC coverage data", analyze_gcc_coverage_fn)
+    process_gcc_coverage = Task("Process GCC coverage data", process_coverage_fn)
+    test_gcc_coverage = Task("Test GCC with coverage", test_gcc_coverage_fn)
+    build_gcc_coverage = Task("Build GCC with coverage", build_gcc_coverage_fn)
+    configure_cmake_gcc_coverage = Task(
+        "Configure CMake for GCC with coverage", configure_cmake_gcc_coverage_fn
+    )
+
+    analyze_gcc_coverage.depends_on([process_gcc_coverage])
+    process_gcc_coverage.depends_on([test_gcc_coverage])
+    test_gcc_coverage.depends_on([build_gcc_coverage])
+    build_gcc_coverage.depends_on([configure_cmake_gcc_coverage])
+
+    configure_cmake_gcc_valgrind = Task("Configure CMake for GCC with Valgrind")
+    configure_cmake_gcc_valgrind.depends_on([configure_cmake_gcc])
+    build_gcc_valgrind = Task("Build GCC for Valgrind")
+    build_gcc_valgrind.depends_on([build_gcc_debug])
+    test_gcc_valgrind = Task("Test GCC build with Valgrind", test_gcc_valgrind_fn)
+    test_gcc_valgrind.depends_on([build_gcc_valgrind])
+    build_gcc_valgrind.depends_on([configure_cmake_gcc_valgrind])
+
+    configure_cmake_clang_valgrind = Task("Configure CMake for Clang with Valgrind")
+    configure_cmake_clang_valgrind.depends_on([configure_cmake_clang])
+    build_clang_valgrind = Task("Build Clang for Valgrind")
+    build_clang_valgrind.depends_on([build_clang_debug])
+    test_clang_valgrind = Task("Test Clang build with Valgrind", test_clang_valgrind_fn)
+    test_clang_valgrind.depends_on([build_clang_valgrind])
+    build_clang_valgrind.depends_on([configure_cmake_clang_valgrind])
+
+    configure_cmake_clang_static_analysis = Task("Configure CMake for clang-tidy")
+    configure_cmake_clang_static_analysis.depends_on([configure_cmake_clang])
+    build_clang_static_analysis = Task("Build Clang for clang-tidy")
+    build_clang_static_analysis.depends_on(
+        [
+            configure_cmake_clang_static_analysis,
+            build_clang_debug,
+            build_clang_relwithdebinfo,
+            build_clang_release,
+        ]
+    )
+    run_clang_static_analysis = Task(
+        "Run clang-tidy", run_clang_static_analysis_all_files_fn
+    )
+    run_clang_static_analysis.depends_on([build_clang_static_analysis])
+
+    misc_checks = Task("Miscellaneous checks", misc_checks_fn)
+
+    format_sources = Task("Format code", format_sources_fn)
+
+    clean = Task("Clean build files", clean_fn)
+
+    root = Task()
+    root_dependencies = []
+
     if mode.clean:
-        print("Deleting build files...")
-        clean_build_dir(CMakePresets.LinuxClang)
-        clean_build_dir(CMakePresets.LinuxGcc)
-        clean_build_dir(CMakePresets.LinuxGccCoverage)
-        remove_dir(COVERAGE_DIR_GCOVR)
-        remove_dir(COVERAGE_DIR_LCOV)
+        root_dependencies.append(clean)
 
     if mode.format:
-        print("Formatting files...")
-        success = format_files()
-        if not success:
-            return 1
+        root_dependencies.append(format_sources)
 
     if mode.gcc:
-        print("Running GCC build...", end="")
-        sys.stdout.flush()
-        success = build_gcc_linux(mode, CMakePresets.LinuxGcc)
-        if not success:
-            print("")
-            return 1
-        print("")
+        if mode.debug:
+            root_dependencies.append(build_gcc_debug)
 
-        if mode.test:
-            print("Testing GCC build...", end="")
-            sys.stdout.flush()
-            success = run_tests(mode, CMakePresets.LinuxGcc)
-            if not success:
-                print("")
-                return 1
-            print("")
+            if mode.test:
+                root_dependencies.append(test_gcc_debug)
+
+        if mode.release:
+            root_dependencies.append(build_gcc_relwithdebinfo)
+            if mode.test:
+                root_dependencies.append(test_gcc_relwithdebinfo)
+
+            root_dependencies.append(build_gcc_release)
+            if mode.test:
+                root_dependencies.append(test_gcc_release)
 
     if mode.clang:
-        print("Running Clang build...", end="")
-        sys.stdout.flush()
-        success = build_clang_linux(mode, CMakePresets.LinuxClang)
-        if not success:
-            print("")
-            return 1
-        print("")
+        if mode.debug:
+            root_dependencies.append(build_clang_debug)
 
-        if mode.test:
-            print("Testing Clang build...", end="")
-            sys.stdout.flush()
-            success = run_tests(mode, CMakePresets.LinuxClang)
-            if not success:
-                print("")
-                return 1
-            print("")
+            if mode.test:
+                root_dependencies.append(test_clang_debug)
+
+        if mode.release:
+            root_dependencies.append(build_clang_relwithdebinfo)
+            if mode.test:
+                root_dependencies.append(test_clang_relwithdebinfo)
+
+            root_dependencies.append(build_clang_release)
+            if mode.test:
+                root_dependencies.append(test_clang_release)
 
     if mode.coverage:
-        mode_coverage = Mode.Coverage
-        assert mode_coverage.debug
-        assert not mode_coverage.release
-
-        print("Building coverage...", end="")
-        sys.stdout.flush()
-        success = build_gcc_linux(mode_coverage, CMakePresets.LinuxGccCoverage)
-        if not success:
-            print("")
-            return 1
-        print("")
-
-        print("Running coverage tests...", end="")
-        sys.stdout.flush()
-        success = run_tests(mode_coverage, CMakePresets.LinuxGccCoverage)
-        if not success:
-            print("")
-            return 1
-        print("")
-
-        print("Processing coverage data...")
-        success = run_coverage(CMakePresets.LinuxGccCoverage)
-        if not success:
-            return 1
-        success = check_coverage()
-        if not success:
-            return 1
+        root_dependencies.append(analyze_gcc_coverage)
 
     if mode.valgrind:
-        # Test debug with Valgrind, release may yield false positives
-        mode_valgrind = Mode.Valgrind
-        assert mode_valgrind.debug
-        assert not mode_valgrind.release
-
-        print("Building GCC for Valgrind...", end="")
-        sys.stdout.flush()
-        success = build_gcc_linux(mode_valgrind, CMakePresets.LinuxGcc)
-        if not success:
-            print("")
-            return 1
-        print("")
-
-        print("Testing GCC build with Valgrind...", end="")
-        sys.stdout.flush()
-        success = run_valgrind(mode_valgrind, CMakePresets.LinuxGcc)
-        if not success:
-            print("")
-            return 1
-        print("")
-
-        print("Building Clang for Valgrind...", end="")
-        sys.stdout.flush()
-        success = build_clang_linux(mode_valgrind, CMakePresets.LinuxClang)
-        if not success:
-            print("")
-            return 1
-        print("")
-
-        print("Testing Clang build with Valgrind...", end="")
-        sys.stdout.flush()
-        success = run_valgrind(mode_valgrind, CMakePresets.LinuxClang)
-        if not success:
-            print("")
-            return 1
-        print("")
+        root_dependencies.append(test_gcc_valgrind)
+        root_dependencies.append(test_clang_valgrind)
 
     if mode.static_analysis:
-        # Need to build all configs for static analysis
-        mode_static_analysis = Mode.StaticAnalysis
-        assert mode_static_analysis.debug
-        assert mode_static_analysis.release
-
-        print("Building Clang for static analysis...", end="")
-        sys.stdout.flush()
-        success = build_clang_linux(mode_static_analysis, CMakePresets.LinuxClang)
-        if not success:
-            print("")
-            return 1
-        print("")
-
-        print("Running clang-tidy analysis...")
-        success = run_clang_tidy(
-            CMakePresets.LinuxClang, find_files_by_name(is_cpp_file)
-        )
-        if not success:
-            return 1
+        root_dependencies.append(run_clang_static_analysis)
 
     if mode.misc:
-        success = run_misc_checks()
-        if not success:
-            return 1
+        root_dependencies.append(misc_checks)
 
-    print("Build duration: ", ns_to_string(time.time_ns() - TIME_START))
+    root.depends_on(root_dependencies)
+    root.run()
+
+    print(f"Build duration: {ns_to_string(time.time_ns() - TIME_START)}")
     print(f"Success: {os.path.basename(sys.argv[0])}")
 
     return 0
