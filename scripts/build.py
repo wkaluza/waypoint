@@ -37,7 +37,6 @@ assert os.path.isfile(f"{INFRASTRUCTURE_DIR}/CMakeLists.txt") and os.path.isfile
 
 JOBS = os.process_cpu_count()
 
-
 CLANG20_ENV_PATCH = {"CC": "clang-20", "CXX": "clang++-20"}
 GCC15_ENV_PATCH = {"CC": "gcc-15", "CXX": "g++-15"}
 
@@ -234,11 +233,11 @@ class NewEnv:
 
 def ns_to_string(nanos) -> str:
     if nanos > 10**9:
-        return f"{round(nanos / 10**9, 1)}s"
+        return f"{round(nanos / 10 ** 9, 1)}s"
     elif nanos > 10**6:
-        return f"{round(nanos / 10**6, 1)}ms"
+        return f"{round(nanos / 10 ** 6, 1)}ms"
     elif nanos > 10**3:
-        return f"{round(nanos / 10**3, 1)}us"
+        return f"{round(nanos / 10 ** 3, 1)}us"
 
     return f"{nanos}ns"
 
@@ -463,10 +462,9 @@ def run_clang_tidy(preset, files) -> bool:
         ]
         if len(errors) > 0:
             for f, stdout in errors:
-                print("----------")
                 print(f"Error running clang-tidy on {f}")
-                print(stdout)
-                print("----------")
+                if stdout is not None:
+                    print(stdout)
 
             return False
 
