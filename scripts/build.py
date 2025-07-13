@@ -1053,7 +1053,6 @@ def main() -> int:
 
     clean = Task("Clean build files", clean_fn)
 
-    root = Task()
     root_dependencies = []
 
     if mode.clean:
@@ -1107,6 +1106,7 @@ def main() -> int:
     if mode.misc:
         root_dependencies.append(misc_checks)
 
+    root = Task()
     root.depends_on(root_dependencies)
     root.run()
 
