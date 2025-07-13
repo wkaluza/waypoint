@@ -441,7 +441,6 @@ def run_clang_tidy(preset, files) -> bool:
 
         return True
 
-    start_time = time.time_ns()
     with multiprocessing.Pool(JOBS) as pool:
         results = pool.map(clang_tidy_process_single_file, inputs)
 
