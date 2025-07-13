@@ -245,7 +245,10 @@ def ns_to_string(nanos) -> str:
 
 def run(cmd) -> typing.Tuple[bool, str | None]:
     with tempfile.TemporaryFile("r+") as f:
-        result = subprocess.run(cmd, stdout=f, stderr=f)
+        try:
+            result = subprocess.run(cmd, stdout=f, stderr=f)
+        except FileNotFoundError:
+            return False, None
 
         output = "\n"
         f.seek(0)
@@ -361,7 +364,9 @@ def configure_cmake(preset, env_patch) -> bool:
         with contextlib.chdir(CMAKE_SOURCE_DIR):
             success, output = run(["cmake", "--preset", f"{preset.configure}"])
             if not success:
-                print(output)
+                if output is not None:
+                    print(output)
+
                 return False
 
     return True
@@ -382,7 +387,9 @@ def build_cmake(config, preset) -> bool:
             ]
         )
         if not success:
-            print(output)
+            if output is not None:
+                print(output)
+
             return False
 
         return True
@@ -404,7 +411,9 @@ def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
             ]
         )
         if not success:
-            print(output)
+            if output is not None:
+                print(output)
+
             return False
 
         return True
@@ -425,7 +434,12 @@ def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str |
     )
     duration = time.time_ns() - start_time
 
-    return success, file, duration, None if success else output.strip()
+    return (
+        success,
+        file,
+        duration,
+        None if success else (None if output is None else output.strip()),
+    )
 
 
 def run_clang_static_analysis_all_files_fn() -> bool:
@@ -546,7 +560,9 @@ def run_lcov(build_dir) -> bool:
         )
         if not success:
             print("Error running lcov")
-            print(output)
+            if output is not None:
+                print(output)
+
             return False
 
         success, output = run(
@@ -568,7 +584,9 @@ def run_lcov(build_dir) -> bool:
         )
         if not success:
             print("Error running genhtml")
-            print(output)
+            if output is not None:
+                print(output)
+
             return False
 
     return True
@@ -607,7 +625,9 @@ def run_gcovr(build_dir) -> bool:
         )
         if not success:
             print("Error running gcovr")
-            print(output)
+            if output is not None:
+                print(output)
+
             return False
 
     return True
@@ -781,7 +801,8 @@ def format_json(f) -> bool:
 def format_cmake(f) -> bool:
     success, output = run(["cmake-format", "-i", f])
     if not success:
-        print(output)
+        if output is not None:
+            print(output)
 
         return False
 
@@ -791,12 +812,16 @@ def format_cmake(f) -> bool:
 def format_python(f) -> bool:
     success, output = run([PYTHON, "-m", "isort", "--quiet", "--line-length", "88", f])
     if not success:
-        print(output)
+        if output is not None:
+            print(output)
+
         return False
 
     success, output = run(["black", "--quiet", "--line-length", "88", f])
     if not success:
-        print(output)
+        if output is not None:
+            print(output)
+
         return False
 
     return True
@@ -814,7 +839,9 @@ def format_cpp(f) -> bool:
         ]
     )
     if not success:
-        print(output)
+        if output is not None:
+            print(output)
+
         return False
 
     return True
