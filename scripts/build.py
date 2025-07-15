@@ -15,8 +15,6 @@ import tempfile
 import time
 import typing
 
-TIME_START = time.time_ns()
-
 PYTHON = (
     "python3" if (sys.executable is None or sys.executable == "") else sys.executable
 )
@@ -130,6 +128,10 @@ class Mode(enum.Enum):
     @property
     def clean(self):
         return self.config.clean
+
+    @property
+    def incremental(self):
+        return not self.config.clean
 
     @property
     def format(self):
@@ -448,15 +450,20 @@ def run_clang_static_analysis_all_files_fn() -> bool:
     return run_clang_tidy(CMakePresets.LinuxClang, find_files_by_name(is_cpp_file))
 
 
+def run_clang_static_analysis_changed_files_fn() -> bool:
+    return run_clang_tidy(
+        CMakePresets.LinuxClang,
+        changed_cpp_files_and_dependents(CMakePresets.LinuxClang),
+    )
+
+
 def run_clang_tidy(preset, files) -> bool:
+    if len(files) == 0:
+        return True
+
     build_dir = build_dir_from_preset(preset)
 
     inputs = [(f, build_dir) for f in files]
-    if len(files) == 0:
-        print("No files to analyze")
-
-        return True
-
     with multiprocessing.Pool(JOBS) as pool:
         results = pool.map(clang_tidy_process_single_file, inputs)
 
@@ -833,6 +840,99 @@ def format_cpp(f) -> bool:
     return True
 
 
+def invert_index(index) -> typing.Dict[str, typing.Set[str]]:
+    output = {}
+    for file in index.keys():
+        deps = index[file]
+        for d in deps:
+            if d not in output.keys():
+                output[d] = set()
+            output[d].add(file)
+            output[d].add(d)
+
+    return output
+
+
+def process_depfiles(depfile_paths) -> typing.Dict[str, typing.Set[str]]:
+    index = {}
+    for path in depfile_paths:
+        with open(path, "r") as f:
+            lines = f.readlines()
+        lines = lines[1:]
+        lines = [l.lstrip(" ").rstrip(" \\\n") for l in lines]
+        paths = []
+        for l in lines:
+            if " " in l:
+                for x in l.split(" "):
+                    paths.append(x)
+                continue
+            paths.append(l)
+
+        paths = [os.path.realpath(p) for p in paths if os.path.isfile(p)]
+        paths = [p for p in paths if p.startswith(f"{PROJECT_ROOT_DIR}/")]
+
+        cpp_file = paths[0]
+
+        if cpp_file not in index.keys():
+            index[cpp_file] = set()
+
+        index[cpp_file].update(paths)
+
+    return index
+
+
+def get_changed_files(predicate) -> typing.List[str]:
+    with contextlib.chdir(PROJECT_ROOT_DIR):
+        success, output = run(["git", "status", "--porcelain"])
+        # Fall back to all files if git is not available
+        if not success:
+            return find_files_by_name(predicate)
+
+        files = output.split("\n")
+        files = [f"{PROJECT_ROOT_DIR}/{f[3:]}" for f in files if len(f) > 0]
+        files = [
+            os.path.realpath(f) for f in files if os.path.isfile(f) and predicate(f)
+        ]
+
+        files.sort()
+
+        return files
+
+
+def collect_depfiles(preset):
+    build_dir = build_dir_from_preset(preset)
+    depfiles = []
+    for root, dirs, files in os.walk(build_dir):
+        for f in files:
+            depfiles.append(f"{root}/{f}")
+    depfiles = [
+        os.path.realpath(f)
+        for f in depfiles
+        if os.path.isfile(f) and re.search(r"\.o\.d$", f) is not None
+    ]
+    depfiles.sort()
+
+    return depfiles
+
+
+def changed_cpp_files_and_dependents(preset):
+    depfiles = collect_depfiles(preset)
+    index = process_depfiles(depfiles)
+    reverse_index = invert_index(index)
+    changed_cpp_files = get_changed_files(is_cpp_file)
+    files_for_analysis = set()
+    for changed in changed_cpp_files:
+        if changed not in reverse_index.keys():
+            continue
+
+        files_for_analysis.update(reverse_index[changed])
+
+    output = list(files_for_analysis)
+    output.sort()
+
+    return output
+
+
 class CliConfig:
     def __init__(self, mode_str):
         self.mode = None
@@ -910,7 +1010,8 @@ def noop_fn() -> bool:
 
 
 class Task:
-    def __init__(self, name: str = None, fn: typing.Callable[[], bool] = noop_fn):
+    def __init__(self, name: str, fn: typing.Callable[[], bool] = noop_fn):
+        assert name is not None
         self.name_ = name
         self.fn_ = fn
         self.task_attempted_ = False
@@ -933,7 +1034,7 @@ class Task:
 
         start_deps = time.time_ns()
 
-        if len(self.dependencies_) > 0 and self.name_ is not None:
+        if len(self.dependencies_) > 0:
             print(f"Preparing task: {self.name_}")
         for d in self.dependencies_:
             success = d.run()
@@ -942,22 +1043,20 @@ class Task:
 
         self.deps_success_ = True
 
-        if self.name_ is not None:
-            print(f"Running task: {self.name_}")
+        print(f"Running task: {self.name_}")
         start = time.time_ns()
         success = self.fn_()
-        if self.name_ is not None:
-            if len(self.dependencies_) > 0:
-                print(
-                    "Finished task:",
-                    f"{self.name_} ({ns_to_string(time.time_ns() - start)},",
-                    f"total: {ns_to_string(time.time_ns() - start_deps)})",
-                )
-            else:
-                print(
-                    "Finished task:",
-                    f"{self.name_} ({ns_to_string(time.time_ns() - start)})",
-                )
+        if len(self.dependencies_) > 0:
+            print(
+                "Finished task:",
+                f"{self.name_} ({ns_to_string(time.time_ns() - start)},",
+                f"total: {ns_to_string(time.time_ns() - start_deps)})",
+            )
+        else:
+            print(
+                "Finished task:",
+                f"{self.name_} ({ns_to_string(time.time_ns() - start)})",
+            )
         if not success:
             print("Error running task", f"{self.name_}")
 
@@ -1055,10 +1154,15 @@ def main() -> int:
             build_clang_release,
         ]
     )
-    run_clang_static_analysis = Task(
+    run_clang_static_analysis_all_files = Task(
         "Run clang-tidy", run_clang_static_analysis_all_files_fn
     )
-    run_clang_static_analysis.depends_on([build_clang_static_analysis])
+    run_clang_static_analysis_all_files.depends_on([build_clang_static_analysis])
+
+    run_clang_static_analysis_changed_files = Task(
+        "Run clang-tidy (incremental)", run_clang_static_analysis_changed_files_fn
+    )
+    run_clang_static_analysis_changed_files.depends_on([build_clang_static_analysis])
 
     misc_checks = Task("Miscellaneous checks", misc_checks_fn)
 
@@ -1114,16 +1218,18 @@ def main() -> int:
         root_dependencies.append(test_clang_valgrind)
 
     if mode.static_analysis:
-        root_dependencies.append(run_clang_static_analysis)
+        if mode.incremental:
+            root_dependencies.append(run_clang_static_analysis_changed_files)
+        else:
+            root_dependencies.append(run_clang_static_analysis_all_files)
 
     if mode.misc:
         root_dependencies.append(misc_checks)
 
-    root = Task()
+    root = Task("Build")
     root.depends_on(root_dependencies)
     root.run()
 
-    print(f"Build duration: {ns_to_string(time.time_ns() - TIME_START)}")
     print(f"Success: {os.path.basename(sys.argv[0])}")
 
     return 0
