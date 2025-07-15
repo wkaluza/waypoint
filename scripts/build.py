@@ -263,8 +263,24 @@ def is_linux():
     return platform.system() == "Linux"
 
 
+def check_no_spaces_in_paths_() -> bool:
+    files = find_files_by_name(lambda x: True)
+
+    for f in files:
+        assert f.startswith(PROJECT_ROOT_DIR)
+    files = [f[len(PROJECT_ROOT_DIR) + 1 :] for f in files]
+
+    for f in files:
+        if " " in f:
+            return False
+
+    return True
+
+
 def check_waypoint_hpp_has_no_includes_() -> bool:
     path = f"{PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp"
+    assert os.path.isfile(path), "waypoint.hpp does not exist"
+
     with open(path, "r") as f:
         contents = f.read()
 
@@ -275,6 +291,12 @@ def misc_checks_fn() -> bool:
     success = check_waypoint_hpp_has_no_includes_()
     if not success:
         print("Error: waypoint.hpp must include no other headers")
+
+        return False
+
+    success = check_no_spaces_in_paths_()
+    if not success:
+        print("Error: file paths must not contain spaces")
 
         return False
 
@@ -317,21 +339,34 @@ def clean_build_dir(preset):
     remove_dir(build_dir)
 
 
-def find_files_by_name(pred):
+def find_files_by_name(pred) -> typing.List[str]:
     output = []
     for root, dirs, files in os.walk(PROJECT_ROOT_DIR):
-        dir_indices_to_remove = []
+        indices_to_remove = []
         for i, d in enumerate(dirs):
             if d.startswith("."):
-                dir_indices_to_remove.append(i)
+                indices_to_remove.append(i)
                 continue
             if "___" in d:
-                dir_indices_to_remove.append(i)
+                indices_to_remove.append(i)
                 continue
-        dir_indices_to_remove.sort()
-        dir_indices_to_remove.reverse()
-        for i in dir_indices_to_remove:
+        indices_to_remove.sort()
+        indices_to_remove.reverse()
+        for i in indices_to_remove:
             dirs.pop(i)
+
+        indices_to_remove = []
+        for i, f in enumerate(files):
+            if f.startswith("."):
+                indices_to_remove.append(i)
+                continue
+            if "___" in f:
+                indices_to_remove.append(i)
+                continue
+        indices_to_remove.sort()
+        indices_to_remove.reverse()
+        for i in indices_to_remove:
+            files.pop(i)
 
         for f in files:
             path = os.path.realpath(os.path.join(root, f))
@@ -1005,12 +1040,8 @@ def clean_fn() -> bool:
     return True
 
 
-def noop_fn() -> bool:
-    return True
-
-
 class Task:
-    def __init__(self, name: str, fn: typing.Callable[[], bool] = noop_fn):
+    def __init__(self, name: str, fn: typing.Callable[[], bool] | None = None):
         assert name is not None
         self.name_ = name
         self.fn_ = fn
@@ -1045,7 +1076,7 @@ class Task:
 
         print(f"Running task: {self.name_}")
         start = time.time_ns()
-        success = self.fn_()
+        success = True if self.fn_ is None else self.fn_()
         if len(self.dependencies_) > 0:
             print(
                 "Finished task:",
@@ -1175,6 +1206,9 @@ def main() -> int:
     if mode.clean:
         root_dependencies.append(clean)
 
+    if mode.misc:
+        root_dependencies.append(misc_checks)
+
     if mode.format:
         root_dependencies.append(format_sources)
 
@@ -1222,9 +1256,6 @@ def main() -> int:
             root_dependencies.append(run_clang_static_analysis_changed_files)
         else:
             root_dependencies.append(run_clang_static_analysis_all_files)
-
-    if mode.misc:
-        root_dependencies.append(misc_checks)
 
     root = Task("Build")
     root.depends_on(root_dependencies)
