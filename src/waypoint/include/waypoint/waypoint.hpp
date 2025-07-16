@@ -568,7 +568,7 @@ public:
   auto operator=(Engine &&other) noexcept -> Engine & = delete;
 
   auto group(char const *name) const -> Group;
-  auto test(Group const &group, char const *name) const -> Test;
+  auto test(Group const &group, char const *name) const -> waypoint::Test;
 
 private:
   explicit Engine(internal::Engine_impl *impl);
@@ -830,11 +830,6 @@ private:
   friend class internal::Engine_impl;
 };
 
-} // namespace waypoint
-
-namespace waypoint::internal
-{
-
 template<typename>
 class Test2;
 
@@ -866,7 +861,7 @@ private:
   internal::Registrar<FixtureT> registrar_;
 
   template<typename>
-  friend class internal::Test2;
+  friend class waypoint::Test2;
 };
 
 template<>
@@ -897,7 +892,7 @@ private:
   internal::Registrar<void> registrar_;
 
   template<typename>
-  friend class internal::Test2;
+  friend class waypoint::Test2;
   friend class waypoint::Test;
 };
 
@@ -919,7 +914,7 @@ public:
     this->registrar_.register_body(
       internal::TestBodyWithFixture<FixtureT>{internal::forward<F>(f)});
 
-    return Test3<FixtureT>{internal::move(this->registrar_)};
+    return waypoint::Test3<FixtureT>{internal::move(this->registrar_)};
   }
 
 private:
@@ -951,7 +946,7 @@ public:
     this->registrar_.register_body(
       internal::TestBodyNoFixture{internal::forward<F>(f)});
 
-    return Test3<void>{internal::move(this->registrar_)};
+    return waypoint::Test3<void>{internal::move(this->registrar_)};
   }
 
 private:
@@ -964,11 +959,6 @@ private:
 
   friend class waypoint::Test;
 };
-
-} // namespace waypoint::internal
-
-namespace waypoint
-{
 
 class Test
 {
@@ -984,7 +974,7 @@ public:
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto setup(F &&f) -> internal::enable_if_t<
     !internal::is_void_v<internal::setup_invoke_result_t<F>>,
-    internal::Test2<internal::setup_invoke_result_t<F>>>
+    waypoint::Test2<internal::setup_invoke_result_t<F>>>
   {
     internal::Registrar<internal::setup_invoke_result_t<F>> registrar{
       this->get_engine(),
@@ -992,7 +982,7 @@ public:
 
     registrar.register_setup(internal::forward<F>(f));
 
-    return internal::Test2<internal::setup_invoke_result_t<F>>{
+    return waypoint::Test2<internal::setup_invoke_result_t<F>>{
       internal::move(registrar)};
   }
 
@@ -1001,13 +991,13 @@ public:
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto setup(F &&f) -> internal::enable_if_t<
     internal::is_void_v<internal::setup_invoke_result_t<F>>,
-    internal::Test2<void>>
+    waypoint::Test2<void>>
   {
     internal::Registrar<void> registrar{this->get_engine(), this->test_id()};
 
     registrar.register_setup(internal::forward<F>(f));
 
-    return internal::Test2<internal::setup_invoke_result_t<F>>{
+    return waypoint::Test2<internal::setup_invoke_result_t<F>>{
       internal::move(registrar)};
   }
 
@@ -1020,7 +1010,7 @@ public:
     registrar.register_body(
       internal::TestBodyNoFixture{internal::forward<F>(f)});
 
-    return internal::Test3<void>{internal::move(registrar)};
+    return waypoint::Test3<void>{internal::move(registrar)};
   }
 
 private:
