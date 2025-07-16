@@ -846,7 +846,7 @@ public:
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  void teardown(F &&f)
+  void teardown(F &&f) &&
   {
     this->registrar_.register_teardown(
       internal::TeardownWithFixture<FixtureT>{internal::forward<F>(f)});
@@ -877,7 +877,7 @@ public:
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  void teardown(F &&f)
+  void teardown(F &&f) &&
   {
     this->registrar_.register_teardown(
       internal::TeardownNoFixture{internal::forward<F>(f)});
@@ -909,7 +909,7 @@ public:
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto run(F &&f) -> Test3<FixtureT>
+  auto run(F &&f) && -> waypoint::Test3<FixtureT>
   {
     this->registrar_.register_body(
       internal::TestBodyWithFixture<FixtureT>{internal::forward<F>(f)});
@@ -941,7 +941,7 @@ public:
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto run(F &&f) -> Test3<void>
+  auto run(F &&f) && -> waypoint::Test3<void>
   {
     this->registrar_.register_body(
       internal::TestBodyNoFixture{internal::forward<F>(f)});
@@ -972,7 +972,7 @@ public:
   template<typename F>
   [[nodiscard]]
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto setup(F &&f) -> internal::enable_if_t<
+  auto setup(F &&f) && -> internal::enable_if_t<
     !internal::is_void_v<internal::setup_invoke_result_t<F>>,
     waypoint::Test2<internal::setup_invoke_result_t<F>>>
   {
@@ -989,7 +989,7 @@ public:
   template<typename F>
   [[nodiscard]]
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto setup(F &&f) -> internal::enable_if_t<
+  auto setup(F &&f) && -> internal::enable_if_t<
     internal::is_void_v<internal::setup_invoke_result_t<F>>,
     waypoint::Test2<void>>
   {
@@ -1003,7 +1003,7 @@ public:
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto run(F &&f) -> internal::Test3<void>
+  auto run(F &&f) && -> waypoint::Test3<void>
   {
     internal::Registrar<void> registrar{this->get_engine(), this->test_id()};
 
