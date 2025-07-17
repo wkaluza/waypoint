@@ -848,8 +848,7 @@ public:
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   void teardown(F &&f) &&
   {
-    this->registrar_.register_teardown(
-      internal::TeardownWithFixture<FixtureT>{internal::forward<F>(f)});
+    this->registrar_.register_teardown(internal::forward<F>(f));
   }
 
 private:
@@ -879,8 +878,7 @@ public:
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   void teardown(F &&f) &&
   {
-    this->registrar_.register_teardown(
-      internal::TeardownNoFixture{internal::forward<F>(f)});
+    this->registrar_.register_teardown(internal::forward<F>(f));
   }
 
 private:
@@ -911,8 +909,7 @@ public:
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto run(F &&f) && -> waypoint::Test3<FixtureT>
   {
-    this->registrar_.register_body(
-      internal::TestBodyWithFixture<FixtureT>{internal::forward<F>(f)});
+    this->registrar_.register_body(internal::forward<F>(f));
 
     return waypoint::Test3<FixtureT>{internal::move(this->registrar_)};
   }
@@ -943,8 +940,7 @@ public:
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto run(F &&f) && -> waypoint::Test3<void>
   {
-    this->registrar_.register_body(
-      internal::TestBodyNoFixture{internal::forward<F>(f)});
+    this->registrar_.register_body(internal::forward<F>(f));
 
     return waypoint::Test3<void>{internal::move(this->registrar_)};
   }
@@ -1005,8 +1001,7 @@ public:
   {
     auto registrar = this->make_registrar<void>();
 
-    registrar.register_body(
-      internal::TestBodyNoFixture{internal::forward<F>(f)});
+    registrar.register_body(internal::forward<F>(f));
 
     return waypoint::Test3<void>{internal::move(registrar)};
   }
