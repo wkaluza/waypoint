@@ -619,22 +619,24 @@ class Registrar
 public:
   ~Registrar()
   {
-    if(static_cast<bool>(this->body_))
+    if(!static_cast<bool>(this->body_))
     {
-      this->engine_.register_test_assembly(
-        TestAssembly{[setup = move(this->setup_),
-                      body = move(this->body_),
-                      teardown = move(this->teardown_)](Context const &ctx)
-                     {
-                       FixtureT fixture = setup(ctx);
-                       body(ctx, fixture);
-                       if(static_cast<bool>(teardown))
-                       {
-                         teardown(ctx, fixture);
-                       }
-                     }},
-        this->test_id_);
+      return;
     }
+
+    this->engine_.register_test_assembly(
+      [setup = move(this->setup_),
+       body = move(this->body_),
+       teardown = move(this->teardown_)](Context const &ctx)
+      {
+        FixtureT fixture = setup(ctx);
+        body(ctx, fixture);
+        if(static_cast<bool>(teardown))
+        {
+          teardown(ctx, fixture);
+        }
+      },
+      this->test_id_);
   }
 
   Registrar(Registrar const &other) = delete;
@@ -682,25 +684,27 @@ class Registrar<void>
 public:
   ~Registrar()
   {
-    if(static_cast<bool>(this->body_))
+    if(!static_cast<bool>(this->body_))
     {
-      this->engine_.register_test_assembly(
-        TestAssembly{[setup = move(this->setup_),
-                      body = move(this->body_),
-                      teardown = move(this->teardown_)](Context const &ctx)
-                     {
-                       if(static_cast<bool>(setup))
-                       {
-                         setup(ctx);
-                       }
-                       body(ctx);
-                       if(static_cast<bool>(teardown))
-                       {
-                         teardown(ctx);
-                       }
-                     }},
-        this->test_id_);
+      return;
     }
+
+    this->engine_.register_test_assembly(
+      [setup = move(this->setup_),
+       body = move(this->body_),
+       teardown = move(this->teardown_)](Context const &ctx)
+      {
+        if(static_cast<bool>(setup))
+        {
+          setup(ctx);
+        }
+        body(ctx);
+        if(static_cast<bool>(teardown))
+        {
+          teardown(ctx);
+        }
+      },
+      this->test_id_);
   }
 
   Registrar(Registrar const &other) = delete;
