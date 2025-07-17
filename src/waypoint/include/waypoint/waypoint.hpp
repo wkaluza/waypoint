@@ -976,9 +976,7 @@ public:
     !internal::is_void_v<internal::setup_invoke_result_t<F>>,
     waypoint::Test2<internal::setup_invoke_result_t<F>>>
   {
-    internal::Registrar<internal::setup_invoke_result_t<F>> registrar{
-      this->get_engine(),
-      this->test_id()};
+    auto registrar = this->make_registrar<internal::setup_invoke_result_t<F>>();
 
     registrar.register_setup(internal::forward<F>(f));
 
@@ -993,7 +991,7 @@ public:
     internal::is_void_v<internal::setup_invoke_result_t<F>>,
     waypoint::Test2<void>>
   {
-    internal::Registrar<void> registrar{this->get_engine(), this->test_id()};
+    auto registrar = this->make_registrar<void>();
 
     registrar.register_setup(internal::forward<F>(f));
 
@@ -1005,7 +1003,7 @@ public:
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto run(F &&f) && -> waypoint::Test3<void>
   {
-    internal::Registrar<void> registrar{this->get_engine(), this->test_id()};
+    auto registrar = this->make_registrar<void>();
 
     registrar.register_body(
       internal::TestBodyNoFixture{internal::forward<F>(f)});
@@ -1015,6 +1013,13 @@ public:
 
 private:
   explicit Test(internal::Test_impl *impl);
+
+  template<typename T>
+  [[nodiscard]]
+  auto make_registrar() const -> internal::Registrar<T>
+  {
+    return internal::Registrar<T>{this->get_engine(), this->test_id()};
+  }
 
   [[nodiscard]]
   auto test_id() const -> unsigned long long;
