@@ -1259,7 +1259,10 @@ def main() -> int:
 
     root = Task("Build")
     root.depends_on(root_dependencies)
-    root.run()
+
+    success = root.run()
+    if not success:
+        return 1
 
     print(f"Success: {os.path.basename(sys.argv[0])}")
 
