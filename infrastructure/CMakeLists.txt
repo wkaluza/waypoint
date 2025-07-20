@@ -26,6 +26,20 @@ new_target(
   ${PROJECT_ROOT_DIR}/src/waypoint/internal/types.hpp
   ${PROJECT_ROOT_DIR}/src/waypoint/internal/impls.hpp)
 
+new_target(
+  STATIC
+  TARGET
+  test_helpers
+  DIRECTORY
+  ${PROJECT_ROOT_DIR}/test/test_helpers
+  SOURCES
+  ${PROJECT_ROOT_DIR}/test/test_helpers/test_helpers.cpp
+  PUBLIC_HEADERS
+  ${PROJECT_ROOT_DIR}/test/test_helpers/include/test_helpers/test_helpers.hpp
+  PRIVATE_HEADERS
+  LINKS
+  waypoint)
+
 new_basic_test(000_include_only)
 new_basic_test(001_init_only)
 new_basic_test(002_empty_autorun_block_with_init)
