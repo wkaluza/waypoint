@@ -1,3 +1,4 @@
+#include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
 #include <functional>
@@ -5,21 +6,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-class CopyableImmovable
-{
-public:
-  ~CopyableImmovable() = default;
-  CopyableImmovable() = default;
-  CopyableImmovable(CopyableImmovable const &other) = default;
-  CopyableImmovable(CopyableImmovable &&other) noexcept = delete;
-  auto operator=(CopyableImmovable const &other)
-    -> CopyableImmovable & = default;
-  auto operator=(CopyableImmovable &&other) noexcept
-    -> CopyableImmovable & = delete;
-
-  int foo{42};
-};
 
 WAYPOINT_AUTORUN(waypoint::Engine const &t)
 {
@@ -31,7 +17,7 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
     return 123;
   };
   auto captured4 = std::make_unique<int>(42);
-  auto captured5 = CopyableImmovable{};
+  auto captured5 = waypoint::test::CopyableImmovable{};
 
   auto const g1 = t.group("Capturing lambdas as test bodies");
 

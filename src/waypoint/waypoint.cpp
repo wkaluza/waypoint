@@ -107,6 +107,11 @@ auto Test::get_engine() const -> Engine const &
   return this->impl_->get_engine();
 }
 
+void Test::mark_complete() const
+{
+  this->impl_->mark_complete();
+}
+
 auto Engine::group(char const *name) const -> Group
 {
   auto const group_id = this->impl_->register_group(name);
@@ -127,6 +132,11 @@ void Engine::register_test_assembly(
   unsigned long long const test_id) const
 {
   this->impl_->register_test_assembly(std::move(f), test_id);
+}
+
+void Engine::report_incomplete_test(unsigned long long const test_id) const
+{
+  this->impl_->report_incomplete_test(test_id);
 }
 
 Engine::~Engine() = default;
@@ -185,6 +195,16 @@ auto RunResult::test_outcome(unsigned long long const index) const
   -> TestOutcome const &
 {
   return this->impl_->get_test_outcome(index);
+}
+
+auto RunResult::error_count() const -> unsigned long long
+{
+  return this->impl_->errors().size();
+}
+
+auto RunResult::error(unsigned long long const index) const -> char const *
+{
+  return this->impl_->errors().at(index).c_str();
 }
 
 } // namespace waypoint

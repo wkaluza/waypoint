@@ -134,7 +134,12 @@ private:
 class Test_impl
 {
 public:
+  ~Test_impl();
   Test_impl();
+  Test_impl(Test_impl const &other) = delete;
+  Test_impl(Test_impl &&other) noexcept = delete;
+  auto operator=(Test_impl const &other) -> Test_impl & = delete;
+  auto operator=(Test_impl &&other) noexcept -> Test_impl & = delete;
 
   void initialize(Engine const &engine, TestId id);
 
@@ -142,10 +147,12 @@ public:
   auto get_engine() const -> Engine const &;
   [[nodiscard]]
   auto get_id() const -> TestId;
+  void mark_complete();
 
 private:
   Engine const *engine_;
   TestId id_;
+  bool incomplete_;
 };
 
 class Context_impl
@@ -180,7 +187,8 @@ private:
 
   enum class ErrorType : std::uint8_t
   {
-    Init_DuplicateTestInGroup
+    Init_DuplicateTestInGroup,
+    Init_TestHasNoBody
   };
 
   struct Error
@@ -201,6 +209,8 @@ public:
     TestId test_id,
     AssertionIndex index,
     std::optional<std::string> maybe_message);
+  [[nodiscard]]
+  auto errors() const -> std::vector<std::string>;
   [[nodiscard]]
   auto has_errors() const -> bool;
   [[nodiscard]]
@@ -230,6 +240,7 @@ public:
   void report_duplicate_test_name(
     GroupName const &group_name,
     TestName const &test_name);
+  void report_incomplete_test(TestId test_id);
   [[nodiscard]]
   auto get_assertions() const -> std::vector<AssertionRecord>;
   [[nodiscard]]
@@ -261,6 +272,8 @@ public:
   RunResult_impl();
 
   [[nodiscard]]
+  auto errors() const -> std::vector<std::string> const &;
+  [[nodiscard]]
   auto has_errors() const -> bool;
   [[nodiscard]]
   auto has_failing_assertions() const -> bool;
@@ -276,6 +289,7 @@ private:
   bool has_failing_assertions_;
   bool has_errors_;
   std::vector<std::unique_ptr<TestOutcome>> test_outcomes_;
+  std::vector<std::string> errors_;
 };
 
 } // namespace waypoint::internal

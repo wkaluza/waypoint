@@ -116,7 +116,7 @@ auto declval() -> T;
 
 template<typename F, typename... Args>
 auto invoke_impl(F &&f, Args &&...args)
-  -> decltype(forward<F>(f)(forward<Args>(args)...));
+  -> decltype(internal::forward<F>(f)(internal::forward<Args>(args)...));
 
 template<typename F, typename... Args>
 struct invoke_result
@@ -576,6 +576,7 @@ private:
   void register_test_assembly(
     internal::TestAssembly f,
     unsigned long long test_id) const;
+  void report_incomplete_test(unsigned long long test_id) const;
 
   internal::UniquePtr<internal::Engine_impl> const impl_;
 
@@ -619,8 +620,15 @@ class Registrar
 public:
   ~Registrar()
   {
+    if(!this->is_active_)
+    {
+      return;
+    }
+
     if(!static_cast<bool>(this->body_))
     {
+      this->report_incomplete_test(this->test_id_);
+
       return;
     }
 
@@ -640,28 +648,46 @@ public:
   }
 
   Registrar(Registrar const &other) = delete;
-  Registrar(Registrar &&other) noexcept = default;
+
+  Registrar(Registrar &&other) noexcept
+    : is_active_{other.is_active_},
+      engine_{other.engine_},
+      test_id_{other.test_id_},
+      setup_{move(other.setup_)},
+      body_{move(other.body_)},
+      teardown_{move(other.teardown_)}
+  {
+    other.is_active_ = false;
+  }
+
   auto operator=(Registrar const &other) -> Registrar & = delete;
   auto operator=(Registrar &&other) noexcept -> Registrar & = delete;
 
   void register_setup(NonVoidSetup<FixtureT> f)
   {
+    this->is_active_ = true;
+
     this->setup_ = move(f);
   }
 
   void register_body(TestBodyWithFixture<FixtureT> f)
   {
+    this->is_active_ = true;
+
     this->body_ = move(f);
   }
 
   void register_teardown(TeardownWithFixture<FixtureT> f)
   {
+    this->is_active_ = true;
+
     this->teardown_ = move(f);
   }
 
 private:
   Registrar(Engine const &engine, unsigned long long const test_id)
-    : engine_{engine},
+    : is_active_{false},
+      engine_{engine},
       test_id_{test_id},
       setup_{},
       body_{},
@@ -669,6 +695,12 @@ private:
   {
   }
 
+  void report_incomplete_test(unsigned long long const test_id) const
+  {
+    this->engine_.report_incomplete_test(test_id);
+  }
+
+  bool is_active_;
   Engine const &engine_;
   unsigned long long test_id_;
   NonVoidSetup<FixtureT> setup_;
@@ -684,8 +716,15 @@ class Registrar<void>
 public:
   ~Registrar()
   {
+    if(!this->is_active_)
+    {
+      return;
+    }
+
     if(!static_cast<bool>(this->body_))
     {
+      this->report_incomplete_test(this->test_id_);
+
       return;
     }
 
@@ -708,32 +747,56 @@ public:
   }
 
   Registrar(Registrar const &other) = delete;
-  Registrar(Registrar &&other) noexcept = default;
+
+  Registrar(Registrar &&other) noexcept
+    : is_active_{other.is_active_},
+      engine_{other.engine_},
+      test_id_{other.test_id_},
+      setup_{move(other.setup_)},
+      body_{move(other.body_)},
+      teardown_{move(other.teardown_)}
+  {
+    other.is_active_ = false;
+  }
+
   auto operator=(Registrar const &other) -> Registrar & = delete;
   auto operator=(Registrar &&other) noexcept -> Registrar & = delete;
 
   void register_setup(VoidSetup f)
   {
+    this->is_active_ = true;
+
     this->setup_ = move(f);
   }
 
   void register_body(TestBodyNoFixture f)
   {
+    this->is_active_ = true;
+
     this->body_ = move(f);
   }
 
   void register_teardown(TeardownNoFixture f)
   {
+    this->is_active_ = true;
+
     this->teardown_ = move(f);
   }
 
 private:
   Registrar(Engine const &engine, unsigned long long const test_id)
-    : engine_{engine},
+    : is_active_{false},
+      engine_{engine},
       test_id_{test_id}
   {
   }
 
+  void report_incomplete_test(unsigned long long const test_id) const
+  {
+    this->engine_.report_incomplete_test(test_id);
+  }
+
+  bool is_active_;
   Engine const &engine_;
   unsigned long long test_id_;
   VoidSetup setup_;
@@ -976,6 +1039,8 @@ public:
     !internal::is_void_v<internal::setup_invoke_result_t<F>>,
     waypoint::Test2<internal::setup_invoke_result_t<F>>>
   {
+    this->mark_complete();
+
     auto registrar = this->make_registrar<internal::setup_invoke_result_t<F>>();
 
     registrar.register_setup(internal::forward<F>(f));
@@ -991,6 +1056,8 @@ public:
     internal::is_void_v<internal::setup_invoke_result_t<F>>,
     waypoint::Test2<void>>
   {
+    this->mark_complete();
+
     auto registrar = this->make_registrar<void>();
 
     registrar.register_setup(internal::forward<F>(f));
@@ -1003,6 +1070,8 @@ public:
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto run(F &&f) && -> waypoint::Test3<void>
   {
+    this->mark_complete();
+
     auto registrar = this->make_registrar<void>();
 
     registrar.register_body(internal::forward<F>(f));
@@ -1024,6 +1093,7 @@ private:
   auto test_id() const -> unsigned long long;
   [[nodiscard]]
   auto get_engine() const -> Engine const &;
+  void mark_complete() const;
 
   internal::UniquePtr<internal::Test_impl> const impl_;
 
@@ -1045,6 +1115,10 @@ public:
   auto test_count() const -> unsigned long long;
   [[nodiscard]]
   auto test_outcome(unsigned long long index) const -> TestOutcome const &;
+  [[nodiscard]]
+  auto error_count() const -> unsigned long long;
+  [[nodiscard]]
+  auto error(unsigned long long index) const -> char const *;
 
 private:
   explicit RunResult(internal::RunResult_impl *impl);

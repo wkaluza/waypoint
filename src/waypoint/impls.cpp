@@ -161,9 +161,18 @@ auto Group_impl::get_id() const -> GroupId
   return this->id_;
 }
 
+Test_impl::~Test_impl()
+{
+  if(incomplete_ && this->engine_ != nullptr)
+  {
+    get_impl(*this->engine_).report_incomplete_test(this->id_);
+  }
+}
+
 Test_impl::Test_impl()
   : engine_{},
-    id_{}
+    id_{},
+    incomplete_{true}
 {
 }
 
@@ -181,6 +190,11 @@ auto Test_impl::get_engine() const -> Engine const &
 auto Test_impl::get_id() const -> TestId
 {
   return this->id_;
+}
+
+void Test_impl::mark_complete()
+{
+  this->incomplete_ = false;
 }
 
 Context_impl::Context_impl()
@@ -364,6 +378,21 @@ void Engine_impl::report_duplicate_test_name(
       test_name));
 }
 
+void Engine_impl::report_incomplete_test(TestId const test_id)
+{
+  auto const test_name = this->get_test_name(test_id);
+  auto const group_id = this->get_group_id(test_id);
+  auto const group_name = this->get_group_name(group_id);
+
+  this->report_error(
+    ErrorType::Init_TestHasNoBody,
+    std::format(
+      R"(Test "{}" in group "{}" is incomplete. )"
+      R"(Call the run(...) method to fix this.)",
+      test_name,
+      group_name));
+}
+
 auto Engine_impl::get_assertions() const -> std::vector<AssertionRecord>
 {
   return this->assertions_;
@@ -452,6 +481,17 @@ auto Engine_impl::get_shuffled_test_record_ptrs() const
   return this->shuffled_test_record_ptrs_;
 }
 
+auto Engine_impl::errors() const -> std::vector<std::string>
+{
+  return std::ranges::views::transform(
+           this->errors_,
+           [](Error const &error)
+           {
+             return error.message;
+           }) |
+    std::ranges::to<std::vector<std::string>>();
+}
+
 auto Engine_impl::has_errors() const -> bool
 {
   return !this->errors_.empty();
@@ -501,6 +541,23 @@ RunResult_impl::RunResult_impl()
 
 void RunResult_impl::initialize(Engine const &engine)
 {
+  this->errors_ = std::invoke(
+    [&engine]()
+    {
+      return get_impl(engine).errors();
+    });
+
+  this->has_errors_ = std::invoke(
+    [&engine]()
+    {
+      return get_impl(engine).has_errors();
+    });
+
+  if(this->has_errors_)
+  {
+    return;
+  }
+
   this->has_failing_assertions_ = std::invoke(
     [&engine]()
     {
@@ -514,12 +571,6 @@ void RunResult_impl::initialize(Engine const &engine)
         });
 
       return it != assertions.end();
-    });
-
-  this->has_errors_ = std::invoke(
-    [&engine]()
-    {
-      return get_impl(engine).has_errors();
     });
 
   this->test_outcomes_ = std::invoke(
@@ -544,6 +595,11 @@ void RunResult_impl::initialize(Engine const &engine)
 
       return output;
     });
+}
+
+auto RunResult_impl::errors() const -> std::vector<std::string> const &
+{
+  return this->errors_;
 }
 
 auto RunResult_impl::has_errors() const -> bool

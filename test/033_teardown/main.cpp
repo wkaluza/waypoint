@@ -1,16 +1,5 @@
+#include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
-
-namespace
-{
-
-int x = 1'000'000;
-
-struct X
-{
-  int foo;
-};
-
-} // namespace
 
 WAYPOINT_AUTORUN(waypoint::Engine const &t)
 {
@@ -20,140 +9,140 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
     .run(
       [](waypoint::Context const &ctx)
       {
-        ctx.assert(x == 1'000'000);
-        x = 1;
+        ctx.assert(waypoint::test::x == 1'000'000);
+        waypoint::test::x = 1;
       })
     .teardown(
       [](waypoint::Context const &ctx)
       {
-        ctx.assert(x == 1);
-        x = 1'000'000;
+        ctx.assert(waypoint::test::x == 1);
+        waypoint::test::x = 1'000'000;
       });
 
   t.test(g1, "Test 2")
     .setup(
       [](waypoint::Context const &ctx)
       {
-        ctx.assert(x == 1'000'000);
-        x = 2;
+        ctx.assert(waypoint::test::x == 1'000'000);
+        waypoint::test::x = 2;
       })
     .run(
       [](waypoint::Context const &ctx)
       {
-        ctx.assert(x == 2);
-        x = 3;
+        ctx.assert(waypoint::test::x == 2);
+        waypoint::test::x = 3;
       })
     .teardown(
       [](waypoint::Context const &ctx)
       {
-        ctx.assert(x == 3);
-        x = 1'000'000;
+        ctx.assert(waypoint::test::x == 3);
+        waypoint::test::x = 1'000'000;
       });
 
   t.test(g1, "Test 3")
     .setup(
       [](waypoint::Context const &ctx)
       {
-        ctx.assert(x == 1'000'000);
-        x = 4;
+        ctx.assert(waypoint::test::x == 1'000'000);
+        waypoint::test::x = 4;
 
         return 42;
       })
     .run(
       [](waypoint::Context const &ctx, int &fixture)
       {
-        ctx.assert(x == 4);
+        ctx.assert(waypoint::test::x == 4);
         ctx.assert(fixture == 42);
-        x = 5;
+        waypoint::test::x = 5;
         ++fixture;
       })
     .teardown(
       [](waypoint::Context const &ctx, int const &fixture)
       {
-        ctx.assert(x == 5);
+        ctx.assert(waypoint::test::x == 5);
         ctx.assert(fixture == 43);
-        x = 1'000'000;
+        waypoint::test::x = 1'000'000;
       });
 
   t.test(g1, "Test 4")
     .setup(
       [](waypoint::Context const &ctx)
       {
-        ctx.assert(x == 1'000'000);
-        x = 6;
+        ctx.assert(waypoint::test::x == 1'000'000);
+        waypoint::test::x = 6;
 
         return 42;
       })
     .run(
       [](waypoint::Context const &ctx, int fixture)
       {
-        ctx.assert(x == 6);
+        ctx.assert(waypoint::test::x == 6);
         ctx.assert(fixture == 42);
         ++fixture;
         ctx.assert(fixture == 43);
-        x = 7;
+        waypoint::test::x = 7;
       })
     .teardown(
       [](waypoint::Context const &ctx, int const fixture)
       {
-        ctx.assert(x == 7);
+        ctx.assert(waypoint::test::x == 7);
         ctx.assert(fixture == 42);
-        x = 1'000'000;
+        waypoint::test::x = 1'000'000;
       });
 
   t.test(g1, "Test 5")
     .setup(
       [](waypoint::Context const &ctx)
       {
-        ctx.assert(x == 1'000'000);
-        x = 8;
+        ctx.assert(waypoint::test::x == 1'000'000);
+        waypoint::test::x = 8;
 
-        auto f = X{};
+        auto f = waypoint::test::X{};
         f.foo = 123;
 
         return f;
       })
     .run(
-      [](waypoint::Context const &ctx, X const &fixture)
+      [](waypoint::Context const &ctx, waypoint::test::X const &fixture)
       {
-        ctx.assert(x == 8);
+        ctx.assert(waypoint::test::x == 8);
         ctx.assert(fixture.foo == 123);
-        x = 9;
+        waypoint::test::x = 9;
       })
     .teardown(
-      [](waypoint::Context const &ctx, X const &fixture)
+      [](waypoint::Context const &ctx, waypoint::test::X const &fixture)
       {
-        ctx.assert(x == 9);
+        ctx.assert(waypoint::test::x == 9);
         ctx.assert(fixture.foo == 123);
-        x = 1'000'000;
+        waypoint::test::x = 1'000'000;
       });
 
   t.test(g1, "Test 6")
     .setup(
       [](waypoint::Context const &ctx)
       {
-        ctx.assert(x == 1'000'000);
-        x = 10;
+        ctx.assert(waypoint::test::x == 1'000'000);
+        waypoint::test::x = 10;
 
-        auto f = X{};
+        auto f = waypoint::test::X{};
         f.foo = 123;
 
         return f;
       })
     .run(
-      [](waypoint::Context const &ctx, X &fixture)
+      [](waypoint::Context const &ctx, waypoint::test::X &fixture)
       {
-        ctx.assert(x == 10);
+        ctx.assert(waypoint::test::x == 10);
         ctx.assert(fixture.foo == 123);
         ++fixture.foo;
-        x = 11;
+        waypoint::test::x = 11;
       })
     .teardown(
-      [](waypoint::Context const &ctx, X const &fixture)
+      [](waypoint::Context const &ctx, waypoint::test::X const &fixture)
       {
-        ctx.assert(x == 11);
+        ctx.assert(waypoint::test::x == 11);
         ctx.assert(fixture.foo == 124);
-        x = 1'000'000;
+        waypoint::test::x = 1'000'000;
       });
 }
 
