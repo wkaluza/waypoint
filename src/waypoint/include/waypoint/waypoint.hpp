@@ -131,115 +131,42 @@ template<typename F>
 using setup_invoke_result_t = typename invoke_result<F, Context &>::type;
 
 template<typename T>
-class UnsafeSharedPtr
+class MoveableUniquePtr
 {
 public:
-  ~UnsafeSharedPtr()
+  ~MoveableUniquePtr()
   {
-    if(this->ref_count_ != nullptr)
-    {
-      *this->ref_count_ -= 1;
-    }
-
-    if(this->ref_count_ == nullptr || *this->ref_count_ == 0)
-    {
-      delete this->ptr_;
-      delete this->ref_count_;
-    }
+    delete this->ptr_;
   }
 
-  UnsafeSharedPtr() = delete;
+  MoveableUniquePtr() = delete;
 
   template<typename U>
-  explicit UnsafeSharedPtr(U *ptr)
-    : ptr_{ptr},
-      ref_count_{ptr_ == nullptr ? nullptr : new unsigned long long{1}}
+  explicit MoveableUniquePtr(U *ptr)
+    : ptr_{ptr}
   {
   }
 
-  UnsafeSharedPtr(UnsafeSharedPtr const &other)
-    : ptr_{other.ptr_},
-      ref_count_{other.ref_count_}
-  {
-    if(this->ref_count_ == nullptr)
-    {
-      return;
-    }
+  MoveableUniquePtr(MoveableUniquePtr const &other) = delete;
+  auto operator=(MoveableUniquePtr const &other)
+    -> MoveableUniquePtr & = delete;
 
-    *this->ref_count_ += 1;
+  MoveableUniquePtr(MoveableUniquePtr &&other) noexcept
+    : ptr_{other.ptr_}
+  {
+    other.ptr_ = nullptr;
   }
 
-  auto operator=(UnsafeSharedPtr const &other) -> UnsafeSharedPtr &
+  auto operator=(MoveableUniquePtr &&other) noexcept -> MoveableUniquePtr &
   {
     if(this == &other)
     {
       return *this;
     }
 
-    if(this->ptr_ == other.ptr_)
-    {
-      return *this;
-    }
-
-    if(this->ref_count_ != nullptr)
-    {
-      *this->ref_count_ -= 1;
-    }
-
-    if(this->ref_count_ == nullptr || *this->ref_count_ == 0)
-    {
-      delete this->ptr_;
-      delete this->ref_count_;
-    }
-
-    this->ptr_ = other.ptr_;
-    this->ref_count_ = other.ref_count_;
-
-    if(this->ref_count_ == nullptr)
-    {
-      return *this;
-    }
-
-    *this->ref_count_ += 1;
-
-    return *this;
-  }
-
-  UnsafeSharedPtr(UnsafeSharedPtr &&other) noexcept
-    : ptr_{other.ptr_},
-      ref_count_{other.ref_count_}
-  {
-    other.ptr_ = nullptr;
-    other.ref_count_ = nullptr;
-  }
-
-  auto operator=(UnsafeSharedPtr &&other) noexcept -> UnsafeSharedPtr &
-  {
-    if(this == &other)
-    {
-      return *this;
-    }
-
-    if(this->ptr_ == other.ptr_)
-    {
-      return *this;
-    }
-
-    if(this->ref_count_ != nullptr)
-    {
-      *this->ref_count_ -= 1;
-    }
-
-    if(this->ref_count_ == nullptr || *this->ref_count_ == 0)
-    {
-      delete this->ptr_;
-      delete this->ref_count_;
-    }
-
-    this->ref_count_ = other.ref_count_;
+    delete this->ptr_;
     this->ptr_ = other.ptr_;
     other.ptr_ = nullptr;
-    other.ref_count_ = nullptr;
 
     return *this;
   }
@@ -261,7 +188,6 @@ public:
 
 private:
   T *ptr_;
-  unsigned long long *ref_count_;
 };
 
 template<typename T>
@@ -287,7 +213,7 @@ public:
   requires requires { !is_same_v<F, Function<R(Context const &)>>; }
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
   Function(F &&f)
-    : callable_{UnsafeSharedPtr<callable_interface>{
+    : callable_{MoveableUniquePtr<callable_interface>{
         new callable<F>{internal::forward<F>(f)}}}
   {
   }
@@ -344,7 +270,7 @@ private:
     F fn_;
   };
 
-  UnsafeSharedPtr<callable_interface> callable_;
+  MoveableUniquePtr<callable_interface> callable_;
 };
 
 template<>
@@ -362,7 +288,7 @@ public:
   requires requires { !is_same_v<F, Function<void(Context const &)>>; }
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
   Function(F &&f)
-    : callable_{UnsafeSharedPtr<callable_interface>{
+    : callable_{MoveableUniquePtr<callable_interface>{
         new callable<F>{internal::forward<F>(f)}}}
   {
   }
@@ -413,7 +339,7 @@ private:
     F fn_;
   };
 
-  UnsafeSharedPtr<callable_interface> callable_;
+  MoveableUniquePtr<callable_interface> callable_;
 };
 
 template<typename FixtureT>
@@ -438,7 +364,7 @@ public:
   }
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
   Function(F &&f)
-    : callable_{UnsafeSharedPtr<callable_interface>{
+    : callable_{MoveableUniquePtr<callable_interface>{
         new callable<F>{internal::forward<F>(f)}}}
   {
   }
@@ -495,7 +421,7 @@ private:
     F fn_;
   };
 
-  UnsafeSharedPtr<callable_interface> callable_;
+  MoveableUniquePtr<callable_interface> callable_;
 };
 
 using TestAssembly = Function<void(Context const &)>;
