@@ -133,27 +133,32 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
 
   t.test(g2, "Test 1")
     .setup(waypoint::test::void_setup_factory(1))
-    .run(waypoint::test::void_body_factory(1, waypoint::test::x_init));
+    .run(waypoint::test::body_factory_no_fixture(1, waypoint::test::x_init));
 
   t.test(g2, "Test 2")
     .setup(waypoint::test::setup_factory_fixture<int>(42, 2))
-    .run(waypoint::test::body_factory_fixture<int>(waypoint::test::x_init));
+    .run(
+      waypoint::test::body_factory_fixture<int>(waypoint::test::x_init, 42, 2));
 
   t.test(g2, "Test 3")
     .setup(waypoint::test::setup_factory_fixture<waypoint::test::X>(123, 3))
     .run(
       waypoint::test::body_factory_fixture<waypoint::test::X>(
-        waypoint::test::x_init));
+        waypoint::test::x_init,
+        123,
+        3));
 
   t.test(g2, "Test 4")
     .setup(waypoint::test::void_setup_factory(111))
-    .run(waypoint::test::void_body_factory(111, waypoint::test::x_init));
+    .run(waypoint::test::body_factory_no_fixture(111, waypoint::test::x_init));
 
   t.test(g2, "Test 5")
     .setup(waypoint::test::setup_factory_fixture<waypoint::test::X>(42, 112))
     .run(
       waypoint::test::body_factory_fixture<waypoint::test::X>(
-        waypoint::test::x_init));
+        waypoint::test::x_init,
+        42,
+        112));
 }
 
 auto main() -> int
