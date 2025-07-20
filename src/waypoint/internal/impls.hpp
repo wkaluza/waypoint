@@ -166,7 +166,6 @@ public:
   auto get_engine() const -> Engine const &;
   [[nodiscard]]
   auto generate_assertion_index() -> AssertionIndex;
-
   [[nodiscard]]
   auto test_id() const -> TestId;
 
@@ -271,15 +270,14 @@ class RunResult_impl
 public:
   RunResult_impl();
 
+  void initialize(Engine const &engine);
+
   [[nodiscard]]
   auto errors() const -> std::vector<std::string> const &;
   [[nodiscard]]
   auto has_errors() const -> bool;
   [[nodiscard]]
   auto has_failing_assertions() const -> bool;
-
-  void initialize(Engine const &engine);
-
   [[nodiscard]]
   auto test_outcome_count() const -> unsigned long long;
   [[nodiscard]]

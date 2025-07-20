@@ -482,8 +482,9 @@ public:
   auto operator=(Engine const &other) -> Engine & = delete;
   auto operator=(Engine &&other) noexcept -> Engine & = delete;
 
-  auto group(char const *name) const -> Group;
-  auto test(Group const &group, char const *name) const -> waypoint::Test;
+  auto group(char const *name) const noexcept -> Group;
+  auto test(Group const &group, char const *name) const noexcept
+    -> waypoint::Test;
 
 private:
   explicit Engine(internal::Engine_impl *impl);
@@ -498,7 +499,7 @@ private:
   friend auto internal::get_impl(Engine const &engine)
     -> internal::Engine_impl &;
 
-  friend auto make_default_engine() -> Engine;
+  friend auto make_default_engine() noexcept -> Engine;
 
   template<typename FixtureT>
   friend class internal::Registrar;
@@ -513,8 +514,8 @@ public:
   auto operator=(Context const &other) -> Context & = delete;
   auto operator=(Context &&other) noexcept -> Context & = delete;
 
-  void assert(bool condition) const;
-  void assert(bool condition, char const *message) const;
+  void assert(bool condition) const noexcept;
+  void assert(bool condition, char const *message) const noexcept;
 
 private:
   explicit Context(internal::Context_impl *impl);
@@ -550,7 +551,7 @@ public:
     this->engine_.register_test_assembly(
       [setup = move(this->setup_),
        body = move(this->body_),
-       teardown = move(this->teardown_)](Context const &ctx)
+       teardown = move(this->teardown_)](Context const &ctx) noexcept
       {
         FixtureT fixture = setup(ctx);
         body(ctx, fixture);
@@ -664,10 +665,10 @@ namespace waypoint
 
 // defined in core_actions.cpp
 [[nodiscard]]
-auto make_default_engine() -> Engine;
+auto make_default_engine() noexcept -> Engine;
 // defined in core_actions.cpp
 [[nodiscard]]
-auto run_all_tests(Engine const &t) -> RunResult;
+auto run_all_tests(Engine const &t) noexcept -> RunResult;
 
 class AssertionOutcome
 {
@@ -680,15 +681,15 @@ public:
     -> AssertionOutcome & = delete;
 
   [[nodiscard]]
-  auto group() const -> char const *;
+  auto group() const noexcept -> char const *;
   [[nodiscard]]
-  auto test() const -> char const *;
+  auto test() const noexcept -> char const *;
   [[nodiscard]]
-  auto message() const -> char const *;
+  auto message() const noexcept -> char const *;
   [[nodiscard]]
-  auto passed() const -> bool;
+  auto passed() const noexcept -> bool;
   [[nodiscard]]
-  auto index() const -> unsigned long long;
+  auto index() const noexcept -> unsigned long long;
 
 private:
   explicit AssertionOutcome(internal::AssertionOutcome_impl *impl);
@@ -708,19 +709,19 @@ public:
   auto operator=(TestOutcome &&other) noexcept -> TestOutcome & = delete;
 
   [[nodiscard]]
-  auto group_name() const -> char const *;
+  auto group_name() const noexcept -> char const *;
   [[nodiscard]]
-  auto group_id() const -> unsigned long long;
+  auto group_id() const noexcept -> unsigned long long;
   [[nodiscard]]
-  auto test_name() const -> char const *;
+  auto test_name() const noexcept -> char const *;
   [[nodiscard]]
-  auto test_id() const -> unsigned long long;
+  auto test_id() const noexcept -> unsigned long long;
   [[nodiscard]]
-  auto test_index() const -> unsigned long long;
+  auto test_index() const noexcept -> unsigned long long;
   [[nodiscard]]
-  auto assertion_count() const -> unsigned long long;
+  auto assertion_count() const noexcept -> unsigned long long;
   [[nodiscard]]
-  auto assertion_outcome(unsigned long long index) const
+  auto assertion_outcome(unsigned long long index) const noexcept
     -> AssertionOutcome const &;
 
 private:
@@ -764,7 +765,7 @@ public:
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  void teardown(F &&f) &&
+  void teardown(F &&f) && noexcept
   {
     this->registrar_.register_teardown(internal::forward<F>(f));
   }
@@ -794,7 +795,7 @@ public:
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  void teardown(F &&f) &&
+  void teardown(F &&f) && noexcept
   {
     this->registrar_.register_teardown(internal::forward<F>(f));
   }
@@ -825,7 +826,7 @@ public:
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto run(F &&f) && -> waypoint::Test3<FixtureT>
+  auto run(F &&f) && noexcept -> waypoint::Test3<FixtureT>
   {
     this->registrar_.register_body(internal::forward<F>(f));
 
@@ -856,7 +857,7 @@ public:
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto run(F &&f) && -> waypoint::Test3<void>
+  auto run(F &&f) && noexcept -> waypoint::Test3<void>
   {
     this->registrar_.register_body(internal::forward<F>(f));
 
@@ -886,7 +887,7 @@ public:
   template<typename F>
   [[nodiscard]]
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto setup(F &&f) && -> internal::enable_if_t<
+  auto setup(F &&f) && noexcept -> internal::enable_if_t<
     !internal::is_void_v<internal::setup_invoke_result_t<F>>,
     waypoint::Test2<internal::setup_invoke_result_t<F>>>
   {
@@ -903,7 +904,7 @@ public:
   template<typename F>
   [[nodiscard]]
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto setup(F &&f) && -> internal::enable_if_t<
+  auto setup(F &&f) && noexcept -> internal::enable_if_t<
     internal::is_void_v<internal::setup_invoke_result_t<F>>,
     waypoint::Test2<void>>
   {
@@ -919,7 +920,7 @@ public:
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto run(F &&f) && -> waypoint::Test3<void>
+  auto run(F &&f) && noexcept -> waypoint::Test3<void>
   {
     this->mark_complete();
 
@@ -961,15 +962,16 @@ public:
   auto operator=(RunResult &&other) noexcept -> RunResult & = delete;
 
   [[nodiscard]]
-  auto success() const -> bool;
+  auto success() const noexcept -> bool;
   [[nodiscard]]
-  auto test_count() const -> unsigned long long;
+  auto test_count() const noexcept -> unsigned long long;
   [[nodiscard]]
-  auto test_outcome(unsigned long long index) const -> TestOutcome const &;
+  auto test_outcome(unsigned long long index) const noexcept
+    -> TestOutcome const &;
   [[nodiscard]]
-  auto error_count() const -> unsigned long long;
+  auto error_count() const noexcept -> unsigned long long;
   [[nodiscard]]
-  auto error(unsigned long long index) const -> char const *;
+  auto error(unsigned long long index) const noexcept -> char const *;
 
 private:
   explicit RunResult(internal::RunResult_impl *impl);

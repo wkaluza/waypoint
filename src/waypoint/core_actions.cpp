@@ -72,14 +72,14 @@ void initialize(waypoint::Engine const &t)
 namespace waypoint
 {
 
-auto make_default_engine() -> Engine
+auto make_default_engine() noexcept -> Engine
 {
   auto *impl = new internal::Engine_impl{};
 
   return Engine{impl};
 }
 
-auto run_all_tests(Engine const &t) -> RunResult
+auto run_all_tests(Engine const &t) noexcept -> RunResult
 {
   initialize(t);
   if(internal::get_impl(t).has_errors())
@@ -90,7 +90,7 @@ auto run_all_tests(Engine const &t) -> RunResult
 
   std::ranges::for_each(
     internal::get_impl(t).get_shuffled_test_record_ptrs(),
-    [&t](auto const *ptr)
+    [&t](auto const *ptr) noexcept
     {
       auto context = internal::get_impl(t).make_context(ptr->test_id());
       // Run test

@@ -20,7 +20,7 @@ Registrar<void>::~Registrar()
   this->engine_.register_test_assembly(
     [setup = move(this->setup_),
      body = move(this->body_),
-     teardown = move(this->teardown_)](Context const &ctx)
+     teardown = move(this->teardown_)](Context const &ctx) noexcept
     {
       if(static_cast<bool>(setup))
       {

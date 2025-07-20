@@ -15,27 +15,27 @@ AssertionOutcome::AssertionOutcome(internal::AssertionOutcome_impl *const impl)
 {
 }
 
-auto AssertionOutcome::group() const -> char const *
+auto AssertionOutcome::group() const noexcept -> char const *
 {
   return this->impl_->group_name.c_str();
 }
 
-auto AssertionOutcome::test() const -> char const *
+auto AssertionOutcome::test() const noexcept -> char const *
 {
   return this->impl_->test_name.c_str();
 }
 
-auto AssertionOutcome::message() const -> char const *
+auto AssertionOutcome::message() const noexcept -> char const *
 {
   return this->impl_->message.c_str();
 }
 
-auto AssertionOutcome::passed() const -> bool
+auto AssertionOutcome::passed() const noexcept -> bool
 {
   return this->impl_->passed;
 }
 
-auto AssertionOutcome::index() const -> unsigned long long
+auto AssertionOutcome::index() const noexcept -> unsigned long long
 {
   return this->impl_->index;
 }
@@ -47,38 +47,38 @@ TestOutcome::TestOutcome(internal::TestOutcome_impl *const impl)
 {
 }
 
-auto TestOutcome::group_name() const -> char const *
+auto TestOutcome::group_name() const noexcept -> char const *
 {
   return this->impl_->get_group_name().c_str();
 }
 
-auto TestOutcome::group_id() const -> unsigned long long
+auto TestOutcome::group_id() const noexcept -> unsigned long long
 {
   return this->impl_->get_group_id();
 }
 
-auto TestOutcome::test_name() const -> char const *
+auto TestOutcome::test_name() const noexcept -> char const *
 {
   return this->impl_->get_test_name().c_str();
 }
 
-auto TestOutcome::test_id() const -> unsigned long long
+auto TestOutcome::test_id() const noexcept -> unsigned long long
 {
   return this->impl_->get_test_id();
 }
 
-auto TestOutcome::test_index() const -> unsigned long long
+auto TestOutcome::test_index() const noexcept -> unsigned long long
 {
   return this->impl_->get_index();
 }
 
-auto TestOutcome::assertion_count() const -> unsigned long long
+auto TestOutcome::assertion_count() const noexcept -> unsigned long long
 {
   return this->impl_->get_assertion_count();
 }
 
-auto TestOutcome::assertion_outcome(unsigned long long const index) const
-  -> AssertionOutcome const &
+auto TestOutcome::assertion_outcome(
+  unsigned long long const index) const noexcept -> AssertionOutcome const &
 {
   return this->impl_->get_assertion_outcome(index);
 }
@@ -112,14 +112,14 @@ void Test::mark_complete() const
   this->impl_->mark_complete();
 }
 
-auto Engine::group(char const *name) const -> Group
+auto Engine::group(char const *name) const noexcept -> Group
 {
   auto const group_id = this->impl_->register_group(name);
 
   return this->impl_->make_group(group_id);
 }
 
-auto Engine::test(Group const &group, char const *name) const -> Test
+auto Engine::test(Group const &group, char const *name) const noexcept -> Test
 {
   auto const test_id =
     this->impl_->register_test(this->impl_->get_group_id(group), name);
@@ -147,7 +147,7 @@ Engine::Engine(internal::Engine_impl *const impl)
   impl->initialize(*this);
 }
 
-void Context::assert(bool const condition) const
+void Context::assert(bool const condition) const noexcept
 {
   internal::get_impl(impl_->get_engine())
     .register_assertion(
@@ -157,7 +157,8 @@ void Context::assert(bool const condition) const
       std::nullopt);
 }
 
-void Context::assert(bool const condition, char const *const message) const
+void Context::assert(bool const condition, char const *const message)
+  const noexcept
 {
   internal::get_impl(impl_->get_engine())
     .register_assertion(
@@ -181,28 +182,29 @@ RunResult::RunResult(internal::RunResult_impl *const impl)
 {
 }
 
-auto RunResult::success() const -> bool
+auto RunResult::success() const noexcept -> bool
 {
   return !this->impl_->has_errors() && !this->impl_->has_failing_assertions();
 }
 
-auto RunResult::test_count() const -> unsigned long long
+auto RunResult::test_count() const noexcept -> unsigned long long
 {
   return this->impl_->test_outcome_count();
 }
 
-auto RunResult::test_outcome(unsigned long long const index) const
+auto RunResult::test_outcome(unsigned long long const index) const noexcept
   -> TestOutcome const &
 {
   return this->impl_->get_test_outcome(index);
 }
 
-auto RunResult::error_count() const -> unsigned long long
+auto RunResult::error_count() const noexcept -> unsigned long long
 {
   return this->impl_->errors().size();
 }
 
-auto RunResult::error(unsigned long long const index) const -> char const *
+auto RunResult::error(unsigned long long const index) const noexcept
+  -> char const *
 {
   return this->impl_->errors().at(index).c_str();
 }
