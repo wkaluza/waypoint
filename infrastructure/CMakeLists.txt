@@ -17,8 +17,10 @@ new_target(
   SOURCES
   ${PROJECT_ROOT_DIR}/src/waypoint/waypoint.cpp
   ${PROJECT_ROOT_DIR}/src/waypoint/core_actions.cpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/function.cpp
   ${PROJECT_ROOT_DIR}/src/waypoint/get_impl.cpp
   ${PROJECT_ROOT_DIR}/src/waypoint/impls.cpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/registrar.cpp
   ${PROJECT_ROOT_DIR}/src/waypoint/smart_ptrs.cpp
   PUBLIC_HEADERS
   ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp

@@ -278,9 +278,9 @@ public:
   {
   }
 
-  Function(Function const &other) = default;
+  Function(Function const &other) = delete;
   Function(Function &&other) noexcept = default;
-  auto operator=(Function const &other) -> Function & = default;
+  auto operator=(Function const &other) -> Function & = delete;
   auto operator=(Function &&other) noexcept -> Function & = default;
 
   template<typename F>
@@ -351,17 +351,12 @@ template<>
 class Function<void(Context const &)>
 {
 public:
-  ~Function() = default;
-
-  Function()
-    : callable_{static_cast<callable_interface *>(nullptr)}
-  {
-  }
-
-  Function(Function const &other) = default;
-  Function(Function &&other) noexcept = default;
-  auto operator=(Function const &other) -> Function & = default;
-  auto operator=(Function &&other) noexcept -> Function & = default;
+  ~Function();
+  Function();
+  Function(Function const &other) = delete;
+  Function(Function &&other) noexcept;
+  auto operator=(Function const &other) -> Function & = delete;
+  auto operator=(Function &&other) noexcept -> Function &;
 
   template<typename F>
   requires requires { !is_same_v<F, Function<void(Context const &)>>; }
@@ -372,22 +367,16 @@ public:
   {
   }
 
-  explicit operator bool() const
-  {
-    return static_cast<bool>(this->callable_);
-  }
+  explicit operator bool() const;
 
-  void operator()(Context const &ctx) const
-  {
-    this->callable_->invoke(ctx);
-  }
+  void operator()(Context const &ctx) const;
 
 private:
   class callable_interface
   {
   public:
-    virtual ~callable_interface() = default;
-    callable_interface() = default;
+    virtual ~callable_interface();
+    callable_interface();
     callable_interface(callable_interface const &other) = delete;
     callable_interface(callable_interface &&other) noexcept = delete;
     auto operator=(callable_interface const &other)
@@ -438,9 +427,9 @@ public:
   {
   }
 
-  Function(Function const &other) = default;
+  Function(Function const &other) = delete;
   Function(Function &&other) noexcept = default;
-  auto operator=(Function const &other) -> Function & = default;
+  auto operator=(Function const &other) -> Function & = delete;
   auto operator=(Function &&other) noexcept -> Function & = default;
 
   template<typename F>
@@ -714,87 +703,23 @@ template<>
 class Registrar<void>
 {
 public:
-  ~Registrar()
-  {
-    if(!this->is_active_)
-    {
-      return;
-    }
-
-    if(!static_cast<bool>(this->body_))
-    {
-      this->report_incomplete_test(this->test_id_);
-
-      return;
-    }
-
-    this->engine_.register_test_assembly(
-      [setup = move(this->setup_),
-       body = move(this->body_),
-       teardown = move(this->teardown_)](Context const &ctx)
-      {
-        if(static_cast<bool>(setup))
-        {
-          setup(ctx);
-        }
-        body(ctx);
-        if(static_cast<bool>(teardown))
-        {
-          teardown(ctx);
-        }
-      },
-      this->test_id_);
-  }
+  ~Registrar();
 
   Registrar(Registrar const &other) = delete;
 
-  Registrar(Registrar &&other) noexcept
-    : is_active_{other.is_active_},
-      engine_{other.engine_},
-      test_id_{other.test_id_},
-      setup_{move(other.setup_)},
-      body_{move(other.body_)},
-      teardown_{move(other.teardown_)}
-  {
-    other.is_active_ = false;
-  }
+  Registrar(Registrar &&other) noexcept;
 
   auto operator=(Registrar const &other) -> Registrar & = delete;
   auto operator=(Registrar &&other) noexcept -> Registrar & = delete;
 
-  void register_setup(VoidSetup f)
-  {
-    this->is_active_ = true;
-
-    this->setup_ = move(f);
-  }
-
-  void register_body(TestBodyNoFixture f)
-  {
-    this->is_active_ = true;
-
-    this->body_ = move(f);
-  }
-
-  void register_teardown(TeardownNoFixture f)
-  {
-    this->is_active_ = true;
-
-    this->teardown_ = move(f);
-  }
+  void register_setup(VoidSetup f);
+  void register_body(TestBodyNoFixture f);
+  void register_teardown(TeardownNoFixture f);
 
 private:
-  Registrar(Engine const &engine, unsigned long long const test_id)
-    : is_active_{false},
-      engine_{engine},
-      test_id_{test_id}
-  {
-  }
+  Registrar(Engine const &engine, unsigned long long test_id);
 
-  void report_incomplete_test(unsigned long long const test_id) const
-  {
-    this->engine_.report_incomplete_test(test_id);
-  }
+  void report_incomplete_test(unsigned long long test_id) const;
 
   bool is_active_;
   Engine const &engine_;
