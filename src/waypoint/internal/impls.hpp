@@ -285,7 +285,6 @@ public:
 
 private:
   bool has_failing_assertions_;
-  bool has_errors_;
   std::vector<std::unique_ptr<TestOutcome>> test_outcomes_;
   std::vector<std::string> errors_;
 };

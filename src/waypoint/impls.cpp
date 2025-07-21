@@ -534,8 +534,7 @@ void Engine_impl::register_assertion(
 }
 
 RunResult_impl::RunResult_impl()
-  : has_failing_assertions_{false},
-    has_errors_{false}
+  : has_failing_assertions_{false}
 {
 }
 
@@ -547,13 +546,7 @@ void RunResult_impl::initialize(Engine const &engine)
       return get_impl(engine).errors();
     });
 
-  this->has_errors_ = std::invoke(
-    [&engine]()
-    {
-      return get_impl(engine).has_errors();
-    });
-
-  if(this->has_errors_)
+  if(!this->errors_.empty())
   {
     return;
   }
@@ -604,7 +597,7 @@ auto RunResult_impl::errors() const -> std::vector<std::string> const &
 
 auto RunResult_impl::has_errors() const -> bool
 {
-  return this->has_errors_;
+  return !this->errors_.empty();
 }
 
 auto RunResult_impl::has_failing_assertions() const -> bool
