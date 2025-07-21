@@ -786,7 +786,7 @@ template<>
 class Test3<void>
 {
 public:
-  ~Test3() = default;
+  ~Test3();
   Test3() = delete;
   Test3(Test3 const &other) = delete;
   Test3(Test3 &&other) noexcept = delete;
@@ -801,10 +801,7 @@ public:
   }
 
 private:
-  explicit Test3(internal::Registrar<void> registrar)
-    : registrar_{internal::move(registrar)}
-  {
-  }
+  explicit Test3(internal::Registrar<void> registrar);
 
   internal::Registrar<void> registrar_;
 
@@ -848,7 +845,7 @@ template<>
 class Test2<void>
 {
 public:
-  ~Test2() = default;
+  ~Test2();
   Test2() = delete;
   Test2(Test2 const &other) = delete;
   Test2(Test2 &&other) noexcept = delete;
@@ -865,10 +862,7 @@ public:
   }
 
 private:
-  explicit Test2(internal::Registrar<void> registrar)
-    : registrar_{internal::move(registrar)}
-  {
-  }
+  explicit Test2(internal::Registrar<void> registrar);
 
   internal::Registrar<void> registrar_;
 
