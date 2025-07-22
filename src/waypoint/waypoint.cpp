@@ -161,7 +161,7 @@ Engine::Engine(internal::Engine_impl *const impl)
   impl->initialize(*this);
 }
 
-void Context::assert(bool const condition) const noexcept
+auto Context::assert(bool const condition) const noexcept -> bool
 {
   internal::get_impl(impl_->get_engine())
     .register_assertion(
@@ -169,10 +169,12 @@ void Context::assert(bool const condition) const noexcept
       this->impl_->test_id(),
       this->impl_->generate_assertion_index(),
       std::nullopt);
+
+  return condition;
 }
 
-void Context::assert(bool const condition, char const *const message)
-  const noexcept
+auto Context::assert(bool const condition, char const *const message)
+  const noexcept -> bool
 {
   internal::get_impl(impl_->get_engine())
     .register_assertion(
@@ -180,6 +182,8 @@ void Context::assert(bool const condition, char const *const message)
       this->impl_->test_id(),
       this->impl_->generate_assertion_index(),
       message);
+
+  return condition;
 }
 
 Context::~Context() = default;
