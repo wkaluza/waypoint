@@ -28,13 +28,13 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
 
           if(!ctx.assume(false))
           {
-            ctx.assert(false, "message 8");
-            ctx.assert(true, "message 9");
+            ctx.assert(false, "message 7");
+            ctx.assert(true, "message 8");
 
             return;
           }
 
-          ctx.assert(true, "message 10");
+          ctx.assert(true, "message 9");
         }
       });
 }
@@ -80,8 +80,8 @@ auto main() -> int
       "message 5",
       "message 6",
       "[NO MESSAGE]",
-      "message 8",
-      "message 9"};
+      "message 7",
+      "message 8"};
 
     char const *actual_message = assertion_outcome.message();
     char const *expected_message = messages[i].c_str();
