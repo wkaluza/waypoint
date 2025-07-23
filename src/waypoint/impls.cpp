@@ -289,6 +289,8 @@ auto Engine_impl::test_count() const -> unsigned long long
   return test_id_counter_;
 }
 
+char const *NO_ASSERTION_MESSAGE = "[NO MESSAGE]";
+
 auto Engine_impl::make_test_outcome(TestId const test_id) const
   -> std::unique_ptr<TestOutcome>
 {
@@ -310,7 +312,7 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const
     assertion_impl->initialize(
       this->get_group_name(this->get_group_id(test_id)),
       this->get_test_name(test_id),
-      maybe_message.has_value() ? maybe_message.value() : "[NO MESSAGE]",
+      maybe_message.has_value() ? maybe_message.value() : NO_ASSERTION_MESSAGE,
       assertion.passed(),
       assertion.index());
 

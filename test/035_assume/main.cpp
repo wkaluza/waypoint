@@ -1,3 +1,5 @@
+#include "impls.hpp"
+
 #include "waypoint/waypoint.hpp"
 
 #include <cstring>
@@ -79,7 +81,7 @@ auto main() -> int
       "message 3",
       "message 5",
       "message 6",
-      "[NO MESSAGE]",
+      waypoint::internal::NO_ASSERTION_MESSAGE,
       "message 7",
       "message 8"};
 

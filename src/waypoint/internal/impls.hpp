@@ -289,4 +289,6 @@ private:
   std::vector<std::string> errors_;
 };
 
+extern char const *NO_ASSERTION_MESSAGE;
+
 } // namespace waypoint::internal
