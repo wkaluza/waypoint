@@ -90,4 +90,6 @@ auto body_factory_fixture(
   };
 }
 
+void trivial_test_body(waypoint::Context const &ctx);
+
 } // namespace waypoint::test

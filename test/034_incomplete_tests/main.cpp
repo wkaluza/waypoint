@@ -104,5 +104,10 @@ auto main() -> int
     return 1;
   }
 
+  if(results.test_count() != 0)
+  {
+    return 1;
+  }
+
   return 0;
 }
