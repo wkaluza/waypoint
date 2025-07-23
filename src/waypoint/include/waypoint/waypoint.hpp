@@ -514,9 +514,12 @@ public:
   auto operator=(Context const &other) -> Context & = delete;
   auto operator=(Context &&other) noexcept -> Context & = delete;
 
-  // NOLINTNEXTLINE(modernize-use-nodiscard)
-  auto assert(bool condition) const noexcept -> bool;
-  auto assert(bool condition, char const *message) const noexcept -> bool;
+  void assert(bool condition) const noexcept;
+  void assert(bool condition, char const *message) const noexcept;
+  [[nodiscard]]
+  auto assume(bool condition) const noexcept -> bool;
+  [[nodiscard]]
+  auto assume(bool condition, char const *message) const noexcept -> bool;
 
 private:
   explicit Context(internal::Context_impl *impl);

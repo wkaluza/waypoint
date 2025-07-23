@@ -310,7 +310,7 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const
     assertion_impl->initialize(
       this->get_group_name(this->get_group_id(test_id)),
       this->get_test_name(test_id),
-      maybe_message.has_value() ? maybe_message.value() : "[EMPTY]",
+      maybe_message.has_value() ? maybe_message.value() : "[NO MESSAGE]",
       assertion.passed(),
       assertion.index());
 

@@ -12,26 +12,30 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
     .run(
       [](auto const &ctx)
       {
-        ctx.assert(true, "message 1");
-        ctx.assert(false, "message 2");
-
-        if(!ctx.assert(true, "message 3"))
+        if(ctx.assume(true, "message 1"))
         {
-          ctx.assert(false, "message 4");
-          return;
+          ctx.assert(false, "message 2");
+
+          if(!ctx.assume(true, "message 3"))
+          {
+            ctx.assert(false, "message 4");
+
+            return;
+          }
+
+          ctx.assert(false, "message 5");
+          ctx.assert(true, "message 6");
+
+          if(!ctx.assume(false))
+          {
+            ctx.assert(false, "message 8");
+            ctx.assert(true, "message 9");
+
+            return;
+          }
+
+          ctx.assert(true, "message 10");
         }
-
-        ctx.assert(false, "message 5");
-        ctx.assert(true, "message 6");
-
-        if(!ctx.assert(false, "message 7"))
-        {
-          ctx.assert(false, "message 8");
-          ctx.assert(true, "message 9");
-          return;
-        }
-
-        ctx.assert(true, "message 10");
       });
 }
 
@@ -75,7 +79,7 @@ auto main() -> int
       "message 3",
       "message 5",
       "message 6",
-      "message 7",
+      "[NO MESSAGE]",
       "message 8",
       "message 9"};
 
