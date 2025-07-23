@@ -21,9 +21,6 @@ function(new_target)
               $<TARGET_FILE:${arg_TARGET}>
       CONFIGURATIONS Debug)
     set_tests_properties(valgrind_${arg_TARGET} PROPERTIES LABELS valgrind)
-    if(TARGET test_helpers)
-      target_link_libraries(${arg_TARGET} PRIVATE test_helpers)
-    endif()
   endif()
   if(arg_STATIC)
     add_library(${arg_TARGET} STATIC)
@@ -126,5 +123,6 @@ function(new_basic_test name)
     SOURCES
     ${PROJECT_ROOT_DIR}/test/${name}/main.cpp
     LINKS
-    waypoint)
+    waypoint
+    test_helpers)
 endfunction()
