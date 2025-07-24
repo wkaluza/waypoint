@@ -90,7 +90,16 @@ auto body_factory_fixture(
   };
 }
 
+void trivial_test_setup(waypoint::Context const &ctx);
 void trivial_test_body(waypoint::Context const &ctx);
+void trivial_test_teardown(waypoint::Context const &ctx);
+void increment_x_test_body(waypoint::Context const &ctx);
+
+auto int_fixture_test_setup(waypoint::Context const &ctx) -> int;
+void int_fixture_increment_x_test_body(
+  waypoint::Context const &ctx,
+  int const &fixture);
+void int_fixture_teardown(waypoint::Context const &ctx, int const &fixture);
 
 } // namespace waypoint::test
 

@@ -51,7 +51,8 @@ public:
     std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes,
     std::string group_name,
     std::string test_name,
-    unsigned long long index);
+    unsigned long long index,
+    bool disabled);
 
   [[nodiscard]]
   auto get_test_name() const -> std::string const &;
@@ -68,6 +69,8 @@ public:
     -> AssertionOutcome const &;
   [[nodiscard]]
   auto get_index() const -> unsigned long long;
+  [[nodiscard]]
+  auto disabled() const -> bool;
 
 private:
   std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes_;
@@ -76,21 +79,25 @@ private:
   std::string group_name_;
   std::string test_name_;
   unsigned long long test_index_;
+  bool disabled_;
 };
 
 class TestRecord
 {
 public:
-  TestRecord(TestAssembly assembly, TestId test_id);
+  TestRecord(TestAssembly assembly, TestId test_id, bool disabled);
 
   [[nodiscard]]
   auto test_id() const -> TestId;
   [[nodiscard]]
   auto test_assembly() const -> TestAssembly const &;
+  [[nodiscard]]
+  auto disabled() const -> bool;
 
 private:
   TestAssembly test_assembly_;
   TestId test_id_;
+  bool disabled_;
 };
 
 class AssertionRecord
@@ -198,7 +205,10 @@ private:
 
 public:
   void initialize(Engine const &engine);
-  void register_test_assembly(TestAssembly assembly, TestId test_id);
+  void register_test_assembly(
+    TestAssembly assembly,
+    TestId test_id,
+    bool disabled);
   [[nodiscard]]
   auto test_records() -> std::vector<TestRecord> &;
   [[nodiscard]]
@@ -248,6 +258,8 @@ public:
   [[nodiscard]]
   auto get_shuffled_test_record_ptrs() const
     -> std::vector<TestRecord const *> const &;
+  [[nodiscard]]
+  auto is_disabled(TestId test_id) const -> bool;
 
 private:
   Engine const *engine_;

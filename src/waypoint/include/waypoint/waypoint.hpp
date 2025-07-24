@@ -490,7 +490,8 @@ private:
 
   void register_test_assembly(
     internal::TestAssembly f,
-    unsigned long long test_id) const;
+    unsigned long long test_id,
+    bool disabled) const;
   void report_incomplete_test(unsigned long long test_id) const;
 
   internal::UniquePtr<internal::Engine_impl> const impl_;
@@ -563,7 +564,8 @@ public:
           teardown(ctx, fixture);
         }
       },
-      this->test_id_);
+      this->test_id_,
+      this->is_disabled_);
   }
 
   Registrar(Registrar const &other) = delete;
@@ -574,7 +576,8 @@ public:
       test_id_{other.test_id_},
       setup_{move(other.setup_)},
       body_{move(other.body_)},
-      teardown_{move(other.teardown_)}
+      teardown_{move(other.teardown_)},
+      is_disabled_{false}
   {
     other.is_active_ = false;
   }
@@ -603,6 +606,11 @@ public:
     this->teardown_ = move(f);
   }
 
+  void disable(bool const is_disabled)
+  {
+    this->is_disabled_ = is_disabled;
+  }
+
 private:
   Registrar(Engine const &engine, unsigned long long const test_id)
     : is_active_{false},
@@ -610,7 +618,8 @@ private:
       test_id_{test_id},
       setup_{},
       body_{},
-      teardown_{}
+      teardown_{},
+      is_disabled_{false}
   {
   }
 
@@ -625,6 +634,7 @@ private:
   NonVoidSetup<FixtureT> setup_;
   TestBodyWithFixture<FixtureT> body_;
   TeardownWithFixture<FixtureT> teardown_;
+  bool is_disabled_;
 
   friend class waypoint::Test;
 };
@@ -646,6 +656,8 @@ public:
   void register_body(TestBodyNoFixture f);
   void register_teardown(TeardownNoFixture f);
 
+  void disable(bool is_disabled);
+
 private:
   Registrar(Engine const &engine, unsigned long long test_id);
 
@@ -657,6 +669,7 @@ private:
   VoidSetup setup_;
   TestBodyNoFixture body_;
   TeardownNoFixture teardown_;
+  bool is_disabled_;
 
   friend class waypoint::Test;
 };
@@ -724,6 +737,8 @@ public:
   [[nodiscard]]
   auto assertion_outcome(unsigned long long index) const noexcept
     -> AssertionOutcome const &;
+  [[nodiscard]]
+  auto disabled() const noexcept -> bool;
 
 private:
   explicit TestOutcome(internal::TestOutcome_impl *impl);
@@ -751,6 +766,42 @@ private:
 };
 
 template<typename>
+class Test3;
+
+template<typename FixtureT>
+class Test4
+{
+public:
+  ~Test4() = default;
+  Test4() = delete;
+  Test4(Test4 const &other) = delete;
+  Test4(Test4 &&other) noexcept = delete;
+  auto operator=(Test4 const &other) -> Test4 & = delete;
+  auto operator=(Test4 &&other) noexcept -> Test4 & = delete;
+
+  void disable() && noexcept
+  {
+    this->registrar_.disable(true);
+  }
+
+  void disable(bool const is_disabled) && noexcept
+  {
+    this->registrar_.disable(is_disabled);
+  }
+
+private:
+  explicit Test4(internal::Registrar<FixtureT> registrar)
+    : registrar_{internal::move(registrar)}
+  {
+  }
+
+  internal::Registrar<FixtureT> registrar_;
+
+  template<typename>
+  friend class waypoint::Test3;
+};
+
+template<typename>
 class Test2;
 
 template<typename FixtureT>
@@ -766,9 +817,21 @@ public:
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  void teardown(F &&f) && noexcept
+  auto teardown(F &&f) && noexcept -> Test4<FixtureT>
   {
     this->registrar_.register_teardown(internal::forward<F>(f));
+
+    return waypoint::Test4<FixtureT>{internal::move(this->registrar_)};
+  }
+
+  void disable() && noexcept
+  {
+    this->registrar_.disable(true);
+  }
+
+  void disable(bool const is_disabled) && noexcept
+  {
+    this->registrar_.disable(is_disabled);
   }
 
 private:
@@ -796,10 +859,15 @@ public:
 
   template<typename F>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  void teardown(F &&f) && noexcept
+  auto teardown(F &&f) && noexcept -> Test4<void>
   {
     this->registrar_.register_teardown(internal::forward<F>(f));
+
+    return waypoint::Test4<void>{internal::move(this->registrar_)};
   }
+
+  void disable() && noexcept;
+  void disable(bool is_disabled) && noexcept;
 
 private:
   explicit Test3(internal::Registrar<void> registrar);

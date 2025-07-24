@@ -89,7 +89,10 @@ auto run_all_tests(Engine const &t) noexcept -> RunResult
     {
       auto context = internal::get_impl(t).make_context(ptr->test_id());
       // Run test
-      ptr->test_assembly()(context);
+      if(!ptr->disabled())
+      {
+        ptr->test_assembly()(context);
+      }
     });
 
   return internal::get_impl(t).generate_results();
@@ -170,6 +173,11 @@ auto TestOutcome::assertion_outcome(
   return this->impl_->get_assertion_outcome(index);
 }
 
+auto TestOutcome::disabled() const noexcept -> bool
+{
+  return this->impl_->disabled();
+}
+
 Group::~Group() = default;
 
 Group::Group(internal::Group_impl *const impl)
@@ -182,6 +190,16 @@ Test3<void>::~Test3() = default;
 Test3<void>::Test3(internal::Registrar<void> registrar)
   : registrar_{internal::move(registrar)}
 {
+}
+
+void Test3<void>::disable() && noexcept
+{
+  this->registrar_.disable(true);
+}
+
+void Test3<void>::disable(bool const is_disabled) && noexcept
+{
+  this->registrar_.disable(is_disabled);
 }
 
 Test2<void>::~Test2() = default;
@@ -230,9 +248,10 @@ auto Engine::test(Group const &group, char const *name) const noexcept -> Test
 
 void Engine::register_test_assembly(
   internal::TestAssembly f,
-  unsigned long long const test_id) const
+  unsigned long long const test_id,
+  bool const disabled) const
 {
-  this->impl_->register_test_assembly(std::move(f), test_id);
+  this->impl_->register_test_assembly(std::move(f), test_id, disabled);
 }
 
 void Engine::report_incomplete_test(unsigned long long const test_id) const

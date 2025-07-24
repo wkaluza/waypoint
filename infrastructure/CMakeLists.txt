@@ -80,3 +80,5 @@ new_basic_test(033_teardown)
 new_basic_test(034_incomplete_tests)
 
 new_impl_test(035_assume)
+
+new_basic_test(036_disable)

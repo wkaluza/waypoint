@@ -42,7 +42,8 @@ void AssertionOutcome_impl::initialize(
 TestOutcome_impl::TestOutcome_impl()
   : test_id_{},
     group_id_{},
-    test_index_{}
+    test_index_{},
+    disabled_{}
 {
 }
 
@@ -52,7 +53,8 @@ void TestOutcome_impl::initialize(
   std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes,
   std::string group_name,
   std::string test_name,
-  unsigned long long const index)
+  unsigned long long const index,
+  bool const disabled)
 {
   this->test_id_ = test_id;
   this->group_id_ = group_id;
@@ -60,6 +62,7 @@ void TestOutcome_impl::initialize(
   this->group_name_ = std::move(group_name);
   this->test_name_ = std::move(test_name);
   this->test_index_ = index;
+  this->disabled_ = disabled;
 }
 
 auto TestOutcome_impl::get_test_name() const -> std::string const &
@@ -98,9 +101,18 @@ auto TestOutcome_impl::get_index() const -> unsigned long long
   return this->test_index_;
 }
 
-TestRecord::TestRecord(TestAssembly assembly, TestId const test_id)
+auto TestOutcome_impl::disabled() const -> bool
+{
+  return this->disabled_;
+}
+
+TestRecord::TestRecord(
+  TestAssembly assembly,
+  TestId const test_id,
+  bool const disabled)
   : test_assembly_(std::move(assembly)),
-    test_id_{test_id}
+    test_id_{test_id},
+    disabled_{disabled}
 {
 }
 
@@ -112,6 +124,11 @@ auto TestRecord::test_id() const -> TestId
 auto TestRecord::test_assembly() const -> TestAssembly const &
 {
   return this->test_assembly_;
+}
+
+auto TestRecord::disabled() const -> bool
+{
+  return this->disabled_;
 }
 
 AssertionRecord::AssertionRecord(
@@ -328,7 +345,8 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const
     std::move(assertion_outcomes),
     this->get_group_name(this->get_group_id(test_id)),
     this->get_test_name(test_id),
-    this->get_test_index(test_id));
+    this->get_test_index(test_id),
+    this->is_disabled(test_id));
 
   return std::unique_ptr<TestOutcome>(new TestOutcome{impl});
 }
@@ -483,6 +501,18 @@ auto Engine_impl::get_shuffled_test_record_ptrs() const
   return this->shuffled_test_record_ptrs_;
 }
 
+auto Engine_impl::is_disabled(TestId const test_id) const -> bool
+{
+  auto it = std::ranges::find_if(
+    this->test_records_,
+    [test_id](auto const &record)
+    {
+      return record.test_id() == test_id;
+    });
+
+  return it->disabled();
+}
+
 auto Engine_impl::errors() const -> std::vector<std::string>
 {
   return std::ranges::views::transform(
@@ -506,9 +536,10 @@ void Engine_impl::initialize(Engine const &engine)
 
 void Engine_impl::register_test_assembly(
   TestAssembly assembly,
-  TestId const test_id)
+  TestId const test_id,
+  bool const disabled)
 {
-  this->test_records_.emplace_back(std::move(assembly), test_id);
+  this->test_records_.emplace_back(std::move(assembly), test_id, disabled);
 }
 
 auto Engine_impl::test_records() -> std::vector<TestRecord> &
