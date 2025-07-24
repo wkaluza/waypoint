@@ -16,9 +16,8 @@ new_target(
   ${PROJECT_ROOT_DIR}/src/waypoint
   SOURCES
   ${PROJECT_ROOT_DIR}/src/waypoint/waypoint.cpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/core_actions.cpp
+  ${PROJECT_ROOT_DIR}/src/waypoint/autorun_linux.cpp
   ${PROJECT_ROOT_DIR}/src/waypoint/function.cpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/get_impl.cpp
   ${PROJECT_ROOT_DIR}/src/waypoint/impls.cpp
   ${PROJECT_ROOT_DIR}/src/waypoint/registrar.cpp
   ${PROJECT_ROOT_DIR}/src/waypoint/smart_ptrs.cpp

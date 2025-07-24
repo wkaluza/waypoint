@@ -23,7 +23,6 @@ class RunResult_impl;
 class Test_impl;
 class TestOutcome_impl;
 
-// defined in get_impl.cpp
 auto get_impl(Engine const &engine) -> Engine_impl &;
 
 template<typename T>
@@ -667,10 +666,8 @@ private:
 namespace waypoint
 {
 
-// defined in core_actions.cpp
 [[nodiscard]]
 auto make_default_engine() noexcept -> Engine;
-// defined in core_actions.cpp
 [[nodiscard]]
 auto run_all_tests(Engine const &t) noexcept -> RunResult;
 
