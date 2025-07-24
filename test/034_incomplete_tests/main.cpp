@@ -57,57 +57,32 @@ auto main() -> int
   auto const results = run_all_tests(t);
 
   // We expect the run to fail
-  if(results.success())
-  {
-    return 1;
-  }
+  REQUIRE_IN_MAIN(!results.success());
 
   auto const count = results.error_count();
-  if(count != 4)
-  {
-    return 1;
-  }
 
-  if(
+  REQUIRE_IN_MAIN(count == 4);
+  REQUIRE_IN_MAIN(
     std::strcmp(
       results.error(0),
       R"(Test "Test 1" in group "Test group 1" is incomplete. )"
-      R"(Call the run(...) method to fix this.)") != 0)
-  {
-    return 1;
-  }
-
-  if(
+      R"(Call the run(...) method to fix this.)") == 0);
+  REQUIRE_IN_MAIN(
     std::strcmp(
       results.error(1),
       R"(Test "Test 3" in group "Test group 1" is incomplete. )"
-      R"(Call the run(...) method to fix this.)") != 0)
-  {
-    return 1;
-  }
-
-  if(
+      R"(Call the run(...) method to fix this.)") == 0);
+  REQUIRE_IN_MAIN(
     std::strcmp(
       results.error(2),
       R"(Test "Test 5" in group "Test group 1" is incomplete. )"
-      R"(Call the run(...) method to fix this.)") != 0)
-  {
-    return 1;
-  }
-
-  if(
+      R"(Call the run(...) method to fix this.)") == 0);
+  REQUIRE_IN_MAIN(
     std::strcmp(
       results.error(3),
       R"(Test "Test 7" in group "Test group 1" is incomplete. )"
-      R"(Call the run(...) method to fix this.)") != 0)
-  {
-    return 1;
-  }
-
-  if(results.test_count() != 0)
-  {
-    return 1;
-  }
+      R"(Call the run(...) method to fix this.)") == 0);
+  REQUIRE_IN_MAIN(results.test_count() == 0);
 
   return 0;
 }

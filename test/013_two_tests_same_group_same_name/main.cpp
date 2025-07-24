@@ -21,28 +21,13 @@ auto main() -> int
   auto const result = waypoint::run_all_tests(t);
 
   // We expect the run to fail
-  if(result.success())
-  {
-    return 1;
-  }
-
-  if(result.error_count() != 1)
-  {
-    return 1;
-  }
-
-  if(
+  REQUIRE_IN_MAIN(!result.success());
+  REQUIRE_IN_MAIN(result.error_count() == 1);
+  REQUIRE_IN_MAIN(
     std::strcmp(
       result.error(0),
-      R"(Group "Test group 1" contains duplicate test "Test 1")") != 0)
-  {
-    return 1;
-  }
-
-  if(result.test_count() != 0)
-  {
-    return 1;
-  }
+      R"(Group "Test group 1" contains duplicate test "Test 1")") == 0);
+  REQUIRE_IN_MAIN(result.test_count() == 0);
 
   return 0;
 }

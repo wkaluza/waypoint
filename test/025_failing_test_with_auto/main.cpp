@@ -1,3 +1,4 @@
+#include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
 WAYPOINT_AUTORUN(waypoint::Engine const &t)
@@ -19,10 +20,7 @@ auto main() -> int
   auto const t = waypoint::make_default_engine();
 
   auto const results = run_all_tests(t);
-  if(results.success())
-  {
-    return 1;
-  }
+  REQUIRE_IN_MAIN(!results.success());
 
   return 0;
 }

@@ -1,5 +1,6 @@
 #include "impls.hpp"
 
+#include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
 #include <cstring>
@@ -48,29 +49,17 @@ auto main() -> int
   auto const results = run_all_tests(t);
 
   // We expect the run to fail
-  if(results.success())
-  {
-    return 1;
-  }
+  REQUIRE_IN_MAIN(!results.success());
 
   auto const error_count = results.error_count();
-  if(error_count != 0)
-  {
-    return 1;
-  }
+  REQUIRE_IN_MAIN(error_count == 0);
 
   auto const test_count = results.test_count();
-  if(test_count != 1)
-  {
-    return 1;
-  }
+  REQUIRE_IN_MAIN(test_count == 1);
 
   auto const &test_outcome = results.test_outcome(0);
   auto const assertion_count = test_outcome.assertion_count();
-  if(assertion_count != 8)
-  {
-    return 1;
-  }
+  REQUIRE_IN_MAIN(assertion_count == 8);
 
   for(unsigned i = 0; i < assertion_count; ++i)
   {
@@ -87,17 +76,11 @@ auto main() -> int
 
     char const *actual_message = assertion_outcome.message();
     char const *expected_message = messages[i].c_str();
-    if(std::strcmp(actual_message, expected_message) != 0)
-    {
-      return 1;
-    }
+    REQUIRE_IN_MAIN(std::strcmp(actual_message, expected_message) == 0);
 
     std::vector<bool> outcomes =
       {true, false, true, false, true, false, false, true};
-    if(assertion_outcome.passed() != outcomes[i])
-    {
-      return 1;
-    }
+    REQUIRE_IN_MAIN(assertion_outcome.passed() == outcomes[i]);
   }
 
   return 0;

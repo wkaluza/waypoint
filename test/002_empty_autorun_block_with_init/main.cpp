@@ -1,3 +1,4 @@
+#include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
 namespace
@@ -18,15 +19,8 @@ auto main() -> int
   auto const t = waypoint::make_default_engine();
 
   auto const result = waypoint::run_all_tests(t);
-  if(!result.success())
-  {
-    return 1;
-  }
-
-  if(x != 1)
-  {
-    return 1;
-  }
+  REQUIRE_IN_MAIN(result.success());
+  REQUIRE_IN_MAIN(x == 1);
 
   return 0;
 }

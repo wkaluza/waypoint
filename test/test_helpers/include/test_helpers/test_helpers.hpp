@@ -93,3 +93,9 @@ auto body_factory_fixture(
 void trivial_test_body(waypoint::Context const &ctx);
 
 } // namespace waypoint::test
+
+#define REQUIRE_IN_MAIN(condition) \
+  if(!(condition)) \
+  { \
+    return 1; \
+  }

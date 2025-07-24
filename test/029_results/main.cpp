@@ -1,3 +1,4 @@
+#include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
 #include <cstring>
@@ -60,16 +61,10 @@ auto main() -> int
   auto const t = waypoint::make_default_engine();
 
   auto const results = run_all_tests(t);
-  if(!results.success())
-  {
-    return 1;
-  }
+  REQUIRE_IN_MAIN(results.success());
 
   auto const test_count = results.test_count();
-  if(test_count != 6)
-  {
-    return 1;
-  }
+  REQUIRE_IN_MAIN(test_count == 6);
 
   std::unordered_map<unsigned long long, unsigned long long> const test_indices{
     {0, 3},
@@ -88,28 +83,17 @@ auto main() -> int
       {
         return test_id < 3 ? 0 : 1;
       });
-    if(test_outcome.group_id() != group_id)
-    {
-      return 1;
-    }
-    if(test_outcome.test_id() != test_id)
-    {
-      return 1;
-    }
-    if(test_outcome.test_index() != test_indices.at(test_outcome.test_id()))
-    {
-      return 1;
-    }
+    REQUIRE_IN_MAIN(test_outcome.group_id() == group_id);
+    REQUIRE_IN_MAIN(test_outcome.test_id() == test_id);
+    REQUIRE_IN_MAIN(
+      test_outcome.test_index() == test_indices.at(test_outcome.test_id()));
 
     auto const group_name = std::invoke(
       [test_id]() -> std::string
       {
         return test_id < 3 ? "Test group 1" : "Test group 2";
       });
-    if(test_outcome.group_name() != group_name)
-    {
-      return 1;
-    }
+    REQUIRE_IN_MAIN(test_outcome.group_name() == group_name);
 
     auto const test_name = std::invoke(
       [test_id]()
@@ -120,43 +104,19 @@ auto main() -> int
 
         return stream.str();
       });
-    if(test_outcome.test_name() != test_name)
-    {
-      return 1;
-    }
+    REQUIRE_IN_MAIN(test_outcome.test_name() == test_name);
 
     auto const assertion_count = test_outcome.assertion_count();
-    if(assertion_count != 1)
-    {
-      return 1;
-    }
+    REQUIRE_IN_MAIN(assertion_count == 1);
 
     auto const &assertion_outcome = test_outcome.assertion_outcome(0);
 
-    if(assertion_outcome.group() != group_name)
-    {
-      return 1;
-    }
-
-    if(assertion_outcome.test() != test_name)
-    {
-      return 1;
-    }
-
-    if(std::strcmp(assertion_outcome.message(), "Condition must be true") != 0)
-    {
-      return 1;
-    }
-
-    if(!assertion_outcome.passed())
-    {
-      return 1;
-    }
-
-    if(assertion_outcome.index() != 0)
-    {
-      return 1;
-    }
+    REQUIRE_IN_MAIN(assertion_outcome.group() == group_name);
+    REQUIRE_IN_MAIN(assertion_outcome.test() == test_name);
+    REQUIRE_IN_MAIN(
+      std::strcmp(assertion_outcome.message(), "Condition must be true") == 0);
+    REQUIRE_IN_MAIN(assertion_outcome.passed());
+    REQUIRE_IN_MAIN(assertion_outcome.index() == 0);
   }
 
   return 0;
