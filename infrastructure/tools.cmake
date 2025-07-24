@@ -126,3 +126,10 @@ function(new_basic_test name)
     waypoint
     test_helpers)
 endfunction()
+
+function(new_impl_test name)
+  new_basic_test(${name})
+  target_include_directories(
+    ${name} PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
+                    ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
+endfunction()

@@ -69,11 +69,7 @@ new_basic_test(024_failing_test_with_auto)
 new_basic_test(025_failing_test_with_auto)
 new_basic_test(026_multiple_tests)
 
-new_basic_test(027_internal_smart_ptrs)
-target_include_directories(
-  027_internal_smart_ptrs
-  PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
-          ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
+new_impl_test(027_internal_smart_ptrs)
 
 new_basic_test(028_assertion_messages)
 new_basic_test(029_results)
@@ -83,7 +79,4 @@ new_basic_test(032_setup)
 new_basic_test(033_teardown)
 new_basic_test(034_incomplete_tests)
 
-new_basic_test(035_assume)
-target_include_directories(
-  035_assume PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
-                     ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
+new_impl_test(035_assume)
