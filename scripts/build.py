@@ -33,6 +33,9 @@ assert os.path.isfile(f"{INFRASTRUCTURE_DIR}/CMakeLists.txt") and os.path.isfile
     f"{INFRASTRUCTURE_DIR}/CMakePresets.json"
 )
 
+MAIN_HEADER_PATH = f"{PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp"
+assert os.path.isfile(MAIN_HEADER_PATH), "waypoint.hpp does not exist"
+
 JOBS = os.process_cpu_count()
 
 CLANG20_ENV_PATCH = {"CC": "clang-20", "CXX": "clang++-20"}
@@ -277,20 +280,17 @@ def check_no_spaces_in_paths_() -> bool:
     return True
 
 
-def check_waypoint_hpp_has_no_includes_() -> bool:
-    path = f"{PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp"
-    assert os.path.isfile(path), "waypoint.hpp does not exist"
-
-    with open(path, "r") as f:
+def check_main_header_has_no_includes_() -> bool:
+    with open(MAIN_HEADER_PATH, "r") as f:
         contents = f.read()
 
     return re.search(r"# *include", contents) is None
 
 
 def misc_checks_fn() -> bool:
-    success = check_waypoint_hpp_has_no_includes_()
+    success = check_main_header_has_no_includes_()
     if not success:
-        print("Error: waypoint.hpp must include no other headers")
+        print(f"Error: Header {MAIN_HEADER_PATH} must not include other headers")
 
         return False
 
