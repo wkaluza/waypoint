@@ -722,6 +722,13 @@ public:
   auto operator=(TestOutcome const &other) -> TestOutcome & = delete;
   auto operator=(TestOutcome &&other) noexcept -> TestOutcome & = delete;
 
+  enum class Status : unsigned char
+  {
+    Success,
+    Failure,
+    NotRun
+  };
+
   [[nodiscard]]
   auto group_name() const noexcept -> char const *;
   [[nodiscard]]
@@ -739,6 +746,8 @@ public:
     -> AssertionOutcome const &;
   [[nodiscard]]
   auto disabled() const noexcept -> bool;
+  [[nodiscard]]
+  auto status() const noexcept -> TestOutcome::Status;
 
 private:
   explicit TestOutcome(internal::TestOutcome_impl *impl);

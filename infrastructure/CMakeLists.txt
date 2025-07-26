@@ -82,3 +82,4 @@ new_basic_test(034_incomplete_tests)
 new_impl_test(035_assume)
 
 new_basic_test(036_disable)
+new_basic_test(037_status)

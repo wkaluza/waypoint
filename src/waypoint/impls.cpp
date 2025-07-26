@@ -43,7 +43,8 @@ TestOutcome_impl::TestOutcome_impl()
   : test_id_{},
     group_id_{},
     test_index_{},
-    disabled_{}
+    disabled_{},
+    status_{TestOutcome::Status::NotRun}
 {
 }
 
@@ -54,7 +55,8 @@ void TestOutcome_impl::initialize(
   std::string group_name,
   std::string test_name,
   unsigned long long const index,
-  bool const disabled)
+  bool const disabled,
+  TestOutcome::Status const status)
 {
   this->test_id_ = test_id;
   this->group_id_ = group_id;
@@ -63,6 +65,7 @@ void TestOutcome_impl::initialize(
   this->test_name_ = std::move(test_name);
   this->test_index_ = index;
   this->disabled_ = disabled;
+  this->status_ = status;
 }
 
 auto TestOutcome_impl::get_test_name() const -> std::string const &
@@ -106,13 +109,19 @@ auto TestOutcome_impl::disabled() const -> bool
   return this->disabled_;
 }
 
+auto TestOutcome_impl::status() const -> TestOutcome::Status
+{
+  return this->status_;
+}
+
 TestRecord::TestRecord(
   TestAssembly assembly,
   TestId const test_id,
   bool const disabled)
   : test_assembly_(std::move(assembly)),
     test_id_{test_id},
-    disabled_{disabled}
+    disabled_{disabled},
+    status_{TestRecord::Status::NotRun}
 {
 }
 
@@ -129,6 +138,16 @@ auto TestRecord::test_assembly() const -> TestAssembly const &
 auto TestRecord::disabled() const -> bool
 {
   return this->disabled_;
+}
+
+auto TestRecord::status() const -> TestRecord::Status
+{
+  return this->status_;
+}
+
+void TestRecord::mark_as_run()
+{
+  this->status_ = TestRecord::Status::Run;
 }
 
 AssertionRecord::AssertionRecord(
@@ -306,7 +325,7 @@ auto Engine_impl::test_count() const -> unsigned long long
   return test_id_counter_;
 }
 
-char const *NO_ASSERTION_MESSAGE = "[NO MESSAGE]";
+char const *const NO_ASSERTION_MESSAGE = "[NO MESSAGE]";
 
 auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
   -> std::unique_ptr<TestOutcome>
@@ -323,13 +342,13 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
 
   for(auto const &assertion : assertions)
   {
-    auto maybe_message = assertion.message();
-    auto *assertion_impl = new AssertionOutcome_impl{};
+    auto const maybe_message = assertion.message();
+    auto *const assertion_impl = new AssertionOutcome_impl{};
 
     assertion_impl->initialize(
       this->get_group_name(this->get_group_id(test_id)),
       this->get_test_name(test_id),
-      maybe_message.has_value() ? maybe_message.value() : NO_ASSERTION_MESSAGE,
+      maybe_message.value_or(NO_ASSERTION_MESSAGE),
       assertion.passed(),
       assertion.index());
 
@@ -337,7 +356,39 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
       std::unique_ptr<AssertionOutcome>(new AssertionOutcome{assertion_impl}));
   }
 
-  auto *impl = new TestOutcome_impl{};
+  auto *const impl = new TestOutcome_impl{};
+
+  auto const &test_record = std::invoke(
+    [this, test_id]() -> TestRecord const &
+    {
+      auto const it = std::ranges::find_if(
+        this->test_records_,
+        [test_id](auto const &record)
+        {
+          return test_id == record.test_id();
+        });
+
+      return *it;
+    });
+
+  auto const status = std::invoke(
+    [&test_record, &assertion_outcomes]()
+    {
+      if(test_record.status() == TestRecord::Status::NotRun)
+      {
+        return TestOutcome::Status::NotRun;
+      }
+
+      auto const it = std::ranges::find_if(
+        assertion_outcomes,
+        [](auto const &assertion_outcome)
+        {
+          return !assertion_outcome->passed();
+        });
+
+      return it == assertion_outcomes.end() ? TestOutcome::Status::Success
+                                            : TestOutcome::Status::Failure;
+    });
 
   impl->initialize(
     test_id,
@@ -346,7 +397,8 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
     this->get_group_name(this->get_group_id(test_id)),
     this->get_test_name(test_id),
     this->get_test_index(test_id),
-    this->is_disabled(test_id));
+    this->is_disabled(test_id),
+    status);
 
   return std::unique_ptr<TestOutcome>(new TestOutcome{impl});
 }
@@ -452,11 +504,10 @@ auto get_random_number_generator() noexcept -> std::mt19937_64
   return rng;
 }
 
-auto get_test_record_ptrs(Engine const &t) noexcept
-  -> std::vector<TestRecord const *>
+auto get_test_record_ptrs(Engine const &t) noexcept -> std::vector<TestRecord *>
 {
-  auto const &test_records = get_impl(t).test_records();
-  std::vector<TestRecord const *> ptrs(test_records.size());
+  auto &test_records = get_impl(t).test_records();
+  std::vector<TestRecord *> ptrs(test_records.size());
 
   std::ranges::transform(
     test_records,
@@ -477,7 +528,7 @@ auto get_test_record_ptrs(Engine const &t) noexcept
 }
 
 auto get_shuffled_test_record_ptrs_(Engine const &t) noexcept
-  -> std::vector<TestRecord const *>
+  -> std::vector<TestRecord *>
 {
   auto ptrs = get_test_record_ptrs(t);
 
@@ -497,14 +548,14 @@ void Engine_impl::set_shuffled_test_record_ptrs()
 }
 
 auto Engine_impl::get_shuffled_test_record_ptrs() const
-  -> std::vector<TestRecord const *> const &
+  -> std::vector<TestRecord *> const &
 {
   return this->shuffled_test_record_ptrs_;
 }
 
 auto Engine_impl::is_disabled(TestId const test_id) const -> bool
 {
-  auto it = std::ranges::find_if(
+  auto const it = std::ranges::find_if(
     this->test_records_,
     [test_id](auto const &record)
     {

@@ -92,6 +92,7 @@ auto body_factory_fixture(
 
 void trivial_test_setup(waypoint::Context const &ctx);
 void trivial_test_body(waypoint::Context const &ctx);
+void trivial_failing_body(waypoint::Context const &ctx);
 void trivial_test_teardown(waypoint::Context const &ctx);
 void increment_x_test_body(waypoint::Context const &ctx);
 

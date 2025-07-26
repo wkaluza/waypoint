@@ -85,13 +85,14 @@ auto run_all_tests(Engine const &t) noexcept -> RunResult
 
   std::ranges::for_each(
     internal::get_impl(t).get_shuffled_test_record_ptrs(),
-    [&t](auto const *ptr) noexcept
+    [&t](auto *const ptr) noexcept
     {
       auto context = internal::get_impl(t).make_context(ptr->test_id());
       // Run test
       if(!ptr->disabled())
       {
         ptr->test_assembly()(context);
+        ptr->mark_as_run();
       }
     });
 
@@ -176,6 +177,11 @@ auto TestOutcome::assertion_outcome(
 auto TestOutcome::disabled() const noexcept -> bool
 {
   return this->impl_->disabled();
+}
+
+auto TestOutcome::status() const noexcept -> TestOutcome::Status
+{
+  return this->impl_->status();
 }
 
 Group::~Group() = default;

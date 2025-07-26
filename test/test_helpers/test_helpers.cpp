@@ -17,6 +17,11 @@ void trivial_test_body(waypoint::Context const &ctx)
   ctx.assert(true);
 }
 
+void trivial_failing_body(waypoint::Context const &ctx)
+{
+  ctx.assert(false);
+}
+
 void trivial_test_teardown(waypoint::Context const &ctx)
 {
   ctx.assert(true);

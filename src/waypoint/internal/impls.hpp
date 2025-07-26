@@ -52,7 +52,8 @@ public:
     std::string group_name,
     std::string test_name,
     unsigned long long index,
-    bool disabled);
+    bool disabled,
+    TestOutcome::Status status);
 
   [[nodiscard]]
   auto get_test_name() const -> std::string const &;
@@ -71,6 +72,8 @@ public:
   auto get_index() const -> unsigned long long;
   [[nodiscard]]
   auto disabled() const -> bool;
+  [[nodiscard]]
+  auto status() const -> TestOutcome::Status;
 
 private:
   std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes_;
@@ -80,6 +83,7 @@ private:
   std::string test_name_;
   unsigned long long test_index_;
   bool disabled_;
+  TestOutcome::Status status_;
 };
 
 class TestRecord
@@ -87,17 +91,27 @@ class TestRecord
 public:
   TestRecord(TestAssembly assembly, TestId test_id, bool disabled);
 
+  enum class Status : std::uint8_t
+  {
+    NotRun,
+    Run
+  };
+
   [[nodiscard]]
   auto test_id() const -> TestId;
   [[nodiscard]]
   auto test_assembly() const -> TestAssembly const &;
   [[nodiscard]]
   auto disabled() const -> bool;
+  [[nodiscard]]
+  auto status() const -> TestRecord::Status;
+  void mark_as_run();
 
 private:
   TestAssembly test_assembly_;
   TestId test_id_;
   bool disabled_;
+  TestRecord::Status status_;
 };
 
 class AssertionRecord
@@ -258,7 +272,7 @@ public:
   void set_shuffled_test_record_ptrs();
   [[nodiscard]]
   auto get_shuffled_test_record_ptrs() const
-    -> std::vector<TestRecord const *> const &;
+    -> std::vector<TestRecord *> const &;
   [[nodiscard]]
   auto is_disabled(TestId test_id) const -> bool;
 
@@ -275,7 +289,7 @@ private:
   std::vector<Error> errors_;
   std::vector<AssertionRecord> assertions_;
   std::vector<TestRecord> test_records_;
-  std::vector<TestRecord const *> shuffled_test_record_ptrs_;
+  std::vector<TestRecord *> shuffled_test_record_ptrs_;
 };
 
 class RunResult_impl
@@ -302,6 +316,6 @@ private:
   std::vector<std::string> errors_;
 };
 
-extern char const *NO_ASSERTION_MESSAGE;
+extern char const *const NO_ASSERTION_MESSAGE;
 
 } // namespace waypoint::internal
