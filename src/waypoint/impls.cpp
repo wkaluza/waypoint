@@ -308,7 +308,7 @@ auto Engine_impl::test_count() const -> unsigned long long
 
 char const *NO_ASSERTION_MESSAGE = "[NO MESSAGE]";
 
-auto Engine_impl::make_test_outcome(TestId const test_id) const
+auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
   -> std::unique_ptr<TestOutcome>
 {
   std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes;
@@ -430,7 +430,7 @@ auto Engine_impl::make_context(TestId const test_id) const -> Context
 namespace
 {
 
-auto get_random_number_generator() -> std::mt19937_64
+auto get_random_number_generator() noexcept -> std::mt19937_64
 {
   constexpr std::size_t arbitrary_constant = 0x1234;
   constexpr std::size_t arbitrary_seed = 0x0123'4567'89ab'cdef;
@@ -452,7 +452,8 @@ auto get_random_number_generator() -> std::mt19937_64
   return rng;
 }
 
-auto get_test_record_ptrs(Engine const &t) -> std::vector<TestRecord const *>
+auto get_test_record_ptrs(Engine const &t) noexcept
+  -> std::vector<TestRecord const *>
 {
   auto const &test_records = get_impl(t).test_records();
   std::vector<TestRecord const *> ptrs(test_records.size());
@@ -475,7 +476,7 @@ auto get_test_record_ptrs(Engine const &t) -> std::vector<TestRecord const *>
   return ptrs;
 }
 
-auto get_shuffled_test_record_ptrs_(Engine const &t)
+auto get_shuffled_test_record_ptrs_(Engine const &t) noexcept
   -> std::vector<TestRecord const *>
 {
   auto ptrs = get_test_record_ptrs(t);
@@ -513,7 +514,7 @@ auto Engine_impl::is_disabled(TestId const test_id) const -> bool
   return it->disabled();
 }
 
-auto Engine_impl::errors() const -> std::vector<std::string>
+auto Engine_impl::errors() const noexcept -> std::vector<std::string>
 {
   return std::ranges::views::transform(
            this->errors_,

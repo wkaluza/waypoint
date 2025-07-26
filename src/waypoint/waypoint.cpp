@@ -35,7 +35,7 @@ void populate_test_indices_(waypoint::Engine const &t)
   }
 }
 
-void initialize(waypoint::Engine const &t)
+void initialize(waypoint::Engine const &t) noexcept
 {
   auto const section = waypoint::internal::get_autorun_section_boundaries();
   auto const begin = section.first;

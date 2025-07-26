@@ -219,7 +219,7 @@ public:
     AssertionIndex index,
     std::optional<std::string> maybe_message);
   [[nodiscard]]
-  auto errors() const -> std::vector<std::string>;
+  auto errors() const noexcept -> std::vector<std::string>;
   [[nodiscard]]
   auto has_errors() const -> bool;
   [[nodiscard]]
@@ -244,7 +244,8 @@ public:
   [[nodiscard]]
   auto test_count() const -> unsigned long long;
   [[nodiscard]]
-  auto make_test_outcome(TestId test_id) const -> std::unique_ptr<TestOutcome>;
+  auto make_test_outcome(TestId test_id) const noexcept
+    -> std::unique_ptr<TestOutcome>;
   void report_error(ErrorType type, std::string const &message);
   void report_duplicate_test_name(
     GroupName const &group_name,
