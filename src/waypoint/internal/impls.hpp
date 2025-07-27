@@ -33,11 +33,23 @@ public:
     bool passed,
     unsigned long long index);
 
-  std::string group_name;
-  std::string test_name;
-  std::string message;
-  bool passed;
-  unsigned long long index;
+  [[nodiscard]]
+  auto group_name() const -> std::string const &;
+  [[nodiscard]]
+  auto test_name() const -> std::string const &;
+  [[nodiscard]]
+  auto message() const -> std::string const &;
+  [[nodiscard]]
+  auto passed() const -> bool;
+  [[nodiscard]]
+  auto index() const -> unsigned long long;
+
+private:
+  std::string group_name_;
+  std::string test_name_;
+  std::string message_;
+  bool passed_;
+  unsigned long long index_;
 };
 
 class TestOutcome_impl
@@ -94,7 +106,7 @@ public:
   enum class Status : std::uint8_t
   {
     NotRun,
-    Run
+    Complete
   };
 
   [[nodiscard]]
@@ -280,8 +292,8 @@ private:
   Engine const *engine_;
   GroupId group_id_counter_;
   TestId test_id_counter_;
-  std::unordered_map<GroupId, GroupName> group_id2name_map_;
-  std::unordered_map<TestId, TestName> test_id2name_map_;
+  std::unordered_map<GroupId, GroupName> group_id2group_name_;
+  std::unordered_map<TestId, TestName> test_id2test_name_;
   std::unordered_map<TestId, GroupId> test_id2group_id_;
   std::unordered_map<TestId, unsigned long long> test_id2test_index_;
   std::unordered_map<GroupId, std::unordered_set<TestName>>

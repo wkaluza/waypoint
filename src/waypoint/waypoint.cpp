@@ -108,27 +108,27 @@ AssertionOutcome::AssertionOutcome(internal::AssertionOutcome_impl *const impl)
 
 auto AssertionOutcome::group() const noexcept -> char const *
 {
-  return this->impl_->group_name.c_str();
+  return this->impl_->group_name().c_str();
 }
 
 auto AssertionOutcome::test() const noexcept -> char const *
 {
-  return this->impl_->test_name.c_str();
+  return this->impl_->test_name().c_str();
 }
 
 auto AssertionOutcome::message() const noexcept -> char const *
 {
-  return this->impl_->message.c_str();
+  return this->impl_->message().c_str();
 }
 
 auto AssertionOutcome::passed() const noexcept -> bool
 {
-  return this->impl_->passed;
+  return this->impl_->passed();
 }
 
 auto AssertionOutcome::index() const noexcept -> unsigned long long
 {
-  return this->impl_->index;
+  return this->impl_->index();
 }
 
 TestOutcome::~TestOutcome() = default;

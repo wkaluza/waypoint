@@ -20,8 +20,8 @@ namespace waypoint::internal
 {
 
 AssertionOutcome_impl::AssertionOutcome_impl()
-  : passed{},
-    index{}
+  : passed_{},
+    index_{}
 {
 }
 
@@ -32,11 +32,36 @@ void AssertionOutcome_impl::initialize(
   bool const passed,
   unsigned long long const index)
 {
-  this->group_name = std::move(group_name);
-  this->test_name = std::move(test_name);
-  this->message = std::move(message);
-  this->passed = passed;
-  this->index = index;
+  this->group_name_ = std::move(group_name);
+  this->test_name_ = std::move(test_name);
+  this->message_ = std::move(message);
+  this->passed_ = passed;
+  this->index_ = index;
+}
+
+auto AssertionOutcome_impl::group_name() const -> std::string const &
+{
+  return this->group_name_;
+}
+
+auto AssertionOutcome_impl::test_name() const -> std::string const &
+{
+  return this->test_name_;
+}
+
+auto AssertionOutcome_impl::message() const -> std::string const &
+{
+  return this->message_;
+}
+
+auto AssertionOutcome_impl::passed() const -> bool
+{
+  return this->passed_;
+}
+
+auto AssertionOutcome_impl::index() const -> unsigned long long
+{
+  return this->index_;
 }
 
 TestOutcome_impl::TestOutcome_impl()
@@ -147,7 +172,7 @@ auto TestRecord::status() const -> TestRecord::Status
 
 void TestRecord::mark_as_run()
 {
-  this->status_ = TestRecord::Status::Run;
+  this->status_ = TestRecord::Status::Complete;
 }
 
 AssertionRecord::AssertionRecord(
@@ -299,12 +324,12 @@ auto Engine_impl::get_group_id(Group const &group) const -> GroupId
 
 auto Engine_impl::get_group_name(GroupId const id) const -> std::string
 {
-  return this->group_id2name_map_.at(id);
+  return this->group_id2group_name_.at(id);
 }
 
 auto Engine_impl::get_test_name(TestId const id) const -> std::string
 {
-  return this->test_id2name_map_.at(id);
+  return this->test_id2test_name_.at(id);
 }
 
 void Engine_impl::set_test_index(
@@ -410,7 +435,7 @@ auto Engine_impl::register_test(
   auto &test_names = test_names_per_group_[group_id];
   if(test_names.contains(test_name))
   {
-    auto const &group_name = this->group_id2name_map_[group_id];
+    auto const &group_name = this->group_id2group_name_[group_id];
     this->report_duplicate_test_name(group_name, test_name);
   }
 
@@ -420,7 +445,7 @@ auto Engine_impl::register_test(
 
   test_id2group_id_[test_id] = group_id;
 
-  this->test_id2name_map_[test_id] = test_name;
+  this->test_id2test_name_[test_id] = test_name;
 
   return test_id;
 }
@@ -428,7 +453,7 @@ auto Engine_impl::register_test(
 auto Engine_impl::register_group(GroupName const &group_name) -> GroupId
 {
   auto const group_id = group_id_counter_++;
-  group_id2name_map_[group_id] = group_name;
+  group_id2group_name_[group_id] = group_name;
 
   return group_id;
 }
