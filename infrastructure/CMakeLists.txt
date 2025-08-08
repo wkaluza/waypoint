@@ -8,6 +8,41 @@ enable_testing()
 
 set(PROJECT_ROOT_DIR ${CMAKE_SOURCE_DIR}/..)
 
+new_platform_specific_target(
+  STATIC
+  TARGET
+  autorun
+  DIRECTORY
+  ${PROJECT_ROOT_DIR}/src/autorun
+  SOURCES
+  autorun.cpp
+  PUBLIC_HEADERS
+  autorun.hpp)
+
+new_platform_specific_target(
+  STATIC
+  TARGET
+  coverage
+  DIRECTORY
+  ${PROJECT_ROOT_DIR}/src/coverage
+  SOURCES
+  coverage.cpp
+  PUBLIC_HEADERS
+  coverage.hpp)
+
+new_platform_specific_target(
+  STATIC
+  TARGET
+  process
+  DIRECTORY
+  ${PROJECT_ROOT_DIR}/src/process
+  SOURCES
+  process.cpp
+  PUBLIC_HEADERS
+  process.hpp
+  LINKS
+  coverage)
+
 new_target(
   STATIC
   TARGET
@@ -15,17 +50,19 @@ new_target(
   DIRECTORY
   ${PROJECT_ROOT_DIR}/src/waypoint
   SOURCES
-  ${PROJECT_ROOT_DIR}/src/waypoint/waypoint.cpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/autorun_linux.cpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/function.cpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/impls.cpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/registrar.cpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/smart_ptrs.cpp
+  function.cpp
+  impls.cpp
+  registrar.cpp
+  smart_ptrs.cpp
+  waypoint.cpp
   PUBLIC_HEADERS
-  ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp
+  waypoint.hpp
   PRIVATE_HEADERS
-  ${PROJECT_ROOT_DIR}/src/waypoint/internal/types.hpp
-  ${PROJECT_ROOT_DIR}/src/waypoint/internal/impls.hpp)
+  impls.hpp
+  types.hpp
+  LINKS
+  autorun
+  process)
 
 new_target(
   STATIC
@@ -34,9 +71,9 @@ new_target(
   DIRECTORY
   ${PROJECT_ROOT_DIR}/test/test_helpers
   SOURCES
-  ${PROJECT_ROOT_DIR}/test/test_helpers/test_helpers.cpp
+  test_helpers.cpp
   PUBLIC_HEADERS
-  ${PROJECT_ROOT_DIR}/test/test_helpers/include/test_helpers/test_helpers.hpp
+  test_helpers.hpp
   PRIVATE_HEADERS
   LINKS
   waypoint)
@@ -83,3 +120,43 @@ new_impl_test(035_assume)
 
 new_basic_test(036_disable)
 new_basic_test(037_status)
+new_basic_test(038_process)
+new_basic_test(039_process)
+new_basic_test(040_process)
+
+new_basic_test(041_init_only)
+new_basic_test(042_empty_autorun_block_with_init)
+new_basic_test(043_two_empty_autoruns_with_init)
+new_basic_test(044_one_empty_group)
+new_basic_test(045_two_empty_groups_diff_names)
+new_basic_test(046_two_empty_groups_same_name)
+new_basic_test(047_trivial_test)
+new_basic_test(048_two_tests_same_group_diff_name)
+new_basic_test(049_two_tests_diff_group_diff_name)
+new_basic_test(050_two_tests_diff_group_same_name)
+new_basic_test(051_two_tests_same_group_same_name)
+new_basic_test(052_passing_test)
+new_basic_test(053_failing_test)
+new_basic_test(054_passing_test_with_auto)
+new_basic_test(055_failing_test_with_auto)
+new_basic_test(056_failing_test_with_auto)
+new_basic_test(057_failing_test_with_auto)
+new_basic_test(058_failing_test_with_auto)
+new_basic_test(059_failing_test_with_auto)
+new_basic_test(060_failing_test_with_auto)
+new_basic_test(061_failing_test_with_auto)
+new_basic_test(062_failing_test_with_auto)
+new_basic_test(063_failing_test_with_auto)
+new_basic_test(064_multiple_tests)
+new_basic_test(065_assertion_messages)
+new_basic_test(066_results)
+new_basic_test(067_capturing_lambda_as_test_body)
+new_basic_test(068_mutable_lambda_as_test_body)
+new_basic_test(069_setup)
+new_basic_test(070_teardown)
+new_basic_test(071_incomplete_tests)
+
+new_impl_test(072_assume)
+
+new_basic_test(073_disable)
+new_basic_test(074_status)

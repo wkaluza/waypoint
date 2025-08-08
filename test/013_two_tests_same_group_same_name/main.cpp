@@ -18,7 +18,7 @@ auto main() -> int
 
   // We expect the call to run_all_tests to fail
   // due to initialization errors
-  auto const result = waypoint::run_all_tests(t);
+  auto const result = waypoint::run_all_tests_in_process(t);
 
   // We expect the run to fail
   REQUIRE_IN_MAIN(!result.success());

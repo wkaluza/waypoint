@@ -4,7 +4,6 @@
 #include "waypoint/waypoint.hpp"
 
 #include <cstring>
-#include <string>
 #include <vector>
 
 WAYPOINT_AUTORUN(waypoint::Engine const &t)
@@ -46,7 +45,7 @@ auto main() -> int
 {
   auto const t = waypoint::make_default_engine();
 
-  auto const results = run_all_tests(t);
+  auto const results = run_all_tests_in_process(t);
 
   // We expect the run to fail
   REQUIRE_IN_MAIN(!results.success());
@@ -64,19 +63,26 @@ auto main() -> int
   for(unsigned i = 0; i < assertion_count; ++i)
   {
     auto const &assertion_outcome = test_outcome.assertion_outcome(i);
-    std::vector<std::string> messages = {
+    std::vector<char const *> messages = {
       "message 1",
       "message 2",
       "message 3",
       "message 5",
       "message 6",
-      waypoint::internal::NO_ASSERTION_MESSAGE,
+      nullptr,
       "message 7",
       "message 8"};
 
     char const *actual_message = assertion_outcome.message();
-    char const *expected_message = messages[i].c_str();
-    REQUIRE_IN_MAIN(std::strcmp(actual_message, expected_message) == 0);
+    char const *expected_message = messages[i];
+    if(expected_message == nullptr)
+    {
+      REQUIRE_IN_MAIN(actual_message == expected_message);
+    }
+    else
+    {
+      REQUIRE_IN_MAIN(std::strcmp(actual_message, expected_message) == 0);
+    }
 
     std::vector<bool> outcomes =
       {true, false, true, false, true, false, false, true};

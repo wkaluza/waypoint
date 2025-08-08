@@ -1,5 +1,4 @@
-# Create new target and configure it
-function(new_target)
+function(new_target_)
   set(options EXECUTABLE STATIC TEST)
   set(singleValueKeywords DIRECTORY TARGET)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
@@ -36,6 +35,8 @@ function(new_target)
     target_link_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
 
     target_compile_options(${arg_TARGET} PRIVATE -fno-exceptions)
+    target_compile_definitions(
+      ${arg_TARGET} PRIVATE WAYPOINT_INTERNAL_COVERAGE_IOm5lSCCB6p0j19)
   endif()
 
   if(DEFINED arg_SOURCES)
@@ -132,4 +133,84 @@ function(new_impl_test name)
   target_include_directories(
     ${name} PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
                     ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
+endfunction()
+
+function(new_target)
+  set(options EXECUTABLE STATIC TEST)
+  set(singleValueKeywords DIRECTORY TARGET)
+  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
+  cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
+                        "${singleValueKeywords}" "${multiValueKeywords}")
+
+  if(arg_EXECUTABLE)
+    set(type EXECUTABLE)
+  endif()
+  if(arg_STATIC)
+    set(type STATIC)
+  endif()
+  if(arg_TEST)
+    set(type TEST)
+  endif()
+
+  list(TRANSFORM arg_SOURCES PREPEND ${arg_DIRECTORY}/)
+  list(TRANSFORM arg_PRIVATE_HEADERS PREPEND ${arg_DIRECTORY}/internal/)
+  list(TRANSFORM arg_PUBLIC_HEADERS
+       PREPEND ${arg_DIRECTORY}/include/${arg_TARGET}/)
+
+  new_target_(
+    ${type}
+    TARGET
+    ${arg_TARGET}
+    DIRECTORY
+    ${arg_DIRECTORY}
+    SOURCES
+    ${arg_SOURCES}
+    PRIVATE_HEADERS
+    ${arg_PRIVATE_HEADERS}
+    PUBLIC_HEADERS
+    ${arg_PUBLIC_HEADERS}
+    LINKS
+    ${arg_LINKS})
+endfunction()
+
+function(new_platform_specific_target)
+  set(options EXECUTABLE STATIC TEST)
+  set(singleValueKeywords DIRECTORY TARGET)
+  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
+  cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
+                        "${singleValueKeywords}" "${multiValueKeywords}")
+
+  if(arg_EXECUTABLE)
+    set(type EXECUTABLE)
+  endif()
+  if(arg_STATIC)
+    set(type STATIC)
+  endif()
+  if(arg_TEST)
+    set(type TEST)
+  endif()
+
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(system_name "linux")
+  endif()
+
+  list(TRANSFORM arg_SOURCES PREPEND ${arg_DIRECTORY}/${system_name}/)
+  list(TRANSFORM arg_PRIVATE_HEADERS PREPEND ${arg_DIRECTORY}/internal/)
+  list(TRANSFORM arg_PUBLIC_HEADERS
+       PREPEND ${arg_DIRECTORY}/include/${arg_TARGET}/)
+
+  new_target_(
+    ${type}
+    TARGET
+    ${arg_TARGET}
+    DIRECTORY
+    ${arg_DIRECTORY}
+    SOURCES
+    ${arg_SOURCES}
+    PRIVATE_HEADERS
+    ${arg_PRIVATE_HEADERS}
+    PUBLIC_HEADERS
+    ${arg_PUBLIC_HEADERS}
+    LINKS
+    ${arg_LINKS})
 endfunction()

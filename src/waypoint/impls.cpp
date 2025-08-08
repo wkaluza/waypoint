@@ -3,6 +3,8 @@
 #include "types.hpp"
 #include "waypoint.hpp"
 
+#include "process/process.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -28,7 +30,7 @@ AssertionOutcome_impl::AssertionOutcome_impl()
 void AssertionOutcome_impl::initialize(
   std::string group_name,
   std::string test_name,
-  std::string message,
+  std::optional<std::string> message,
   bool const passed,
   unsigned long long const index)
 {
@@ -49,7 +51,8 @@ auto AssertionOutcome_impl::test_name() const -> std::string const &
   return this->test_name_;
 }
 
-auto AssertionOutcome_impl::message() const -> std::string const &
+auto AssertionOutcome_impl::message() const
+  -> std::optional<std::string> const &
 {
   return this->message_;
 }
@@ -258,33 +261,75 @@ void Test_impl::mark_complete()
   this->incomplete_ = false;
 }
 
-Context_impl::Context_impl()
+ContextInProcess_impl::ContextInProcess_impl()
   : engine_{},
     test_id_{},
     assertion_index_{}
 {
 }
 
-void Context_impl::initialize(Engine const &engine, TestId const test_id)
+void ContextInProcess_impl::initialize(
+  Engine const &engine,
+  TestId const test_id)
 {
   this->engine_ = &engine;
   this->test_id_ = test_id;
   this->assertion_index_ = 0;
 }
 
-auto Context_impl::get_engine() const -> Engine const &
+auto ContextInProcess_impl::get_engine() const -> Engine const &
 {
   return *engine_;
 }
 
-auto Context_impl::generate_assertion_index() -> AssertionIndex
+auto ContextInProcess_impl::generate_assertion_index() -> AssertionIndex
 {
   return assertion_index_++;
 }
 
-auto Context_impl::test_id() const -> TestId
+auto ContextInProcess_impl::test_id() const -> TestId
 {
   return this->test_id_;
+}
+
+ContextChildProcess_impl::ContextChildProcess_impl()
+  : engine_{},
+    test_id_{},
+    assertion_index_{},
+    response_write_pipe_{}
+{
+}
+
+void ContextChildProcess_impl::initialize(
+  Engine const &engine,
+  TestId const test_id,
+  InputPipeEnd const &response_write_pipe)
+{
+  this->engine_ = &engine;
+  this->test_id_ = test_id;
+  this->assertion_index_ = 0;
+  this->response_write_pipe_ = &response_write_pipe;
+}
+
+auto ContextChildProcess_impl::get_engine() const -> Engine const &
+{
+  return *engine_;
+}
+
+auto ContextChildProcess_impl::generate_assertion_index() -> AssertionIndex
+{
+  return assertion_index_++;
+}
+
+auto ContextChildProcess_impl::test_id() const -> TestId
+{
+  return this->test_id_;
+}
+
+auto ContextChildProcess_impl::response_write_pipe() const
+  -> InputPipeEnd const *
+{
+  return this->response_write_pipe_;
 }
 
 Engine_impl::Engine_impl()
@@ -350,8 +395,6 @@ auto Engine_impl::test_count() const -> unsigned long long
   return test_id_counter_;
 }
 
-char const *const NO_ASSERTION_MESSAGE = "[NO MESSAGE]";
-
 auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
   -> std::unique_ptr<TestOutcome>
 {
@@ -373,7 +416,7 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
     assertion_impl->initialize(
       this->get_group_name(this->get_group_id(test_id)),
       this->get_test_name(test_id),
-      maybe_message.value_or(NO_ASSERTION_MESSAGE),
+      maybe_message,
       assertion.passed(),
       assertion.index());
 
@@ -495,13 +538,25 @@ auto Engine_impl::get_assertions() const -> std::vector<AssertionRecord>
   return this->assertions_;
 }
 
-auto Engine_impl::make_context(TestId const test_id) const -> Context
+auto Engine_impl::make_in_process_context(TestId const test_id) const
+  -> std::unique_ptr<Context>
 {
-  auto *impl = new Context_impl{};
+  auto *impl = new ContextInProcess_impl{};
 
   impl->initialize(*this->engine_, test_id);
 
-  return Context{impl};
+  return std::unique_ptr<ContextInProcess>(new ContextInProcess{impl});
+}
+
+auto Engine_impl::make_child_process_context(
+  TestId const test_id,
+  InputPipeEnd const &response_write_pipe) const -> std::unique_ptr<Context>
+{
+  auto *impl = new ContextChildProcess_impl{};
+
+  impl->initialize(*this->engine_, test_id, response_write_pipe);
+
+  return std::unique_ptr<ContextChildProcess>(new ContextChildProcess{impl});
 }
 
 namespace
@@ -634,13 +689,57 @@ auto Engine_impl::generate_results() const -> RunResult
 }
 
 void Engine_impl::register_assertion(
-  bool condition,
+  bool const condition,
   TestId const test_id,
   AssertionIndex const index,
   std::optional<std::string> maybe_message)
 {
   this->assertions_
     .emplace_back(condition, test_id, index, std::move(maybe_message));
+}
+
+void Engine_impl::transmit_assertion(
+  bool const condition,
+  TestId const test_id,
+  AssertionIndex const index,
+  std::optional<std::string> const &maybe_message,
+  InputPipeEnd const &response_write_pipe) const
+{
+  constexpr auto code = std::to_underlying(Response::Code::Assertion);
+  response_write_pipe.write(&code, sizeof code);
+
+  unsigned long long const test_id_ = test_id;
+  response_write_pipe.write(
+    reinterpret_cast<unsigned char const *>(&test_id_),
+    sizeof test_id_);
+
+  unsigned char const passed = condition ? 1 : 0;
+  response_write_pipe.write(&passed, sizeof passed);
+
+  unsigned long long const index_ = index;
+  response_write_pipe.write(
+    reinterpret_cast<unsigned char const *>(&index_),
+    sizeof index_);
+
+  if(maybe_message.has_value())
+  {
+    constexpr unsigned char has_message = 1;
+    response_write_pipe.write(&has_message, sizeof has_message);
+
+    auto const &message = maybe_message.value();
+    unsigned long long const message_size = message.size();
+    response_write_pipe.write(
+      reinterpret_cast<unsigned char const *>(&message_size),
+      sizeof message_size);
+    response_write_pipe.write(
+      reinterpret_cast<unsigned char const *>(message.data()),
+      message_size);
+  }
+  else
+  {
+    constexpr unsigned char has_message = 0;
+    response_write_pipe.write(&has_message, sizeof has_message);
+  }
 }
 
 RunResult_impl::RunResult_impl()

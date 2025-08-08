@@ -198,7 +198,12 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
   register_test_unique_ptr<waypoint::internal::AssertionOutcome_impl>(
     t,
     "AssertionOutcome_impl");
-  register_test_unique_ptr<waypoint::internal::Context_impl>(t, "Context_impl");
+  register_test_unique_ptr<waypoint::internal::ContextInProcess_impl>(
+    t,
+    "ContextInProcess_impl");
+  register_test_unique_ptr<waypoint::internal::ContextChildProcess_impl>(
+    t,
+    "ContextChildProcess_impl");
   register_test_unique_ptr<waypoint::internal::Engine_impl>(t, "Engine_impl");
   register_test_unique_ptr<waypoint::internal::Group_impl>(t, "Group_impl");
   register_test_unique_ptr<waypoint::internal::RunResult_impl>(
@@ -216,7 +221,7 @@ auto main() -> int
 {
   auto const t = waypoint::make_default_engine();
 
-  auto const results = run_all_tests(t);
+  auto const results = run_all_tests_in_process(t);
   REQUIRE_IN_MAIN(results.success());
 
   return 0;

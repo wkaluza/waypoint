@@ -15,11 +15,13 @@ void trivial_test_setup(waypoint::Context const &ctx)
 void trivial_test_body(waypoint::Context const &ctx)
 {
   ctx.assert(true);
+  ctx.assert(true, "body assertion message");
 }
 
 void trivial_failing_body(waypoint::Context const &ctx)
 {
   ctx.assert(false);
+  ctx.assert(false, "failing body assertion message");
 }
 
 void trivial_test_teardown(waypoint::Context const &ctx)

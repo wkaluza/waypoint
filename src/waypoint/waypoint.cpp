@@ -1,11 +1,16 @@
 #include "waypoint.hpp"
 
-#include "autorun.hpp"
 #include "impls.hpp"
 
+#include "autorun/autorun.hpp"
+#include "process/process.hpp"
+
 #include <algorithm>
+#include <cstdlib>
+#include <functional>
 #include <optional>
 #include <ranges>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -32,6 +37,279 @@ void populate_test_indices_(waypoint::Engine const &t)
     waypoint::internal::get_impl(t).set_test_index(
       shuffled_ptrs[i]->test_id(),
       i);
+  }
+}
+
+void run_test(
+  waypoint::Engine const &t,
+  unsigned long long const test_index,
+  waypoint::internal::InputPipeEnd const &response_write_pipe) noexcept
+{
+  auto const &impl = waypoint::internal::get_impl(t);
+  waypoint::internal::TestRecord *const record =
+    impl.get_shuffled_test_record_ptrs().at(test_index);
+
+  auto const ctx =
+    impl.make_child_process_context(record->test_id(), response_write_pipe);
+
+  record->test_assembly()(*ctx);
+  record->mark_as_run();
+}
+
+void execute_command(
+  waypoint::Engine const &t,
+  waypoint::internal::Command const &command,
+  waypoint::internal::InputPipeEnd const &response_write_pipe)
+{
+  if(command.code == waypoint::internal::Command::Code::RunTest)
+  {
+    run_test(t, command.test_index, response_write_pipe);
+  }
+}
+
+void begin_handshake(waypoint::internal::InputPipeEnd const &pipe)
+{
+  constexpr auto cmd =
+    std::to_underlying(waypoint::internal::Command::Code::Attention);
+
+  pipe.write(&cmd, sizeof cmd);
+}
+
+void complete_handshake(waypoint::internal::InputPipeEnd const &pipe)
+{
+  constexpr auto ready =
+    std::to_underlying(waypoint::internal::Response::Code::Ready);
+
+  pipe.write(&ready, sizeof ready);
+}
+
+void await_handshake_start(waypoint::internal::OutputPipeEnd const &pipe)
+{
+  unsigned char data = 0;
+  pipe.read(&data, sizeof data);
+}
+
+void await_handshake_end(waypoint::internal::OutputPipeEnd const &pipe)
+{
+  unsigned char data = 0;
+  pipe.read(&data, sizeof data);
+}
+
+auto receive_command(waypoint::internal::OutputPipeEnd const &command_read_pipe)
+  -> waypoint::internal::Command
+{
+  unsigned char code_ =
+    std::to_underlying(waypoint::internal::Command::Code::Invalid);
+  command_read_pipe.read(&code_, sizeof code_);
+
+  auto const code = static_cast<waypoint::internal::Command::Code>(code_);
+
+  if(code == waypoint::internal::Command::Code::RunTest)
+  {
+    unsigned long long test_index = 0;
+    command_read_pipe.read(
+      reinterpret_cast<unsigned char *>(&test_index),
+      sizeof test_index);
+
+    return {code, test_index};
+  }
+
+  return {code, {}};
+}
+
+auto receive_response(
+  waypoint::internal::OutputPipeEnd const &response_read_pipe)
+  -> waypoint::internal::Response
+{
+  unsigned char code_ =
+    std::to_underlying(waypoint::internal::Response::Code::Invalid);
+  response_read_pipe.read(&code_, sizeof code_);
+
+  auto const code = static_cast<waypoint::internal::Response::Code>(code_);
+
+  if(code == waypoint::internal::Response::Code::Assertion)
+  {
+    unsigned long long test_id = 0;
+    response_read_pipe.read(
+      reinterpret_cast<unsigned char *>(&test_id),
+      sizeof test_id);
+
+    unsigned char passed = 0;
+    response_read_pipe.read(&passed, sizeof passed);
+
+    unsigned long long assertion_index = 0;
+    response_read_pipe.read(
+      reinterpret_cast<unsigned char *>(&assertion_index),
+      sizeof assertion_index);
+
+    unsigned char has_message = 0;
+    response_read_pipe.read(&has_message, sizeof has_message);
+    if(has_message == 0)
+    {
+      return {code, test_id, passed == 1, assertion_index, std::nullopt};
+    }
+
+    unsigned long long message_size = 0;
+    response_read_pipe.read(
+      reinterpret_cast<unsigned char *>(&message_size),
+      sizeof message_size);
+    std::string message(message_size, 'X');
+    response_read_pipe.read(
+      reinterpret_cast<unsigned char *>(message.data()),
+      message_size);
+
+    return {code, test_id, passed == 1, assertion_index, {message}};
+  }
+
+  if(code == waypoint::internal::Response::Code::TestComplete)
+  {
+    unsigned long long test_id = 0;
+    response_read_pipe.read(
+      reinterpret_cast<unsigned char *>(&test_id),
+      sizeof test_id);
+
+    return {code, test_id, {}, {}, {}};
+  }
+
+  return {code, {}, {}, {}, {}};
+}
+
+void send_command(
+  waypoint::internal::InputPipeEnd const &command_write_pipe,
+  waypoint::internal::Command const &command)
+{
+  auto const code = std::to_underlying(command.code);
+  command_write_pipe.write(&code, sizeof code);
+  if(command.code == waypoint::internal::Command::Code::RunTest)
+  {
+    auto const test_index = command.test_index;
+    command_write_pipe.write(
+      reinterpret_cast<unsigned char const *>(&test_index),
+      sizeof test_index);
+  }
+}
+
+void send_response(
+  waypoint::Engine const &t,
+  waypoint::internal::InputPipeEnd const &response_write_pipe,
+  unsigned long long const test_index,
+  waypoint::internal::Response::Code const &code_)
+{
+  auto const code = std::to_underlying(code_);
+  response_write_pipe.write(&code, sizeof code);
+  if(code_ == waypoint::internal::Response::Code::TestComplete)
+  {
+    waypoint::internal::TestRecord const *const record =
+      waypoint::internal::get_impl(t).get_shuffled_test_record_ptrs().at(
+        test_index);
+    auto const test_id = record->test_id();
+    response_write_pipe.write(
+      reinterpret_cast<unsigned char const *>(&test_id),
+      sizeof test_id);
+  }
+}
+
+auto is_end_command(waypoint::internal::Command const &command) -> bool
+{
+  return command.code == waypoint::internal::Command::Code::End;
+}
+
+void shut_down_sequence(
+  waypoint::internal::InputPipeEnd const &command_write_pipe,
+  waypoint::internal::OutputPipeEnd const &response_read_pipe) noexcept
+{
+  constexpr auto command =
+    waypoint::internal::Command{waypoint::internal::Command::Code::End, {}};
+
+  send_command(command_write_pipe, command);
+
+  [[maybe_unused]]
+  auto const response = receive_response(response_read_pipe);
+}
+
+auto parent_main(
+  waypoint::Engine const &t,
+  waypoint::internal::InputPipeEnd const &command_write_pipe,
+  waypoint::internal::OutputPipeEnd const &response_read_pipe) noexcept
+  -> waypoint::RunResult
+{
+  begin_handshake(command_write_pipe);
+  await_handshake_end(response_read_pipe);
+
+  auto const &records =
+    waypoint::internal::get_impl(t).get_shuffled_test_record_ptrs();
+
+  for(auto *const record : records)
+  {
+    if(record->disabled())
+    {
+      continue;
+    }
+
+    auto const test_index =
+      waypoint::internal::get_impl(t).get_test_index(record->test_id());
+
+    auto const command = waypoint::internal::Command{
+      waypoint::internal::Command::Code::RunTest,
+      test_index};
+    send_command(command_write_pipe, command);
+    record->mark_as_run();
+
+    while(true)
+    {
+      auto const response = receive_response(response_read_pipe);
+      if(response.code == waypoint::internal::Response::Code::Assertion)
+      {
+        waypoint::internal::get_impl(t).register_assertion(
+          response.assertion_passed,
+          response.test_id,
+          response.assertion_index,
+          response.assertion_message);
+      }
+      if(response.code == waypoint::internal::Response::Code::TestComplete)
+      {
+        break;
+      }
+    }
+  }
+
+  shut_down_sequence(command_write_pipe, response_read_pipe);
+
+  return waypoint::internal::get_impl(t).generate_results();
+}
+
+void child_main(
+  waypoint::Engine const &t,
+  waypoint::internal::OutputPipeEnd const &command_read_pipe,
+  waypoint::internal::InputPipeEnd const &response_write_pipe) noexcept
+{
+  await_handshake_start(command_read_pipe);
+  complete_handshake(response_write_pipe);
+
+  while(true)
+  {
+    auto const command = receive_command(command_read_pipe);
+
+    execute_command(t, command, response_write_pipe);
+    send_response(
+      t,
+      response_write_pipe,
+      command.test_index,
+      std::invoke(
+        [&command]()
+        {
+          if(command.code == waypoint::internal::Command::Code::RunTest)
+          {
+            return waypoint::internal::Response::Code::TestComplete;
+          }
+
+          return waypoint::internal::Response::Code::ShuttingDown;
+        }));
+
+    if(is_end_command(command))
+    {
+      break;
+    }
   }
 }
 
@@ -74,7 +352,7 @@ auto make_default_engine() noexcept -> Engine
   return Engine{impl};
 }
 
-auto run_all_tests(Engine const &t) noexcept -> RunResult
+auto run_all_tests_in_process(Engine const &t) noexcept -> RunResult
 {
   initialize(t);
   if(internal::get_impl(t).has_errors())
@@ -87,16 +365,46 @@ auto run_all_tests(Engine const &t) noexcept -> RunResult
     internal::get_impl(t).get_shuffled_test_record_ptrs(),
     [&t](auto *const ptr) noexcept
     {
-      auto context = internal::get_impl(t).make_context(ptr->test_id());
-      // Run test
       if(!ptr->disabled())
       {
-        ptr->test_assembly()(context);
+        auto const context =
+          internal::get_impl(t).make_in_process_context(ptr->test_id());
+
+        // Run test
+        ptr->test_assembly()(*context);
         ptr->mark_as_run();
       }
     });
 
   return internal::get_impl(t).generate_results();
+}
+
+auto run_all_tests(Engine const &t) noexcept -> RunResult
+{
+  initialize(t);
+  if(internal::get_impl(t).has_errors())
+  {
+    // Initialization had errors, skip running tests and emit results
+    return internal::get_impl(t).generate_results();
+  }
+
+  if(waypoint::internal::is_child())
+  {
+    {
+      auto const pipes = waypoint::internal::get_pipes_from_env();
+
+      auto const &command_read_pipe = pipes.first;
+      auto const &response_write_pipe = pipes.second;
+
+      child_main(t, command_read_pipe, response_write_pipe);
+    }
+
+    std::exit(0);
+  }
+
+  waypoint::internal::ChildProcessRAII const child;
+
+  return parent_main(t, child.command_write_pipe(), child.response_read_pipe());
 }
 
 AssertionOutcome::~AssertionOutcome() = default;
@@ -118,7 +426,12 @@ auto AssertionOutcome::test() const noexcept -> char const *
 
 auto AssertionOutcome::message() const noexcept -> char const *
 {
-  return this->impl_->message().c_str();
+  if(this->impl_->message().has_value())
+  {
+    return this->impl_->message().value().c_str();
+  }
+
+  return nullptr;
 }
 
 auto AssertionOutcome::passed() const noexcept -> bool
@@ -273,7 +586,18 @@ Engine::Engine(internal::Engine_impl *const impl)
   impl->initialize(*this);
 }
 
-void Context::assert(bool const condition) const noexcept
+Context::~Context() = default;
+
+Context::Context() = default;
+
+ContextInProcess::~ContextInProcess() = default;
+
+ContextInProcess::ContextInProcess(internal::ContextInProcess_impl *const impl)
+  : impl_{internal::UniquePtr{impl}}
+{
+}
+
+void ContextInProcess::assert(bool const condition) const noexcept
 {
   internal::get_impl(impl_->get_engine())
     .register_assertion(
@@ -283,7 +607,7 @@ void Context::assert(bool const condition) const noexcept
       std::nullopt);
 }
 
-void Context::assert(bool const condition, char const *const message)
+void ContextInProcess::assert(bool const condition, char const *const message)
   const noexcept
 {
   internal::get_impl(impl_->get_engine())
@@ -294,7 +618,7 @@ void Context::assert(bool const condition, char const *const message)
       message);
 }
 
-auto Context::assume(bool const condition) const noexcept -> bool
+auto ContextInProcess::assume(bool const condition) const noexcept -> bool
 {
   internal::get_impl(impl_->get_engine())
     .register_assertion(
@@ -306,7 +630,7 @@ auto Context::assume(bool const condition) const noexcept -> bool
   return condition;
 }
 
-auto Context::assume(bool const condition, char const *const message)
+auto ContextInProcess::assume(bool const condition, char const *const message)
   const noexcept -> bool
 {
   internal::get_impl(impl_->get_engine())
@@ -319,11 +643,84 @@ auto Context::assume(bool const condition, char const *const message)
   return condition;
 }
 
-Context::~Context() = default;
+ContextChildProcess::~ContextChildProcess() = default;
 
-Context::Context(internal::Context_impl *const impl)
+ContextChildProcess::ContextChildProcess(
+  internal::ContextChildProcess_impl *const impl)
   : impl_{internal::UniquePtr{impl}}
 {
+}
+
+void ContextChildProcess::assert(bool const condition) const noexcept
+{
+  auto const index = this->impl_->generate_assertion_index();
+
+  internal::get_impl(impl_->get_engine())
+    .register_assertion(condition, this->impl_->test_id(), index, std::nullopt);
+
+  internal::get_impl(impl_->get_engine())
+    .transmit_assertion(
+      condition,
+      this->impl_->test_id(),
+      index,
+      std::nullopt,
+      *this->impl_->response_write_pipe());
+}
+
+void ContextChildProcess::assert(
+  bool const condition,
+  char const *const message) const noexcept
+{
+  auto const index = this->impl_->generate_assertion_index();
+
+  internal::get_impl(impl_->get_engine())
+    .register_assertion(condition, this->impl_->test_id(), index, message);
+
+  internal::get_impl(impl_->get_engine())
+    .transmit_assertion(
+      condition,
+      this->impl_->test_id(),
+      index,
+      message,
+      *this->impl_->response_write_pipe());
+}
+
+auto ContextChildProcess::assume(bool const condition) const noexcept -> bool
+{
+  auto const index = this->impl_->generate_assertion_index();
+
+  internal::get_impl(impl_->get_engine())
+    .register_assertion(condition, this->impl_->test_id(), index, std::nullopt);
+
+  internal::get_impl(impl_->get_engine())
+    .transmit_assertion(
+      condition,
+      this->impl_->test_id(),
+      index,
+      std::nullopt,
+      *this->impl_->response_write_pipe());
+
+  return condition;
+}
+
+auto ContextChildProcess::assume(
+  bool const condition,
+  char const *const message) const noexcept -> bool
+{
+  auto const index = this->impl_->generate_assertion_index();
+
+  internal::get_impl(impl_->get_engine())
+    .register_assertion(condition, this->impl_->test_id(), index, message);
+
+  internal::get_impl(impl_->get_engine())
+    .transmit_assertion(
+      condition,
+      this->impl_->test_id(),
+      index,
+      message,
+      *this->impl_->response_write_pipe());
+
+  return condition;
 }
 
 RunResult::~RunResult() = default;

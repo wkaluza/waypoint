@@ -21,6 +21,8 @@ class Engine;
 namespace waypoint::internal
 {
 
+class InputPipeEnd;
+
 class AssertionOutcome_impl
 {
 public:
@@ -29,7 +31,7 @@ public:
   void initialize(
     std::string group_name,
     std::string test_name,
-    std::string message,
+    std::optional<std::string> message,
     bool passed,
     unsigned long long index);
 
@@ -38,7 +40,7 @@ public:
   [[nodiscard]]
   auto test_name() const -> std::string const &;
   [[nodiscard]]
-  auto message() const -> std::string const &;
+  auto message() const -> std::optional<std::string> const &;
   [[nodiscard]]
   auto passed() const -> bool;
   [[nodiscard]]
@@ -47,7 +49,7 @@ public:
 private:
   std::string group_name_;
   std::string test_name_;
-  std::string message_;
+  std::optional<std::string> message_;
   bool passed_;
   unsigned long long index_;
 };
@@ -188,10 +190,10 @@ private:
   bool incomplete_;
 };
 
-class Context_impl
+class ContextInProcess_impl
 {
 public:
-  Context_impl();
+  ContextInProcess_impl();
 
   void initialize(Engine const &engine, TestId test_id);
 
@@ -206,6 +208,32 @@ private:
   Engine const *engine_;
   TestId test_id_;
   AssertionIndex assertion_index_;
+};
+
+class ContextChildProcess_impl
+{
+public:
+  ContextChildProcess_impl();
+
+  void initialize(
+    Engine const &engine,
+    TestId test_id,
+    InputPipeEnd const &response_write_pipe);
+
+  [[nodiscard]]
+  auto get_engine() const -> Engine const &;
+  [[nodiscard]]
+  auto generate_assertion_index() -> AssertionIndex;
+  [[nodiscard]]
+  auto test_id() const -> TestId;
+  [[nodiscard]]
+  auto response_write_pipe() const -> InputPipeEnd const *;
+
+private:
+  Engine const *engine_;
+  TestId test_id_;
+  AssertionIndex assertion_index_;
+  InputPipeEnd const *response_write_pipe_;
 };
 
 class Engine_impl
@@ -244,6 +272,12 @@ public:
     TestId test_id,
     AssertionIndex index,
     std::optional<std::string> maybe_message);
+  void transmit_assertion(
+    bool condition,
+    TestId test_id,
+    AssertionIndex index,
+    std::optional<std::string> const &maybe_message,
+    InputPipeEnd const &response_write_pipe) const;
   [[nodiscard]]
   auto errors() const noexcept -> std::vector<std::string>;
   [[nodiscard]]
@@ -280,7 +314,11 @@ public:
   [[nodiscard]]
   auto get_assertions() const -> std::vector<AssertionRecord>;
   [[nodiscard]]
-  auto make_context(TestId test_id) const -> Context;
+  auto make_in_process_context(TestId test_id) const
+    -> std::unique_ptr<Context>;
+  auto make_child_process_context(
+    TestId test_id,
+    InputPipeEnd const &response_write_pipe) const -> std::unique_ptr<Context>;
   void set_shuffled_test_record_ptrs();
   [[nodiscard]]
   auto get_shuffled_test_record_ptrs() const
@@ -327,7 +365,5 @@ private:
   std::vector<std::unique_ptr<TestOutcome>> test_outcomes_;
   std::vector<std::string> errors_;
 };
-
-extern char const *const NO_ASSERTION_MESSAGE;
 
 } // namespace waypoint::internal

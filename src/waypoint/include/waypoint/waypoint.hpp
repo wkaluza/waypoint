@@ -16,7 +16,8 @@ namespace waypoint::internal
 {
 
 class AssertionOutcome_impl;
-class Context_impl;
+class ContextInProcess_impl;
+class ContextChildProcess_impl;
 class Engine_impl;
 class Group_impl;
 class RunResult_impl;
@@ -457,7 +458,8 @@ private:
 };
 
 extern template class UniquePtr<AssertionOutcome_impl>;
-extern template class UniquePtr<Context_impl>;
+extern template class UniquePtr<ContextInProcess_impl>;
+extern template class UniquePtr<ContextChildProcess_impl>;
 extern template class UniquePtr<Engine_impl>;
 extern template class UniquePtr<Group_impl>;
 extern template class UniquePtr<RunResult_impl>;
@@ -508,23 +510,71 @@ private:
 class Context
 {
 public:
-  ~Context();
+  virtual ~Context();
+  Context();
   Context(Context const &other) = delete;
   Context(Context &&other) noexcept = delete;
   auto operator=(Context const &other) -> Context & = delete;
   auto operator=(Context &&other) noexcept -> Context & = delete;
 
-  void assert(bool condition) const noexcept;
-  void assert(bool condition, char const *message) const noexcept;
+  virtual void assert(bool condition) const noexcept = 0;
+  virtual void assert(bool condition, char const *message) const noexcept = 0;
   [[nodiscard]]
-  auto assume(bool condition) const noexcept -> bool;
+  virtual auto assume(bool condition) const noexcept -> bool = 0;
   [[nodiscard]]
-  auto assume(bool condition, char const *message) const noexcept -> bool;
+  virtual auto assume(bool condition, char const *message) const noexcept
+    -> bool = 0;
+};
+
+class ContextInProcess final : public Context
+{
+public:
+  ~ContextInProcess() override;
+  ContextInProcess(ContextInProcess const &other) = delete;
+  ContextInProcess(ContextInProcess &&other) noexcept = delete;
+  auto operator=(ContextInProcess const &other) -> ContextInProcess & = delete;
+  auto operator=(ContextInProcess &&other) noexcept
+    -> ContextInProcess & = delete;
+
+  void assert(bool condition) const noexcept override;
+  void assert(bool condition, char const *message) const noexcept override;
+  [[nodiscard]]
+  auto assume(bool condition) const noexcept -> bool override;
+  [[nodiscard]]
+  auto assume(bool condition, char const *message) const noexcept
+    -> bool override;
 
 private:
-  explicit Context(internal::Context_impl *impl);
+  explicit ContextInProcess(internal::ContextInProcess_impl *impl);
 
-  internal::UniquePtr<internal::Context_impl> const impl_;
+  internal::UniquePtr<internal::ContextInProcess_impl> const impl_;
+
+  friend class internal::Engine_impl;
+};
+
+class ContextChildProcess final : public Context
+{
+public:
+  ~ContextChildProcess() override;
+  ContextChildProcess(ContextChildProcess const &other) = delete;
+  ContextChildProcess(ContextChildProcess &&other) noexcept = delete;
+  auto operator=(ContextChildProcess const &other)
+    -> ContextChildProcess & = delete;
+  auto operator=(ContextChildProcess &&other) noexcept
+    -> ContextChildProcess & = delete;
+
+  void assert(bool condition) const noexcept override;
+  void assert(bool condition, char const *message) const noexcept override;
+  [[nodiscard]]
+  auto assume(bool condition) const noexcept -> bool override;
+  [[nodiscard]]
+  auto assume(bool condition, char const *message) const noexcept
+    -> bool override;
+
+private:
+  explicit ContextChildProcess(internal::ContextChildProcess_impl *impl);
+
+  internal::UniquePtr<internal::ContextChildProcess_impl> const impl_;
 
   friend class internal::Engine_impl;
 };
@@ -681,6 +731,8 @@ namespace waypoint
 
 [[nodiscard]]
 auto make_default_engine() noexcept -> Engine;
+[[nodiscard]]
+auto run_all_tests_in_process(Engine const &t) noexcept -> RunResult;
 [[nodiscard]]
 auto run_all_tests(Engine const &t) noexcept -> RunResult;
 

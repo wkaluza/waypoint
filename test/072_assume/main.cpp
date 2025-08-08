@@ -1,0 +1,93 @@
+#include "impls.hpp"
+
+#include "test_helpers/test_helpers.hpp"
+#include "waypoint/waypoint.hpp"
+
+#include <cstring>
+#include <vector>
+
+WAYPOINT_AUTORUN(waypoint::Engine const &t)
+{
+  auto const g1 = t.group("Test group 1");
+
+  t.test(g1, "Test 1")
+    .run(
+      [](auto const &ctx)
+      {
+        if(ctx.assume(true, "message 1"))
+        {
+          ctx.assert(false, "message 2");
+
+          if(!ctx.assume(true, "message 3"))
+          {
+            ctx.assert(false, "message 4");
+
+            return;
+          }
+
+          ctx.assert(false, "message 5");
+          ctx.assert(true, "message 6");
+
+          if(!ctx.assume(false))
+          {
+            ctx.assert(false, "message 7");
+            ctx.assert(true, "message 8");
+
+            return;
+          }
+
+          ctx.assert(true, "message 9");
+        }
+      });
+}
+
+auto main() -> int
+{
+  auto const t = waypoint::make_default_engine();
+
+  auto const results = run_all_tests(t);
+
+  // We expect the run to fail
+  REQUIRE_IN_MAIN(!results.success());
+
+  auto const error_count = results.error_count();
+  REQUIRE_IN_MAIN(error_count == 0);
+
+  auto const test_count = results.test_count();
+  REQUIRE_IN_MAIN(test_count == 1);
+
+  auto const &test_outcome = results.test_outcome(0);
+  auto const assertion_count = test_outcome.assertion_count();
+  REQUIRE_IN_MAIN(assertion_count == 8);
+
+  for(unsigned i = 0; i < assertion_count; ++i)
+  {
+    auto const &assertion_outcome = test_outcome.assertion_outcome(i);
+    std::vector<char const *> messages = {
+      "message 1",
+      "message 2",
+      "message 3",
+      "message 5",
+      "message 6",
+      nullptr,
+      "message 7",
+      "message 8"};
+
+    char const *actual_message = assertion_outcome.message();
+    char const *expected_message = messages[i];
+    if(expected_message == nullptr)
+    {
+      REQUIRE_IN_MAIN(actual_message == expected_message);
+    }
+    else
+    {
+      REQUIRE_IN_MAIN(std::strcmp(actual_message, expected_message) == 0);
+    }
+
+    std::vector<bool> outcomes =
+      {true, false, true, false, true, false, false, true};
+    REQUIRE_IN_MAIN(assertion_outcome.passed() == outcomes[i]);
+  }
+
+  return 0;
+}

@@ -54,7 +54,7 @@ auto main() -> int
 {
   auto const t = waypoint::make_default_engine();
 
-  auto const results = run_all_tests(t);
+  auto const results = run_all_tests_in_process(t);
 
   // We expect the run to fail
   REQUIRE_IN_MAIN(!results.success());
