@@ -160,3 +160,4 @@ new_impl_test(072_assume)
 
 new_basic_test(073_disable)
 new_basic_test(074_status)
+new_basic_test(075_env_vars)

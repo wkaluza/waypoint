@@ -13,6 +13,10 @@ function(new_target_)
 
     add_test(NAME test_${arg_TARGET} COMMAND $<TARGET_FILE:${arg_TARGET}>)
     set_tests_properties(test_${arg_TARGET} PROPERTIES LABELS test)
+    set_tests_properties(
+      test_${arg_TARGET}
+      PROPERTIES ENVIRONMENT
+                 WAYPOINT_INTERNAL_RUNNING_TEST_XTSyiOp7QMFW8P2H=123)
 
     add_test(
       NAME valgrind_${arg_TARGET}
@@ -20,6 +24,10 @@ function(new_target_)
               $<TARGET_FILE:${arg_TARGET}>
       CONFIGURATIONS Debug)
     set_tests_properties(valgrind_${arg_TARGET} PROPERTIES LABELS valgrind)
+    set_tests_properties(
+      valgrind_${arg_TARGET}
+      PROPERTIES ENVIRONMENT
+                 WAYPOINT_INTERNAL_RUNNING_TEST_XTSyiOp7QMFW8P2H=123)
   endif()
   if(arg_STATIC)
     add_library(${arg_TARGET} STATIC)

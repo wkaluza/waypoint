@@ -2,6 +2,9 @@
 
 #include "waypoint/waypoint.hpp"
 
+#include <optional>
+#include <string>
+
 namespace waypoint::test
 {
 
@@ -101,6 +104,8 @@ void int_fixture_increment_x_test_body(
   waypoint::Context const &ctx,
   int const &fixture);
 void int_fixture_teardown(waypoint::Context const &ctx, int const &fixture);
+
+auto get_env(std::string const &var_name) -> std::optional<std::string>;
 
 } // namespace waypoint::test
 

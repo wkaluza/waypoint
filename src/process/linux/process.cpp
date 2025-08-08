@@ -173,7 +173,6 @@ auto get_pipes_from_env() noexcept -> std::pair<OutputPipeEnd, InputPipeEnd>
   auto const maybe_response_write_pipe =
     get_env(WAYPOINT_INTERNAL_RESPONSE_SINK_ENV_NAME);
 
-  unset_env(WAYPOINT_INTERNAL_RUNNER_ENV_NAME);
   unset_env(WAYPOINT_INTERNAL_COMMAND_SOURCE_ENV_NAME);
   unset_env(WAYPOINT_INTERNAL_RESPONSE_SINK_ENV_NAME);
 
@@ -196,6 +195,8 @@ auto is_child() -> bool
   {
     return false;
   }
+
+  unset_env(WAYPOINT_INTERNAL_RUNNER_ENV_NAME);
 
   return maybe_value.value() == WAYPOINT_INTERNAL_RUNNER_ENV_VALUE;
 }
@@ -268,6 +269,10 @@ auto create_child_process(
 
   auto const path_to_exe = get_path_to_current_executable();
 
+  std::array<char const *, 2> const execve_argv = {
+    path_to_exe.c_str(),
+    nullptr};
+
   auto const runner_mode_env = std::format(
     "{}={}",
     WAYPOINT_INTERNAL_RUNNER_ENV_NAME,
@@ -281,16 +286,18 @@ auto create_child_process(
     WAYPOINT_INTERNAL_RESPONSE_SINK_ENV_NAME,
     pipe_response[1]);
 
-  [[maybe_unused]]
-  std::array<char const *, 2> const execve_argv = {
-    path_to_exe.c_str(),
-    nullptr};
-  [[maybe_unused]]
-  std::array<char const *, 4> const execve_envp = {
+  std::vector<char const *> execve_envp = {
     runner_mode_env.c_str(),
     command_source_env.c_str(),
-    response_sink_env.c_str(),
-    nullptr};
+    response_sink_env.c_str()};
+
+  // ::environ is declared in <unistd.h>
+  for(auto const *e = ::environ; *e != nullptr; ++e)
+  {
+    execve_envp.push_back(*e);
+  }
+
+  execve_envp.push_back(nullptr);
 
   waypoint::coverage::gcov_dump();
 
