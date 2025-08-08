@@ -29,7 +29,7 @@ function(new_target)
   target_compile_features(
     ${arg_TARGET}
     PRIVATE cxx_std_23
-    PUBLIC cxx_std_23)
+    PUBLIC cxx_std_17)
 
   if(DEFINED PRESET_ENABLE_COVERAGE)
     target_compile_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
