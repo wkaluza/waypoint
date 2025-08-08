@@ -639,6 +639,7 @@ def run_gcovr(build_dir) -> bool:
     success = create_dir(COVERAGE_DIR_GCOVR)
     if not success:
         print(f"Failed to create {COVERAGE_DIR_GCOVR}")
+
         return False
 
     with contextlib.chdir(PROJECT_ROOT_DIR):
@@ -646,6 +647,8 @@ def run_gcovr(build_dir) -> bool:
             [
                 "gcovr",
                 "--decisions",
+                "--exclude-pattern-prefix",
+                "GCOV_COVERAGE_58QuSuUgMN8onvKx_*",
                 "--exclude",
                 f"{PROJECT_ROOT_DIR}/test/",
                 "--filter",
@@ -1089,7 +1092,7 @@ class Task:
                 f"{self.name_} ({ns_to_string(time.time_ns() - start)})",
             )
         if not success:
-            print("Error running task", f"{self.name_}")
+            print("Task failed:", f"{self.name_}")
 
             return False
 
