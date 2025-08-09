@@ -349,7 +349,7 @@ class ChildProcessRAII_impl
 public:
   ~ChildProcessRAII_impl()
   {
-    wait_for_child_process_end(this->child_pid());
+    wait_for_child_process_end(this->child_pid_);
   }
 
   ChildProcessRAII_impl()
@@ -370,12 +370,6 @@ public:
     -> ChildProcessRAII_impl & = delete;
   auto operator=(ChildProcessRAII_impl &&other) noexcept
     -> ChildProcessRAII_impl & = delete;
-
-  [[nodiscard]]
-  auto child_pid() const -> int
-  {
-    return this->child_pid_;
-  }
 
   [[nodiscard]]
   auto command_write_pipe() const -> InputPipeEnd const &
