@@ -206,15 +206,14 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
     "ContextChildProcess_impl");
   register_test_unique_ptr<waypoint::internal::Engine_impl>(t, "Engine_impl");
   register_test_unique_ptr<waypoint::internal::Group_impl>(t, "Group_impl");
-  register_test_unique_ptr<waypoint::internal::RunResult_impl>(
-    t,
-    "RunResult_impl");
   register_test_unique_ptr<waypoint::internal::Test_impl>(t, "Test_impl");
   register_test_unique_ptr<waypoint::internal::TestOutcome_impl>(
     t,
     "TestOutcome_impl");
 
-  register_test_moveable_unique_ptr<int>(t, "int");
+  register_test_moveable_unique_ptr<waypoint::internal::RunResult_impl>(
+    t,
+    "RunResult_impl");
 }
 
 auto main() -> int

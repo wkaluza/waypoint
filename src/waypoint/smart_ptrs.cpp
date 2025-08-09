@@ -39,7 +39,6 @@ template class UniquePtr<ContextInProcess_impl>;
 template class UniquePtr<ContextChildProcess_impl>;
 template class UniquePtr<Engine_impl>;
 template class UniquePtr<Group_impl>;
-template class UniquePtr<RunResult_impl>;
 template class UniquePtr<Test_impl>;
 template class UniquePtr<TestOutcome_impl>;
 

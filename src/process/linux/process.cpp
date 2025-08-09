@@ -147,9 +147,9 @@ OutputPipeEnd::OutputPipeEnd(OutputPipeEnd_impl *const impl)
 {
 }
 
-void OutputPipeEnd::read(
+auto OutputPipeEnd::read(
   unsigned char *const buffer,
-  unsigned long long const count) const
+  unsigned long long const count) const -> OutputPipeEnd::ReadResult
 {
   unsigned left_to_transfer = count;
   unsigned transferred = 0;
@@ -159,9 +159,17 @@ void OutputPipeEnd::read(
     auto const transferred_this_time =
       ::read(this->impl_->raw_pipe(), buffer + transferred, left_to_transfer);
 
+    if(transferred_this_time == 0)
+    {
+      // The other end of the pipe is closed - peer crashed or exited
+      return OutputPipeEnd::ReadResult::PipeClosed;
+    }
+
     transferred += transferred_this_time;
     left_to_transfer -= transferred_this_time;
   }
+
+  return OutputPipeEnd::ReadResult::Success;
 }
 
 OutputPipeEnd::OutputPipeEnd(OutputPipeEnd &&other) noexcept = default;

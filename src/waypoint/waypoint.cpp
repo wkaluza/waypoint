@@ -1,6 +1,7 @@
 #include "waypoint.hpp"
 
 #include "impls.hpp"
+#include "types.hpp"
 
 #include "autorun/autorun.hpp"
 #include "process/process.hpp"
@@ -10,7 +11,9 @@
 #include <functional>
 #include <optional>
 #include <ranges>
+#include <span>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -86,28 +89,30 @@ void complete_handshake(waypoint::internal::InputPipeEnd const &pipe)
 void await_handshake_start(waypoint::internal::OutputPipeEnd const &pipe)
 {
   unsigned char data = 0;
-  pipe.read(&data, sizeof data);
+  [[maybe_unused]]
+  auto const read_result = pipe.read(&data, sizeof data);
 }
 
 void await_handshake_end(waypoint::internal::OutputPipeEnd const &pipe)
 {
   unsigned char data = 0;
-  pipe.read(&data, sizeof data);
+  [[maybe_unused]]
+  auto const read_result = pipe.read(&data, sizeof data);
 }
 
 auto receive_command(waypoint::internal::OutputPipeEnd const &command_read_pipe)
   -> waypoint::internal::Command
 {
-  unsigned char code_ =
-    std::to_underlying(waypoint::internal::Command::Code::Invalid);
-  command_read_pipe.read(&code_, sizeof code_);
+  auto code_ = std::to_underlying(waypoint::internal::Command::Code::Invalid);
+  [[maybe_unused]]
+  auto read_result = command_read_pipe.read(&code_, sizeof code_);
 
   auto const code = static_cast<waypoint::internal::Command::Code>(code_);
 
   if(code == waypoint::internal::Command::Code::RunTest)
   {
     unsigned long long test_index = 0;
-    command_read_pipe.read(
+    read_result = command_read_pipe.read(
       reinterpret_cast<unsigned char *>(&test_index),
       sizeof test_index);
 
@@ -119,59 +124,71 @@ auto receive_command(waypoint::internal::OutputPipeEnd const &command_read_pipe)
 
 auto receive_response(
   waypoint::internal::OutputPipeEnd const &response_read_pipe)
-  -> waypoint::internal::Response
+  -> std::optional<waypoint::internal::Response>
 {
-  unsigned char code_ =
-    std::to_underlying(waypoint::internal::Response::Code::Invalid);
-  response_read_pipe.read(&code_, sizeof code_);
+  auto code_ = std::to_underlying(waypoint::internal::Response::Code::Invalid);
+  [[maybe_unused]]
+  auto read_result = response_read_pipe.read(&code_, sizeof code_);
+  if(read_result == waypoint::internal::OutputPipeEnd::ReadResult::PipeClosed)
+  {
+    return std::nullopt;
+  }
 
   auto const code = static_cast<waypoint::internal::Response::Code>(code_);
 
+  if(
+    code != waypoint::internal::Response::Code::Assertion &&
+    code != waypoint::internal::Response::Code::TestComplete)
+  {
+    return {waypoint::internal::Response{code, {}, {}, {}, {}}};
+  }
+
+  unsigned long long test_id = 0;
+  read_result = response_read_pipe.read(
+    reinterpret_cast<unsigned char *>(&test_id),
+    sizeof test_id);
+
   if(code == waypoint::internal::Response::Code::Assertion)
   {
-    unsigned long long test_id = 0;
-    response_read_pipe.read(
-      reinterpret_cast<unsigned char *>(&test_id),
-      sizeof test_id);
-
     unsigned char passed = 0;
-    response_read_pipe.read(&passed, sizeof passed);
+    read_result = response_read_pipe.read(&passed, sizeof passed);
 
     unsigned long long assertion_index = 0;
-    response_read_pipe.read(
+    read_result = response_read_pipe.read(
       reinterpret_cast<unsigned char *>(&assertion_index),
       sizeof assertion_index);
 
     unsigned char has_message = 0;
-    response_read_pipe.read(&has_message, sizeof has_message);
+    read_result = response_read_pipe.read(&has_message, sizeof has_message);
     if(has_message == 0)
     {
-      return {code, test_id, passed == 1, assertion_index, std::nullopt};
+      return {waypoint::internal::Response{
+        code,
+        test_id,
+        passed == 1,
+        assertion_index,
+        std::nullopt}};
     }
 
     unsigned long long message_size = 0;
-    response_read_pipe.read(
+    read_result = response_read_pipe.read(
       reinterpret_cast<unsigned char *>(&message_size),
       sizeof message_size);
+
     std::string message(message_size, 'X');
-    response_read_pipe.read(
+    read_result = response_read_pipe.read(
       reinterpret_cast<unsigned char *>(message.data()),
       message_size);
 
-    return {code, test_id, passed == 1, assertion_index, {message}};
+    return {waypoint::internal::Response{
+      code,
+      test_id,
+      passed == 1,
+      assertion_index,
+      {message}}};
   }
 
-  if(code == waypoint::internal::Response::Code::TestComplete)
-  {
-    unsigned long long test_id = 0;
-    response_read_pipe.read(
-      reinterpret_cast<unsigned char *>(&test_id),
-      sizeof test_id);
-
-    return {code, test_id, {}, {}, {}};
-  }
-
-  return {code, {}, {}, {}, {}};
+  return {waypoint::internal::Response{code, test_id, {}, {}, {}}};
 }
 
 void send_command(
@@ -224,30 +241,34 @@ void shut_down_sequence(
   send_command(command_write_pipe, command);
 
   [[maybe_unused]]
-  auto const response = receive_response(response_read_pipe);
+  auto const maybe_response = receive_response(response_read_pipe);
 }
 
 auto parent_main(
   waypoint::Engine const &t,
   waypoint::internal::InputPipeEnd const &command_write_pipe,
-  waypoint::internal::OutputPipeEnd const &response_read_pipe) noexcept
-  -> waypoint::RunResult
+  waypoint::internal::OutputPipeEnd const &response_read_pipe,
+  unsigned long long const initial_test_index) noexcept
+  -> std::tuple<waypoint::RunResult, bool, unsigned long long>
 {
   begin_handshake(command_write_pipe);
   await_handshake_end(response_read_pipe);
 
-  auto const &records =
-    waypoint::internal::get_impl(t).get_shuffled_test_record_ptrs();
+  auto &impl = waypoint::internal::get_impl(t);
 
-  for(auto *const record : records)
+  auto const &all_records = impl.get_shuffled_test_record_ptrs();
+  auto const record_subset = std::span(
+    all_records.data() + initial_test_index,
+    all_records.size() - initial_test_index);
+
+  for(auto *record : record_subset)
   {
     if(record->disabled())
     {
       continue;
     }
 
-    auto const test_index =
-      waypoint::internal::get_impl(t).get_test_index(record->test_id());
+    auto const test_index = impl.get_test_index(record->test_id());
 
     auto const command = waypoint::internal::Command{
       waypoint::internal::Command::Code::RunTest,
@@ -257,10 +278,21 @@ auto parent_main(
 
     while(true)
     {
-      auto const response = receive_response(response_read_pipe);
+      auto const maybe_response = receive_response(response_read_pipe);
+      if(!maybe_response.has_value())
+      {
+        record->mark_as_crashed();
+
+        return {
+          impl.generate_results(),
+          true,
+          impl.get_test_index(record->test_id())};
+      }
+
+      auto const &response = maybe_response.value();
       if(response.code == waypoint::internal::Response::Code::Assertion)
       {
-        waypoint::internal::get_impl(t).register_assertion(
+        impl.register_assertion(
           response.assertion_passed,
           response.test_id,
           response.assertion_index,
@@ -275,7 +307,7 @@ auto parent_main(
 
   shut_down_sequence(command_write_pipe, response_read_pipe);
 
-  return waypoint::internal::get_impl(t).generate_results();
+  return {impl.generate_results(), false, 0};
 }
 
 void child_main(
@@ -402,9 +434,29 @@ auto run_all_tests(Engine const &t) noexcept -> RunResult
     std::exit(0);
   }
 
-  waypoint::internal::ChildProcessRAII const child;
+  waypoint::TestId initial_test_index = 0;
+  while(true)
+  {
+    waypoint::internal::ChildProcessRAII const child;
 
-  return parent_main(t, child.command_write_pipe(), child.response_read_pipe());
+    auto results = parent_main(
+      t,
+      child.command_write_pipe(),
+      child.response_read_pipe(),
+      initial_test_index);
+    auto run_result = std::move(std::get<0>(results));
+    auto const crash_detected = std::get<1>(results);
+    auto const creshed_test_index = std::get<2>(results);
+
+    if(!crash_detected)
+    {
+      return run_result;
+    }
+
+    initial_test_index = creshed_test_index + 1;
+  }
+
+  std::unreachable();
 }
 
 AssertionOutcome::~AssertionOutcome() = default;
@@ -725,14 +777,18 @@ auto ContextChildProcess::assume(
 
 RunResult::~RunResult() = default;
 
+RunResult::RunResult(RunResult &&other) noexcept = default;
+
 RunResult::RunResult(internal::RunResult_impl *const impl)
-  : impl_{internal::UniquePtr{impl}}
+  : impl_{internal::MoveableUniquePtr<internal::RunResult_impl>{impl}}
 {
 }
 
 auto RunResult::success() const noexcept -> bool
 {
-  return !this->impl_->has_errors() && !this->impl_->has_failing_assertions();
+  return !this->impl_->has_errors() &&
+    !this->impl_->has_failing_assertions() &&
+    !this->impl_->has_crashes();
 }
 
 auto RunResult::test_count() const noexcept -> unsigned long long

@@ -462,7 +462,6 @@ extern template class UniquePtr<ContextInProcess_impl>;
 extern template class UniquePtr<ContextChildProcess_impl>;
 extern template class UniquePtr<Engine_impl>;
 extern template class UniquePtr<Group_impl>;
-extern template class UniquePtr<RunResult_impl>;
 extern template class UniquePtr<Test_impl>;
 extern template class UniquePtr<TestOutcome_impl>;
 
@@ -776,9 +775,10 @@ public:
 
   enum class Status : unsigned char
   {
+    NotRun,
     Success,
     Failure,
-    NotRun
+    Crashed
   };
 
   [[nodiscard]]
@@ -1081,7 +1081,7 @@ class RunResult
 public:
   ~RunResult();
   RunResult(RunResult const &other) = delete;
-  RunResult(RunResult &&other) noexcept = delete;
+  RunResult(RunResult &&other) noexcept;
   auto operator=(RunResult const &other) -> RunResult & = delete;
   auto operator=(RunResult &&other) noexcept -> RunResult & = delete;
 
@@ -1100,7 +1100,7 @@ public:
 private:
   explicit RunResult(internal::RunResult_impl *impl);
 
-  internal::UniquePtr<internal::RunResult_impl> const impl_;
+  internal::MoveableUniquePtr<internal::RunResult_impl> impl_;
 
   friend class internal::Engine_impl;
 };

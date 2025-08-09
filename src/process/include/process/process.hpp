@@ -72,6 +72,12 @@ class OutputPipeEnd_impl;
 class OutputPipeEnd
 {
 public:
+  enum class ReadResult : unsigned char
+  {
+    Success,
+    PipeClosed
+  };
+
   ~OutputPipeEnd();
   explicit OutputPipeEnd(OutputPipeEnd_impl *impl);
   OutputPipeEnd(OutputPipeEnd const &other) = delete;
@@ -79,7 +85,9 @@ public:
   auto operator=(OutputPipeEnd const &other) -> OutputPipeEnd & = delete;
   auto operator=(OutputPipeEnd &&other) noexcept -> OutputPipeEnd & = delete;
 
-  void read(unsigned char *buffer, unsigned long long count) const;
+  [[nodiscard]]
+  auto read(unsigned char *buffer, unsigned long long count) const
+    -> ReadResult;
 
 private:
   std::unique_ptr<OutputPipeEnd_impl> impl_;

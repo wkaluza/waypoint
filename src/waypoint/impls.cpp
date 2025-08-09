@@ -178,6 +178,11 @@ void TestRecord::mark_as_run()
   this->status_ = TestRecord::Status::Complete;
 }
 
+void TestRecord::mark_as_crashed()
+{
+  this->status_ = TestRecord::Status::Crashed;
+}
+
 AssertionRecord::AssertionRecord(
   bool const condition,
   TestId const test_id,
@@ -445,6 +450,11 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
       if(test_record.status() == TestRecord::Status::NotRun)
       {
         return TestOutcome::Status::NotRun;
+      }
+
+      if(test_record.status() == TestRecord::Status::Crashed)
+      {
+        return TestOutcome::Status::Crashed;
       }
 
       auto const it = std::ranges::find_if(
@@ -812,6 +822,18 @@ auto RunResult_impl::has_errors() const -> bool
 auto RunResult_impl::has_failing_assertions() const -> bool
 {
   return this->has_failing_assertions_;
+}
+
+auto RunResult_impl::has_crashes() const -> bool
+{
+  auto const it = std::ranges::find_if(
+    this->test_outcomes_,
+    [](auto const &outcome)
+    {
+      return outcome->status() == TestOutcome::Status::Crashed;
+    });
+
+  return it != this->test_outcomes_.end();
 }
 
 auto RunResult_impl::test_outcome_count() const -> unsigned long long

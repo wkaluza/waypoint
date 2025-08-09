@@ -108,7 +108,8 @@ public:
   enum class Status : std::uint8_t
   {
     NotRun,
-    Complete
+    Complete,
+    Crashed
   };
 
   [[nodiscard]]
@@ -120,6 +121,7 @@ public:
   [[nodiscard]]
   auto status() const -> TestRecord::Status;
   void mark_as_run();
+  void mark_as_crashed();
 
 private:
   TestAssembly test_assembly_;
@@ -355,6 +357,8 @@ public:
   auto has_errors() const -> bool;
   [[nodiscard]]
   auto has_failing_assertions() const -> bool;
+  [[nodiscard]]
+  auto has_crashes() const -> bool;
   [[nodiscard]]
   auto test_outcome_count() const -> unsigned long long;
   [[nodiscard]]
