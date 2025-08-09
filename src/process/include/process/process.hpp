@@ -17,7 +17,8 @@ public:
     Ready,
     Assertion,
     TestComplete,
-    ShuttingDown
+    ShuttingDown,
+    Timeout
   };
 
   Response(

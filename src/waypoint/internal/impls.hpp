@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -109,7 +110,8 @@ public:
   {
     NotRun,
     Complete,
-    Crashed
+    Crashed,
+    Timeout
   };
 
   [[nodiscard]]
@@ -122,6 +124,7 @@ public:
   auto status() const -> TestRecord::Status;
   void mark_as_run();
   void mark_as_crashed();
+  void mark_as_timed_out();
 
 private:
   TestAssembly test_assembly_;
@@ -192,6 +195,15 @@ private:
   bool incomplete_;
 };
 
+class TransmissionGuard
+{
+public:
+  auto lock() const noexcept -> std::lock_guard<std::mutex>;
+
+private:
+  mutable std::mutex mtx_;
+};
+
 class ContextInProcess_impl
 {
 public:
@@ -220,7 +232,8 @@ public:
   void initialize(
     Engine const &engine,
     TestId test_id,
-    InputPipeEnd const &response_write_pipe);
+    InputPipeEnd const &response_write_pipe,
+    TransmissionGuard const &guard);
 
   [[nodiscard]]
   auto get_engine() const -> Engine const &;
@@ -230,12 +243,15 @@ public:
   auto test_id() const -> TestId;
   [[nodiscard]]
   auto response_write_pipe() const -> InputPipeEnd const *;
+  [[nodiscard]]
+  auto transmission_guard() const -> TransmissionGuard const *;
 
 private:
   Engine const *engine_;
   TestId test_id_;
   AssertionIndex assertion_index_;
   InputPipeEnd const *response_write_pipe_;
+  TransmissionGuard const *transmission_guard_;
 };
 
 class Engine_impl
@@ -320,7 +336,9 @@ public:
     -> std::unique_ptr<Context>;
   auto make_child_process_context(
     TestId test_id,
-    InputPipeEnd const &response_write_pipe) const -> std::unique_ptr<Context>;
+    InputPipeEnd const &response_write_pipe,
+    waypoint::internal::TransmissionGuard const &guard) const
+    -> std::unique_ptr<Context>;
   void set_shuffled_test_record_ptrs();
   [[nodiscard]]
   auto get_shuffled_test_record_ptrs() const
@@ -359,6 +377,8 @@ public:
   auto has_failing_assertions() const -> bool;
   [[nodiscard]]
   auto has_crashes() const -> bool;
+  [[nodiscard]]
+  auto has_timeouts() const -> bool;
   [[nodiscard]]
   auto test_outcome_count() const -> unsigned long long;
   [[nodiscard]]

@@ -62,6 +62,7 @@ new_target(
   types.hpp
   LINKS
   autorun
+  coverage
   process)
 
 new_target(
@@ -178,3 +179,8 @@ new_basic_test(082_crash)
 target_link_libraries(082_crash PRIVATE coverage)
 new_basic_test(083_crash)
 target_link_libraries(083_crash PRIVATE coverage)
+
+new_basic_test(084_timeout)
+new_basic_test(085_timeout)
+new_basic_test(086_timeout)
+new_basic_test(087_timeout)

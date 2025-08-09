@@ -4,15 +4,22 @@
 #include "types.hpp"
 
 #include "autorun/autorun.hpp"
+#include "coverage/coverage.hpp"
 #include "process/process.hpp"
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <cstdlib>
 #include <functional>
+#include <latch>
+#include <mutex>
 #include <optional>
 #include <ranges>
 #include <span>
 #include <string>
+#include <thread>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -30,6 +37,114 @@ auto get_impl(Engine const &engine) -> Engine_impl &
 namespace
 {
 
+void send_response(
+  waypoint::Engine const &t,
+  waypoint::internal::InputPipeEnd const &response_write_pipe,
+  unsigned long long const test_index,
+  waypoint::internal::Response::Code const &code_,
+  waypoint::internal::TransmissionGuard const &guard)
+{
+  auto lock = guard.lock();
+
+  auto const code = std::to_underlying(code_);
+  response_write_pipe.write(&code, sizeof code);
+  if(code_ == waypoint::internal::Response::Code::TestComplete)
+  {
+    waypoint::internal::TestRecord const *const record =
+      waypoint::internal::get_impl(t).get_shuffled_test_record_ptrs().at(
+        test_index);
+    auto const test_id = record->test_id();
+    response_write_pipe.write(
+      reinterpret_cast<unsigned char const *>(&test_id),
+      sizeof test_id);
+  }
+}
+
+class Timeout
+{
+public:
+  ~Timeout()
+  {
+    this->thread_.join();
+  }
+
+  Timeout(Timeout const &other) = delete;
+  Timeout(Timeout &&other) noexcept = delete;
+  auto operator=(Timeout const &other) -> Timeout & = delete;
+  auto operator=(Timeout &&other) noexcept -> Timeout & = delete;
+
+  explicit Timeout(
+    waypoint::Engine const &engine,
+    unsigned long long const test_index,
+    waypoint::internal::TransmissionGuard const &guard,
+    waypoint::internal::InputPipeEnd const &response_write_pipe)
+    : guard_{guard},
+      engine_{engine},
+      response_write_pipe_{response_write_pipe},
+      test_index_{test_index},
+      latch_{2},
+      is_armed_{1},
+      thread_{[this]()
+              {
+                // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_START
+                this->latch_.arrive_and_wait();
+                // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_STOP
+
+                std::unique_lock<std::mutex> lock{this->mtx_};
+
+                [[maybe_unused]]
+                bool const disarmed = this->cv_.wait_for(
+                  lock,
+                  std::chrono::milliseconds{1'000},
+                  [this]()
+                  {
+                    return !this->is_armed_.load();
+                  });
+
+                if(this->is_armed_.load() == 0)
+                {
+                  return;
+                }
+
+                send_response(
+                  this->engine_,
+                  this->response_write_pipe_,
+                  this->test_index_,
+                  waypoint::internal::Response::Code::Timeout,
+                  this->guard_);
+
+                auto const lock2 = this->guard_.lock();
+
+                waypoint::coverage::gcov_dump();
+
+                // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_START
+                std::abort();
+                // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_STOP
+              }}
+  {
+    // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_START
+    this->latch_.arrive_and_wait();
+    // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_STOP
+  }
+
+  void disarm()
+  {
+    this->is_armed_.store(0);
+    this->cv_.notify_one();
+  }
+
+private:
+  waypoint::internal::TransmissionGuard const &guard_;
+  waypoint::Engine const &engine_;
+  waypoint::internal::InputPipeEnd const &response_write_pipe_;
+  unsigned long long test_index_;
+  std::latch latch_;
+  std::condition_variable cv_;
+  std::atomic<int> is_armed_;
+  std::mutex mtx_;
+  std::thread thread_;
+};
+
 void populate_test_indices_(waypoint::Engine const &t)
 {
   waypoint::internal::get_impl(t).set_shuffled_test_record_ptrs();
@@ -46,27 +161,33 @@ void populate_test_indices_(waypoint::Engine const &t)
 void run_test(
   waypoint::Engine const &t,
   unsigned long long const test_index,
-  waypoint::internal::InputPipeEnd const &response_write_pipe) noexcept
+  waypoint::internal::InputPipeEnd const &response_write_pipe,
+  waypoint::internal::TransmissionGuard const &guard) noexcept
 {
   auto const &impl = waypoint::internal::get_impl(t);
   waypoint::internal::TestRecord *const record =
     impl.get_shuffled_test_record_ptrs().at(test_index);
 
-  auto const ctx =
-    impl.make_child_process_context(record->test_id(), response_write_pipe);
+  auto const ctx = impl.make_child_process_context(
+    record->test_id(),
+    response_write_pipe,
+    guard);
 
+  Timeout timeout{t, test_index, guard, response_write_pipe};
   record->test_assembly()(*ctx);
+  timeout.disarm();
   record->mark_as_run();
 }
 
 void execute_command(
   waypoint::Engine const &t,
   waypoint::internal::Command const &command,
-  waypoint::internal::InputPipeEnd const &response_write_pipe)
+  waypoint::internal::InputPipeEnd const &response_write_pipe,
+  waypoint::internal::TransmissionGuard const &guard)
 {
   if(command.code == waypoint::internal::Command::Code::RunTest)
   {
-    run_test(t, command.test_index, response_write_pipe);
+    run_test(t, command.test_index, response_write_pipe, guard);
   }
 }
 
@@ -78,19 +199,27 @@ void begin_handshake(waypoint::internal::InputPipeEnd const &pipe)
   pipe.write(&cmd, sizeof cmd);
 }
 
-void complete_handshake(waypoint::internal::InputPipeEnd const &pipe)
+void await_handshake_start(
+  waypoint::internal::OutputPipeEnd const &pipe,
+  waypoint::internal::TransmissionGuard const &guard)
 {
+  auto lock = guard.lock();
+
+  unsigned char data = 0;
+  [[maybe_unused]]
+  auto const read_result = pipe.read(&data, sizeof data);
+}
+
+void complete_handshake(
+  waypoint::internal::InputPipeEnd const &pipe,
+  waypoint::internal::TransmissionGuard const &guard)
+{
+  auto lock = guard.lock();
+
   constexpr auto ready =
     std::to_underlying(waypoint::internal::Response::Code::Ready);
 
   pipe.write(&ready, sizeof ready);
-}
-
-void await_handshake_start(waypoint::internal::OutputPipeEnd const &pipe)
-{
-  unsigned char data = 0;
-  [[maybe_unused]]
-  auto const read_result = pipe.read(&data, sizeof data);
 }
 
 void await_handshake_end(waypoint::internal::OutputPipeEnd const &pipe)
@@ -100,9 +229,13 @@ void await_handshake_end(waypoint::internal::OutputPipeEnd const &pipe)
   auto const read_result = pipe.read(&data, sizeof data);
 }
 
-auto receive_command(waypoint::internal::OutputPipeEnd const &command_read_pipe)
+auto receive_command(
+  waypoint::internal::OutputPipeEnd const &command_read_pipe,
+  waypoint::internal::TransmissionGuard const &guard)
   -> waypoint::internal::Command
 {
+  auto lock = guard.lock();
+
   auto code_ = std::to_underlying(waypoint::internal::Command::Code::Invalid);
   [[maybe_unused]]
   auto read_result = command_read_pipe.read(&code_, sizeof code_);
@@ -206,26 +339,6 @@ void send_command(
   }
 }
 
-void send_response(
-  waypoint::Engine const &t,
-  waypoint::internal::InputPipeEnd const &response_write_pipe,
-  unsigned long long const test_index,
-  waypoint::internal::Response::Code const &code_)
-{
-  auto const code = std::to_underlying(code_);
-  response_write_pipe.write(&code, sizeof code);
-  if(code_ == waypoint::internal::Response::Code::TestComplete)
-  {
-    waypoint::internal::TestRecord const *const record =
-      waypoint::internal::get_impl(t).get_shuffled_test_record_ptrs().at(
-        test_index);
-    auto const test_id = record->test_id();
-    response_write_pipe.write(
-      reinterpret_cast<unsigned char const *>(&test_id),
-      sizeof test_id);
-  }
-}
-
 auto is_end_command(waypoint::internal::Command const &command) -> bool
 {
   return command.code == waypoint::internal::Command::Code::End;
@@ -298,6 +411,17 @@ auto parent_main(
           response.assertion_index,
           response.assertion_message);
       }
+
+      if(response.code == waypoint::internal::Response::Code::Timeout)
+      {
+        record->mark_as_timed_out();
+
+        return {
+          impl.generate_results(),
+          true,
+          impl.get_test_index(record->test_id())};
+      }
+
       if(response.code == waypoint::internal::Response::Code::TestComplete)
       {
         break;
@@ -315,14 +439,16 @@ void child_main(
   waypoint::internal::OutputPipeEnd const &command_read_pipe,
   waypoint::internal::InputPipeEnd const &response_write_pipe) noexcept
 {
-  await_handshake_start(command_read_pipe);
-  complete_handshake(response_write_pipe);
+  constexpr waypoint::internal::TransmissionGuard guard;
+
+  await_handshake_start(command_read_pipe, guard);
+  complete_handshake(response_write_pipe, guard);
 
   while(true)
   {
-    auto const command = receive_command(command_read_pipe);
+    auto const command = receive_command(command_read_pipe, guard);
 
-    execute_command(t, command, response_write_pipe);
+    execute_command(t, command, response_write_pipe, guard);
     send_response(
       t,
       response_write_pipe,
@@ -336,7 +462,8 @@ void child_main(
           }
 
           return waypoint::internal::Response::Code::ShuttingDown;
-        }));
+        }),
+      guard);
 
     if(is_end_command(command))
     {
@@ -705,6 +832,8 @@ ContextChildProcess::ContextChildProcess(
 
 void ContextChildProcess::assert(bool const condition) const noexcept
 {
+  auto const lock = this->impl_->transmission_guard()->lock();
+
   auto const index = this->impl_->generate_assertion_index();
 
   internal::get_impl(impl_->get_engine())
@@ -723,6 +852,8 @@ void ContextChildProcess::assert(
   bool const condition,
   char const *const message) const noexcept
 {
+  auto const lock = this->impl_->transmission_guard()->lock();
+
   auto const index = this->impl_->generate_assertion_index();
 
   internal::get_impl(impl_->get_engine())
@@ -739,6 +870,8 @@ void ContextChildProcess::assert(
 
 auto ContextChildProcess::assume(bool const condition) const noexcept -> bool
 {
+  auto const lock = this->impl_->transmission_guard()->lock();
+
   auto const index = this->impl_->generate_assertion_index();
 
   internal::get_impl(impl_->get_engine())
@@ -759,6 +892,8 @@ auto ContextChildProcess::assume(
   bool const condition,
   char const *const message) const noexcept -> bool
 {
+  auto const lock = this->impl_->transmission_guard()->lock();
+
   auto const index = this->impl_->generate_assertion_index();
 
   internal::get_impl(impl_->get_engine())
@@ -788,7 +923,8 @@ auto RunResult::success() const noexcept -> bool
 {
   return !this->impl_->has_errors() &&
     !this->impl_->has_failing_assertions() &&
-    !this->impl_->has_crashes();
+    !this->impl_->has_crashes() &&
+    !this->impl_->has_timeouts();
 }
 
 auto RunResult::test_count() const noexcept -> unsigned long long

@@ -778,7 +778,8 @@ public:
     NotRun,
     Success,
     Failure,
-    Crashed
+    Crashed,
+    Timeout
   };
 
   [[nodiscard]]
