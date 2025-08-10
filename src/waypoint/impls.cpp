@@ -272,11 +272,6 @@ void Test_impl::mark_complete()
   this->incomplete_ = false;
 }
 
-auto TransmissionGuard::lock() const noexcept -> std::lock_guard<std::mutex>
-{
-  return std::lock_guard<std::mutex>{this->mtx_};
-}
-
 ContextInProcess_impl::ContextInProcess_impl()
   : engine_{},
     test_id_{},
@@ -313,7 +308,7 @@ ContextChildProcess_impl::ContextChildProcess_impl()
     test_id_{},
     assertion_index_{},
     response_write_pipe_{},
-    transmission_guard_{}
+    transmission_mutex_{}
 {
 }
 
@@ -321,13 +316,13 @@ void ContextChildProcess_impl::initialize(
   Engine const &engine,
   TestId const test_id,
   InputPipeEnd const &response_write_pipe,
-  TransmissionGuard const &guard)
+  std::mutex &transmission_mutex)
 {
   this->engine_ = &engine;
   this->test_id_ = test_id;
   this->assertion_index_ = 0;
   this->response_write_pipe_ = &response_write_pipe;
-  this->transmission_guard_ = &guard;
+  this->transmission_mutex_ = &transmission_mutex;
 }
 
 auto ContextChildProcess_impl::get_engine() const -> Engine const &
@@ -351,10 +346,9 @@ auto ContextChildProcess_impl::response_write_pipe() const
   return this->response_write_pipe_;
 }
 
-auto ContextChildProcess_impl::transmission_guard() const
-  -> TransmissionGuard const *
+auto ContextChildProcess_impl::transmission_mutex() const -> std::mutex *
 {
-  return this->transmission_guard_;
+  return this->transmission_mutex_;
 }
 
 Engine_impl::Engine_impl()
@@ -586,11 +580,15 @@ auto Engine_impl::make_in_process_context(TestId const test_id) const
 auto Engine_impl::make_child_process_context(
   TestId const test_id,
   InputPipeEnd const &response_write_pipe,
-  TransmissionGuard const &guard) const -> std::unique_ptr<Context>
+  std::mutex &transmission_mutex) const -> std::unique_ptr<Context>
 {
   auto *impl = new ContextChildProcess_impl{};
 
-  impl->initialize(*this->engine_, test_id, response_write_pipe, guard);
+  impl->initialize(
+    *this->engine_,
+    test_id,
+    response_write_pipe,
+    transmission_mutex);
 
   return std::unique_ptr<ContextChildProcess>(new ContextChildProcess{impl});
 }

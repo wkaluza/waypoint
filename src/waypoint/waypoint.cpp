@@ -38,21 +38,17 @@ namespace
 {
 
 void send_timeout(
-  waypoint::Engine const &t,
   waypoint::internal::InputPipeEnd const &response_write_pipe,
-  unsigned long long const test_index)
+  waypoint::TestId const test_id)
 {
   constexpr auto code =
     std::to_underlying(waypoint::internal::Response::Code::Timeout);
   response_write_pipe.write(&code, sizeof code);
 
-  waypoint::internal::TestRecord const *const record =
-    waypoint::internal::get_impl(t).get_shuffled_test_record_ptrs().at(
-      test_index);
-  auto const test_id = record->test_id();
+  unsigned long long const test_id_ = test_id;
   response_write_pipe.write(
-    reinterpret_cast<unsigned char const *>(&test_id),
-    sizeof test_id);
+    reinterpret_cast<unsigned char const *>(&test_id_),
+    sizeof test_id_);
 }
 
 class Timeout
@@ -69,23 +65,20 @@ public:
   auto operator=(Timeout &&other) noexcept -> Timeout & = delete;
 
   explicit Timeout(
-    waypoint::Engine const &engine,
-    unsigned long long const test_index,
-    waypoint::internal::TransmissionGuard const &guard,
+    waypoint::TestId const test_id,
+    std::mutex &transmission_mutex,
     waypoint::internal::InputPipeEnd const &response_write_pipe)
-    : guard_{guard},
-      engine_{engine},
+    : transmission_mutex_{transmission_mutex},
       response_write_pipe_{response_write_pipe},
-      test_index_{test_index},
+      test_id_{test_id},
       latch_{2},
-      is_armed_{1},
+      is_armed_{true},
       thread_{[this]()
               {
                 this->latch_arrive_and_wait();
 
-                std::unique_lock<std::mutex> lock{this->mtx_};
+                std::unique_lock<std::mutex> lock{this->transmission_mutex_};
 
-                [[maybe_unused]]
                 bool const disarmed = this->cv_.wait_for(
                   lock,
                   std::chrono::milliseconds{1'000},
@@ -94,17 +87,12 @@ public:
                     return !this->is_armed_.load();
                   });
 
-                if(this->is_armed_.load() == 0)
+                if(disarmed)
                 {
                   return;
                 }
 
-                auto const lock2 = this->guard_.lock();
-
-                send_timeout(
-                  this->engine_,
-                  this->response_write_pipe_,
-                  this->test_index_);
+                send_timeout(this->response_write_pipe_, this->test_id_);
 
                 waypoint::coverage::gcov_dump();
 
@@ -118,7 +106,9 @@ public:
 
   void disarm()
   {
-    this->is_armed_.store(0);
+    std::lock_guard<std::mutex> const lock{this->transmission_mutex_};
+
+    this->is_armed_.store(false);
     this->cv_.notify_one();
   }
 
@@ -130,14 +120,12 @@ private:
     // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_STOP
   }
 
-  waypoint::internal::TransmissionGuard const &guard_;
-  waypoint::Engine const &engine_;
+  std::mutex &transmission_mutex_;
   waypoint::internal::InputPipeEnd const &response_write_pipe_;
-  unsigned long long test_index_;
+  unsigned long long test_id_;
   std::latch latch_;
   std::condition_variable cv_;
-  std::atomic<int> is_armed_;
-  std::mutex mtx_;
+  std::atomic<bool> is_armed_;
   std::thread thread_;
 };
 
@@ -158,18 +146,20 @@ void run_test(
   waypoint::Engine const &t,
   unsigned long long const test_index,
   waypoint::internal::InputPipeEnd const &response_write_pipe,
-  waypoint::internal::TransmissionGuard const &guard) noexcept
+  std::mutex &transmission_mutex) noexcept
 {
   auto const &impl = waypoint::internal::get_impl(t);
   waypoint::internal::TestRecord *const record =
     impl.get_shuffled_test_record_ptrs().at(test_index);
 
-  auto const ctx = impl.make_child_process_context(
-    record->test_id(),
-    response_write_pipe,
-    guard);
+  auto const test_id = record->test_id();
 
-  Timeout timeout{t, test_index, guard, response_write_pipe};
+  auto const ctx = impl.make_child_process_context(
+    test_id,
+    response_write_pipe,
+    transmission_mutex);
+
+  Timeout timeout{test_id, transmission_mutex, response_write_pipe};
   record->test_assembly()(*ctx);
   timeout.disarm();
   record->mark_as_run();
@@ -179,11 +169,11 @@ void execute_command(
   waypoint::Engine const &t,
   waypoint::internal::Command const &command,
   waypoint::internal::InputPipeEnd const &response_write_pipe,
-  waypoint::internal::TransmissionGuard const &guard)
+  std::mutex &transmission_mutex)
 {
   if(command.code == waypoint::internal::Command::Code::RunTest)
   {
-    run_test(t, command.test_index, response_write_pipe, guard);
+    run_test(t, command.test_index, response_write_pipe, transmission_mutex);
   }
 }
 
@@ -197,9 +187,9 @@ void begin_handshake(waypoint::internal::InputPipeEnd const &pipe)
 
 void await_handshake_start(
   waypoint::internal::OutputPipeEnd const &pipe,
-  waypoint::internal::TransmissionGuard const &guard)
+  std::mutex &transmission_mutex)
 {
-  auto lock = guard.lock();
+  std::lock_guard<std::mutex> const lock{transmission_mutex};
 
   unsigned char data = 0;
   [[maybe_unused]]
@@ -208,9 +198,9 @@ void await_handshake_start(
 
 void complete_handshake(
   waypoint::internal::InputPipeEnd const &pipe,
-  waypoint::internal::TransmissionGuard const &guard)
+  std::mutex &transmission_mutex)
 {
-  auto lock = guard.lock();
+  std::lock_guard<std::mutex> const lock{transmission_mutex};
 
   constexpr auto ready =
     std::to_underlying(waypoint::internal::Response::Code::Ready);
@@ -227,10 +217,9 @@ void await_handshake_end(waypoint::internal::OutputPipeEnd const &pipe)
 
 auto receive_command(
   waypoint::internal::OutputPipeEnd const &command_read_pipe,
-  waypoint::internal::TransmissionGuard const &guard)
-  -> waypoint::internal::Command
+  std::mutex &transmission_mutex) -> waypoint::internal::Command
 {
-  auto lock = guard.lock();
+  std::lock_guard<std::mutex> const lock{transmission_mutex};
 
   auto code_ = std::to_underlying(waypoint::internal::Command::Code::Invalid);
   [[maybe_unused]]
@@ -343,9 +332,9 @@ void send_response(
   waypoint::internal::InputPipeEnd const &response_write_pipe,
   unsigned long long const test_index,
   waypoint::internal::Response::Code const &code_,
-  waypoint::internal::TransmissionGuard const &guard)
+  std::mutex &transmission_mutex)
 {
-  auto lock = guard.lock();
+  std::lock_guard<std::mutex> const lock{transmission_mutex};
 
   auto const code = std::to_underlying(code_);
   response_write_pipe.write(&code, sizeof code);
@@ -461,16 +450,16 @@ void child_main(
   waypoint::internal::OutputPipeEnd const &command_read_pipe,
   waypoint::internal::InputPipeEnd const &response_write_pipe) noexcept
 {
-  constexpr waypoint::internal::TransmissionGuard guard;
+  std::mutex transmission_mutex;
 
-  await_handshake_start(command_read_pipe, guard);
-  complete_handshake(response_write_pipe, guard);
+  await_handshake_start(command_read_pipe, transmission_mutex);
+  complete_handshake(response_write_pipe, transmission_mutex);
 
   while(true)
   {
-    auto const command = receive_command(command_read_pipe, guard);
+    auto const command = receive_command(command_read_pipe, transmission_mutex);
 
-    execute_command(t, command, response_write_pipe, guard);
+    execute_command(t, command, response_write_pipe, transmission_mutex);
     send_response(
       t,
       response_write_pipe,
@@ -485,7 +474,7 @@ void child_main(
 
           return waypoint::internal::Response::Code::ShuttingDown;
         }),
-      guard);
+      transmission_mutex);
 
     if(is_end_command(command))
     {
@@ -854,7 +843,7 @@ ContextChildProcess::ContextChildProcess(
 
 void ContextChildProcess::assert(bool const condition) const noexcept
 {
-  auto const lock = this->impl_->transmission_guard()->lock();
+  std::lock_guard<std::mutex> const lock{*this->impl_->transmission_mutex()};
 
   auto const index = this->impl_->generate_assertion_index();
 
@@ -874,7 +863,7 @@ void ContextChildProcess::assert(
   bool const condition,
   char const *const message) const noexcept
 {
-  auto const lock = this->impl_->transmission_guard()->lock();
+  std::lock_guard<std::mutex> const lock{*this->impl_->transmission_mutex()};
 
   auto const index = this->impl_->generate_assertion_index();
 
@@ -892,7 +881,7 @@ void ContextChildProcess::assert(
 
 auto ContextChildProcess::assume(bool const condition) const noexcept -> bool
 {
-  auto const lock = this->impl_->transmission_guard()->lock();
+  std::lock_guard<std::mutex> const lock{*this->impl_->transmission_mutex()};
 
   auto const index = this->impl_->generate_assertion_index();
 
@@ -914,7 +903,7 @@ auto ContextChildProcess::assume(
   bool const condition,
   char const *const message) const noexcept -> bool
 {
-  auto const lock = this->impl_->transmission_guard()->lock();
+  std::lock_guard<std::mutex> const lock{*this->impl_->transmission_mutex()};
 
   auto const index = this->impl_->generate_assertion_index();
 

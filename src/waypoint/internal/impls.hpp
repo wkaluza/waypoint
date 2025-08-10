@@ -195,15 +195,6 @@ private:
   bool incomplete_;
 };
 
-class TransmissionGuard
-{
-public:
-  auto lock() const noexcept -> std::lock_guard<std::mutex>;
-
-private:
-  mutable std::mutex mtx_;
-};
-
 class ContextInProcess_impl
 {
 public:
@@ -233,7 +224,7 @@ public:
     Engine const &engine,
     TestId test_id,
     InputPipeEnd const &response_write_pipe,
-    TransmissionGuard const &guard);
+    std::mutex &transmission_mutex);
 
   [[nodiscard]]
   auto get_engine() const -> Engine const &;
@@ -244,14 +235,14 @@ public:
   [[nodiscard]]
   auto response_write_pipe() const -> InputPipeEnd const *;
   [[nodiscard]]
-  auto transmission_guard() const -> TransmissionGuard const *;
+  auto transmission_mutex() const -> std::mutex *;
 
 private:
   Engine const *engine_;
   TestId test_id_;
   AssertionIndex assertion_index_;
   InputPipeEnd const *response_write_pipe_;
-  TransmissionGuard const *transmission_guard_;
+  std::mutex *transmission_mutex_;
 };
 
 class Engine_impl
@@ -337,8 +328,7 @@ public:
   auto make_child_process_context(
     TestId test_id,
     InputPipeEnd const &response_write_pipe,
-    waypoint::internal::TransmissionGuard const &guard) const
-    -> std::unique_ptr<Context>;
+    std::mutex &transmission_mutex) const -> std::unique_ptr<Context>;
   void set_shuffled_test_record_ptrs();
   [[nodiscard]]
   auto get_shuffled_test_record_ptrs() const
