@@ -15,6 +15,8 @@ class TestOutcome;
 namespace waypoint::internal
 {
 
+constexpr unsigned long long DEFAULT_TIMEOUT_MS = 1'000;
+
 class AssertionOutcome_impl;
 class ContextInProcess_impl;
 class ContextChildProcess_impl;
@@ -673,7 +675,7 @@ private:
     : is_active_{false},
       engine_{engine},
       test_id_{test_id},
-      timeout_ms_{1'000},
+      timeout_ms_{DEFAULT_TIMEOUT_MS},
       setup_{},
       body_{},
       teardown_{},

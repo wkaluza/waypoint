@@ -87,7 +87,7 @@ Registrar<void>::Registrar(
   : is_active_{false},
     engine_{engine},
     test_id_{test_id},
-    timeout_ms_{1'000},
+    timeout_ms_{DEFAULT_TIMEOUT_MS},
     is_disabled_{false}
 {
 }
