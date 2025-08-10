@@ -81,9 +81,7 @@ public:
       is_armed_{1},
       thread_{[this]()
               {
-                // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_START
-                this->latch_.arrive_and_wait();
-                // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_STOP
+                this->latch_arrive_and_wait();
 
                 std::unique_lock<std::mutex> lock{this->mtx_};
 
@@ -115,9 +113,7 @@ public:
                 // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_STOP
               }}
   {
-    // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_START
-    this->latch_.arrive_and_wait();
-    // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_STOP
+    this->latch_arrive_and_wait();
   }
 
   void disarm()
@@ -127,6 +123,13 @@ public:
   }
 
 private:
+  void latch_arrive_and_wait()
+  {
+    // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_START
+    this->latch_.arrive_and_wait();
+    // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_STOP
+  }
+
   waypoint::internal::TransmissionGuard const &guard_;
   waypoint::Engine const &engine_;
   waypoint::internal::InputPipeEnd const &response_write_pipe_;
