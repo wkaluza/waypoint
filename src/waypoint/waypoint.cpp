@@ -163,10 +163,20 @@ void run_test(
     transmission_mutex);
 
   auto const timeout_ms = record->timeout_ms();
-
-  Timeout timeout{test_id, timeout_ms, transmission_mutex, response_write_pipe};
-  record->test_assembly()(*ctx);
-  timeout.disarm();
+  if(timeout_ms == 0)
+  {
+    record->test_assembly()(*ctx);
+  }
+  else
+  {
+    Timeout timeout{
+      test_id,
+      timeout_ms,
+      transmission_mutex,
+      response_write_pipe};
+    record->test_assembly()(*ctx);
+    timeout.disarm();
+  }
   record->mark_as_run();
 }
 
