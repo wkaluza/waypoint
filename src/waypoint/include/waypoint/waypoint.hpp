@@ -492,6 +492,7 @@ private:
   void register_test_assembly(
     internal::TestAssembly f,
     unsigned long long test_id,
+    unsigned long long timeout_ms,
     bool disabled) const;
   void report_incomplete_test(unsigned long long test_id) const;
 
@@ -614,6 +615,7 @@ public:
         }
       },
       this->test_id_,
+      this->timeout_ms_,
       this->is_disabled_);
   }
 
@@ -623,6 +625,7 @@ public:
     : is_active_{other.is_active_},
       engine_{other.engine_},
       test_id_{other.test_id_},
+      timeout_ms_{other.timeout_ms_},
       setup_{move(other.setup_)},
       body_{move(other.body_)},
       teardown_{move(other.teardown_)},
@@ -655,6 +658,11 @@ public:
     this->teardown_ = move(f);
   }
 
+  void set_timeout_ms(unsigned long long const timeout_ms)
+  {
+    this->timeout_ms_ = timeout_ms;
+  }
+
   void disable(bool const is_disabled)
   {
     this->is_disabled_ = is_disabled;
@@ -665,6 +673,7 @@ private:
     : is_active_{false},
       engine_{engine},
       test_id_{test_id},
+      timeout_ms_{1'000},
       setup_{},
       body_{},
       teardown_{},
@@ -680,6 +689,7 @@ private:
   bool is_active_;
   Engine const &engine_;
   unsigned long long test_id_;
+  unsigned long long timeout_ms_;
   NonVoidSetup<FixtureT> setup_;
   TestBodyWithFixture<FixtureT> body_;
   TeardownWithFixture<FixtureT> teardown_;
@@ -705,6 +715,7 @@ public:
   void register_body(TestBodyNoFixture f);
   void register_teardown(TeardownNoFixture f);
 
+  void set_timeout_ms(unsigned long long timeout_ms);
   void disable(bool is_disabled);
 
 private:
@@ -715,6 +726,7 @@ private:
   bool is_active_;
   Engine const &engine_;
   unsigned long long test_id_;
+  unsigned long long timeout_ms_;
   VoidSetup setup_;
   TestBodyNoFixture body_;
   TeardownNoFixture teardown_;
@@ -829,6 +841,46 @@ private:
 
 template<typename>
 class Test3;
+template<typename>
+class Test4;
+
+template<typename FixtureT>
+class Test5
+{
+public:
+  ~Test5() = default;
+  Test5() = delete;
+  Test5(Test5 const &other) = delete;
+  Test5(Test5 &&other) noexcept = delete;
+  auto operator=(Test5 const &other) -> Test5 & = delete;
+  auto operator=(Test5 &&other) noexcept -> Test5 & = delete;
+
+  void disable() && noexcept
+  {
+    this->registrar_.disable(true);
+  }
+
+  void disable(bool const is_disabled) && noexcept
+  {
+    this->registrar_.disable(is_disabled);
+  }
+
+private:
+  explicit Test5(internal::Registrar<FixtureT> registrar)
+    : registrar_{internal::move(registrar)}
+  {
+  }
+
+  internal::Registrar<FixtureT> registrar_;
+
+  template<typename>
+  friend class waypoint::Test3;
+  template<typename>
+  friend class waypoint::Test4;
+};
+
+template<typename>
+class Test3;
 
 template<typename FixtureT>
 class Test4
@@ -840,6 +892,14 @@ public:
   Test4(Test4 &&other) noexcept = delete;
   auto operator=(Test4 const &other) -> Test4 & = delete;
   auto operator=(Test4 &&other) noexcept -> Test4 & = delete;
+
+  auto timeout_ms(unsigned long long const timeout_ms) && noexcept
+    -> Test5<FixtureT>
+  {
+    this->registrar_.set_timeout_ms(timeout_ms);
+
+    return waypoint::Test5<FixtureT>{internal::move(this->registrar_)};
+  }
 
   void disable() && noexcept
   {
@@ -886,6 +946,14 @@ public:
     return waypoint::Test4<FixtureT>{internal::move(this->registrar_)};
   }
 
+  auto timeout_ms(unsigned long long const timeout_ms) && noexcept
+    -> Test5<FixtureT>
+  {
+    this->registrar_.set_timeout_ms(timeout_ms);
+
+    return waypoint::Test5<FixtureT>{internal::move(this->registrar_)};
+  }
+
   void disable() && noexcept
   {
     this->registrar_.disable(true);
@@ -926,6 +994,14 @@ public:
     this->registrar_.register_teardown(internal::forward<F>(f));
 
     return waypoint::Test4<void>{internal::move(this->registrar_)};
+  }
+
+  auto timeout_ms(unsigned long long const timeout_ms) && noexcept
+    -> Test5<void>
+  {
+    this->registrar_.set_timeout_ms(timeout_ms);
+
+    return waypoint::Test5<void>{internal::move(this->registrar_)};
   }
 
   void disable() && noexcept;

@@ -10,13 +10,15 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
   auto const g1 = t.group("Test group 1");
 
   t.test(g1, "Test 1")
+    .setup(waypoint::test::trivial_test_setup)
     .run(
       [](auto const &ctx)
       {
         ctx.assert(true);
         std::this_thread::sleep_for(std::chrono::years{1});
         ctx.assert(true);
-      });
+      })
+    .timeout_ms(50);
 }
 
 auto main() -> int
@@ -38,7 +40,7 @@ auto main() -> int
     auto const &outcome = results.test_outcome(i);
 
     REQUIRE_IN_MAIN(outcome.status() == waypoint::TestOutcome::Status::Timeout);
-    REQUIRE_IN_MAIN(outcome.assertion_count() == 1);
+    REQUIRE_IN_MAIN(outcome.assertion_count() == 2);
   }
 
   return 0;

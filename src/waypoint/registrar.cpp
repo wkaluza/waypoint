@@ -33,6 +33,7 @@ Registrar<void>::~Registrar()
       }
     },
     this->test_id_,
+    this->timeout_ms_,
     this->is_disabled_);
 }
 
@@ -40,6 +41,7 @@ Registrar<void>::Registrar(Registrar &&other) noexcept
   : is_active_{other.is_active_},
     engine_{other.engine_},
     test_id_{other.test_id_},
+    timeout_ms_{other.timeout_ms_},
     setup_{move(other.setup_)},
     body_{move(other.body_)},
     teardown_{move(other.teardown_)},
@@ -69,6 +71,11 @@ void Registrar<void>::register_teardown(TeardownNoFixture f)
   this->teardown_ = move(f);
 }
 
+void Registrar<void>::set_timeout_ms(unsigned long long const timeout_ms)
+{
+  this->timeout_ms_ = timeout_ms;
+}
+
 void Registrar<void>::disable(bool const is_disabled)
 {
   this->is_disabled_ = is_disabled;
@@ -80,6 +87,7 @@ Registrar<void>::Registrar(
   : is_active_{false},
     engine_{engine},
     test_id_{test_id},
+    timeout_ms_{1'000},
     is_disabled_{false}
 {
 }

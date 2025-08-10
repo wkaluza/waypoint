@@ -66,11 +66,13 @@ public:
 
   explicit Timeout(
     waypoint::TestId const test_id,
+    unsigned long long const timeout_ms,
     std::mutex &transmission_mutex,
     waypoint::internal::InputPipeEnd const &response_write_pipe)
     : transmission_mutex_{transmission_mutex},
       response_write_pipe_{response_write_pipe},
       test_id_{test_id},
+      timeout_ms_{timeout_ms},
       latch_{2},
       is_armed_{true},
       thread_{[this]()
@@ -81,7 +83,7 @@ public:
 
                 bool const disarmed = this->cv_.wait_for(
                   lock,
-                  std::chrono::milliseconds{1'000},
+                  std::chrono::milliseconds{this->timeout_ms_},
                   [this]()
                   {
                     return !this->is_armed_.load();
@@ -123,6 +125,7 @@ private:
   std::mutex &transmission_mutex_;
   waypoint::internal::InputPipeEnd const &response_write_pipe_;
   unsigned long long test_id_;
+  unsigned long long timeout_ms_;
   std::latch latch_;
   std::condition_variable cv_;
   std::atomic<bool> is_armed_;
@@ -159,7 +162,9 @@ void run_test(
     response_write_pipe,
     transmission_mutex);
 
-  Timeout timeout{test_id, transmission_mutex, response_write_pipe};
+  auto const timeout_ms = record->timeout_ms();
+
+  Timeout timeout{test_id, timeout_ms, transmission_mutex, response_write_pipe};
   record->test_assembly()(*ctx);
   timeout.disarm();
   record->mark_as_run();
@@ -758,9 +763,11 @@ auto Engine::test(Group const &group, char const *name) const noexcept -> Test
 void Engine::register_test_assembly(
   internal::TestAssembly f,
   unsigned long long const test_id,
+  unsigned long long const timeout_ms,
   bool const disabled) const
 {
-  this->impl_->register_test_assembly(std::move(f), test_id, disabled);
+  this->impl_
+    ->register_test_assembly(std::move(f), test_id, timeout_ms, disabled);
 }
 
 void Engine::report_incomplete_test(unsigned long long const test_id) const

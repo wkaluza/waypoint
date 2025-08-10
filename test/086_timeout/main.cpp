@@ -4,6 +4,7 @@
 // NOLINTNEXTLINE(misc-include-cleaner)
 #include <chrono>
 #include <thread>
+#include <vector>
 
 WAYPOINT_AUTORUN(waypoint::Engine const &t)
 {
@@ -16,16 +17,21 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
         ctx.assert(true);
         std::this_thread::sleep_for(std::chrono::years{1});
         ctx.assert(true);
-      });
+      })
+    .teardown(waypoint::test::trivial_test_teardown)
+    .timeout_ms(50);
 
   t.test(g1, "Test 2")
+    .setup(waypoint::test::trivial_test_setup)
     .run(
       [](auto const &ctx)
       {
         ctx.assert(true);
         std::this_thread::sleep_for(std::chrono::years{1});
         ctx.assert(true);
-      });
+      })
+    .teardown(waypoint::test::trivial_test_teardown)
+    .timeout_ms(50);
 }
 
 auto main() -> int
@@ -42,12 +48,15 @@ auto main() -> int
   auto const test_count = results.test_count();
   REQUIRE_IN_MAIN(test_count == 2);
 
+  std::vector<unsigned> const expected_assertion_counts = {1, 2};
+
   for(unsigned i = 0; i < test_count; ++i)
   {
     auto const &outcome = results.test_outcome(i);
 
     REQUIRE_IN_MAIN(outcome.status() == waypoint::TestOutcome::Status::Timeout);
-    REQUIRE_IN_MAIN(outcome.assertion_count() == 1);
+    auto const expected_assertion_count = expected_assertion_counts[i];
+    REQUIRE_IN_MAIN(outcome.assertion_count() == expected_assertion_count);
   }
 
   return 0;

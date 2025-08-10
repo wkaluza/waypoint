@@ -104,7 +104,11 @@ private:
 class TestRecord
 {
 public:
-  TestRecord(TestAssembly assembly, TestId test_id, bool disabled);
+  TestRecord(
+    TestAssembly assembly,
+    TestId test_id,
+    unsigned long long timeout_ms,
+    bool disabled);
 
   enum class Status : std::uint8_t
   {
@@ -122,6 +126,8 @@ public:
   auto disabled() const -> bool;
   [[nodiscard]]
   auto status() const -> TestRecord::Status;
+  [[nodiscard]]
+  auto timeout_ms() const -> unsigned long long;
   void mark_as_run();
   void mark_as_crashed();
   void mark_as_timed_out();
@@ -131,6 +137,7 @@ private:
   TestId test_id_;
   bool disabled_;
   TestRecord::Status status_;
+  unsigned long long timeout_ms_;
 };
 
 class AssertionRecord
@@ -271,6 +278,7 @@ public:
   void register_test_assembly(
     TestAssembly assembly,
     TestId test_id,
+    unsigned long long timeout_ms,
     bool disabled);
   [[nodiscard]]
   auto test_records() -> std::vector<TestRecord> &;

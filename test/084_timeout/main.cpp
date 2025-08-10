@@ -23,7 +23,8 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
         ctx.assert(true);
         std::this_thread::sleep_for(std::chrono::years{1});
         ctx.assert(true);
-      });
+      })
+    .timeout_ms(50);
 
   t.test(g1, "Test 5").run(waypoint::test::trivial_test_body);
 

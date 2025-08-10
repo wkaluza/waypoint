@@ -146,11 +146,13 @@ auto TestOutcome_impl::status() const -> TestOutcome::Status
 TestRecord::TestRecord(
   TestAssembly assembly,
   TestId const test_id,
+  unsigned long long const timeout_ms,
   bool const disabled)
   : test_assembly_(std::move(assembly)),
     test_id_{test_id},
     disabled_{disabled},
-    status_{TestRecord::Status::NotRun}
+    status_{TestRecord::Status::NotRun},
+    timeout_ms_{timeout_ms}
 {
 }
 
@@ -172,6 +174,11 @@ auto TestRecord::disabled() const -> bool
 auto TestRecord::status() const -> TestRecord::Status
 {
   return this->status_;
+}
+
+auto TestRecord::timeout_ms() const -> unsigned long long
+{
+  return this->timeout_ms_;
 }
 
 void TestRecord::mark_as_run()
@@ -703,9 +710,11 @@ void Engine_impl::initialize(Engine const &engine)
 void Engine_impl::register_test_assembly(
   TestAssembly assembly,
   TestId const test_id,
+  unsigned long long const timeout_ms,
   bool const disabled)
 {
-  this->test_records_.emplace_back(std::move(assembly), test_id, disabled);
+  this->test_records_
+    .emplace_back(std::move(assembly), test_id, timeout_ms, disabled);
 }
 
 auto Engine_impl::test_records() -> std::vector<TestRecord> &
