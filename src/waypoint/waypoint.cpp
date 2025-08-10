@@ -37,27 +37,22 @@ auto get_impl(Engine const &engine) -> Engine_impl &
 namespace
 {
 
-void send_response(
+void send_timeout(
   waypoint::Engine const &t,
   waypoint::internal::InputPipeEnd const &response_write_pipe,
-  unsigned long long const test_index,
-  waypoint::internal::Response::Code const &code_,
-  waypoint::internal::TransmissionGuard const &guard)
+  unsigned long long const test_index)
 {
-  auto lock = guard.lock();
-
-  auto const code = std::to_underlying(code_);
+  constexpr auto code =
+    std::to_underlying(waypoint::internal::Response::Code::Timeout);
   response_write_pipe.write(&code, sizeof code);
-  if(code_ == waypoint::internal::Response::Code::TestComplete)
-  {
-    waypoint::internal::TestRecord const *const record =
-      waypoint::internal::get_impl(t).get_shuffled_test_record_ptrs().at(
-        test_index);
-    auto const test_id = record->test_id();
-    response_write_pipe.write(
-      reinterpret_cast<unsigned char const *>(&test_id),
-      sizeof test_id);
-  }
+
+  waypoint::internal::TestRecord const *const record =
+    waypoint::internal::get_impl(t).get_shuffled_test_record_ptrs().at(
+      test_index);
+  auto const test_id = record->test_id();
+  response_write_pipe.write(
+    reinterpret_cast<unsigned char const *>(&test_id),
+    sizeof test_id);
 }
 
 class Timeout
@@ -106,14 +101,12 @@ public:
                   return;
                 }
 
-                send_response(
+                auto const lock2 = this->guard_.lock();
+
+                send_timeout(
                   this->engine_,
                   this->response_write_pipe_,
-                  this->test_index_,
-                  waypoint::internal::Response::Code::Timeout,
-                  this->guard_);
-
-                auto const lock2 = this->guard_.lock();
+                  this->test_index_);
 
                 waypoint::coverage::gcov_dump();
 
@@ -271,7 +264,8 @@ auto receive_response(
 
   if(
     code != waypoint::internal::Response::Code::Assertion &&
-    code != waypoint::internal::Response::Code::TestComplete)
+    code != waypoint::internal::Response::Code::TestComplete &&
+    code != waypoint::internal::Response::Code::Timeout)
   {
     return {waypoint::internal::Response{code, {}, {}, {}, {}}};
   }
@@ -281,47 +275,49 @@ auto receive_response(
     reinterpret_cast<unsigned char *>(&test_id),
     sizeof test_id);
 
-  if(code == waypoint::internal::Response::Code::Assertion)
+  if(
+    code == waypoint::internal::Response::Code::TestComplete ||
+    code == waypoint::internal::Response::Code::Timeout)
   {
-    unsigned char passed = 0;
-    read_result = response_read_pipe.read(&passed, sizeof passed);
+    return {waypoint::internal::Response{code, test_id, {}, {}, {}}};
+  }
 
-    unsigned long long assertion_index = 0;
-    read_result = response_read_pipe.read(
-      reinterpret_cast<unsigned char *>(&assertion_index),
-      sizeof assertion_index);
+  unsigned char passed = 0;
+  read_result = response_read_pipe.read(&passed, sizeof passed);
 
-    unsigned char has_message = 0;
-    read_result = response_read_pipe.read(&has_message, sizeof has_message);
-    if(has_message == 0)
-    {
-      return {waypoint::internal::Response{
-        code,
-        test_id,
-        passed == 1,
-        assertion_index,
-        std::nullopt}};
-    }
+  unsigned long long assertion_index = 0;
+  read_result = response_read_pipe.read(
+    reinterpret_cast<unsigned char *>(&assertion_index),
+    sizeof assertion_index);
 
-    unsigned long long message_size = 0;
-    read_result = response_read_pipe.read(
-      reinterpret_cast<unsigned char *>(&message_size),
-      sizeof message_size);
-
-    std::string message(message_size, 'X');
-    read_result = response_read_pipe.read(
-      reinterpret_cast<unsigned char *>(message.data()),
-      message_size);
-
+  unsigned char has_message = 0;
+  read_result = response_read_pipe.read(&has_message, sizeof has_message);
+  if(has_message == 0)
+  {
     return {waypoint::internal::Response{
       code,
       test_id,
       passed == 1,
       assertion_index,
-      {message}}};
+      std::nullopt}};
   }
 
-  return {waypoint::internal::Response{code, test_id, {}, {}, {}}};
+  unsigned long long message_size = 0;
+  read_result = response_read_pipe.read(
+    reinterpret_cast<unsigned char *>(&message_size),
+    sizeof message_size);
+
+  std::string message(message_size, 'X');
+  read_result = response_read_pipe.read(
+    reinterpret_cast<unsigned char *>(message.data()),
+    message_size);
+
+  return {waypoint::internal::Response{
+    code,
+    test_id,
+    passed == 1,
+    assertion_index,
+    {message}}};
 }
 
 void send_command(
@@ -336,6 +332,29 @@ void send_command(
     command_write_pipe.write(
       reinterpret_cast<unsigned char const *>(&test_index),
       sizeof test_index);
+  }
+}
+
+void send_response(
+  waypoint::Engine const &t,
+  waypoint::internal::InputPipeEnd const &response_write_pipe,
+  unsigned long long const test_index,
+  waypoint::internal::Response::Code const &code_,
+  waypoint::internal::TransmissionGuard const &guard)
+{
+  auto lock = guard.lock();
+
+  auto const code = std::to_underlying(code_);
+  response_write_pipe.write(&code, sizeof code);
+  if(code_ == waypoint::internal::Response::Code::TestComplete)
+  {
+    waypoint::internal::TestRecord const *const record =
+      waypoint::internal::get_impl(t).get_shuffled_test_record_ptrs().at(
+        test_index);
+    auto const test_id = record->test_id();
+    response_write_pipe.write(
+      reinterpret_cast<unsigned char const *>(&test_id),
+      sizeof test_id);
   }
 }
 
