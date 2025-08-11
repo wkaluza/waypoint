@@ -66,7 +66,8 @@ new_target(
   process)
 
 new_target(
-  TEST_STATIC
+  STATIC
+  ENABLE_EXCEPTIONS_IN_COVERAGE
   TARGET
   test_helpers
   DIRECTORY

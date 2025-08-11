@@ -1,5 +1,5 @@
 function(new_target_)
-  set(options EXECUTABLE STATIC TEST TEST_STATIC)
+  set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE)
   set(singleValueKeywords DIRECTORY TARGET)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
@@ -32,9 +32,6 @@ function(new_target_)
   if(arg_STATIC)
     add_library(${arg_TARGET} STATIC)
   endif()
-  if(arg_TEST_STATIC)
-    add_library(${arg_TARGET} STATIC)
-  endif()
 
   target_compile_features(
     ${arg_TARGET}
@@ -45,7 +42,7 @@ function(new_target_)
     target_compile_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
     target_link_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
 
-    if(NOT arg_TEST_STATIC)
+    if(NOT arg_ENABLE_EXCEPTIONS_IN_COVERAGE)
       target_compile_options(${arg_TARGET} PRIVATE -fno-exceptions)
     endif()
 
@@ -150,7 +147,7 @@ function(new_impl_test name)
 endfunction()
 
 function(new_target)
-  set(options EXECUTABLE STATIC TEST TEST_STATIC)
+  set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE)
   set(singleValueKeywords DIRECTORY TARGET)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
@@ -162,11 +159,14 @@ function(new_target)
   if(arg_STATIC)
     set(type STATIC)
   endif()
-  if(arg_TEST_STATIC)
-    set(type TEST_STATIC)
-  endif()
   if(arg_TEST)
     set(type TEST)
+  endif()
+
+  if(arg_ENABLE_EXCEPTIONS_IN_COVERAGE)
+    set(exceptions ENABLE_EXCEPTIONS_IN_COVERAGE)
+  else()
+    set(exceptions "")
   endif()
 
   list(TRANSFORM arg_SOURCES PREPEND ${arg_DIRECTORY}/)
@@ -176,6 +176,7 @@ function(new_target)
 
   new_target_(
     ${type}
+    ${exceptions}
     TARGET
     ${arg_TARGET}
     DIRECTORY
@@ -191,7 +192,7 @@ function(new_target)
 endfunction()
 
 function(new_platform_specific_target)
-  set(options EXECUTABLE STATIC TEST TEST_STATIC)
+  set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE)
   set(singleValueKeywords DIRECTORY TARGET)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
@@ -203,11 +204,14 @@ function(new_platform_specific_target)
   if(arg_STATIC)
     set(type STATIC)
   endif()
-  if(arg_TEST_STATIC)
-    set(type TEST_STATIC)
-  endif()
   if(arg_TEST)
     set(type TEST)
+  endif()
+
+  if(arg_ENABLE_EXCEPTIONS_IN_COVERAGE)
+    set(exceptions ENABLE_EXCEPTIONS_IN_COVERAGE)
+  else()
+    set(exceptions "")
   endif()
 
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -221,6 +225,7 @@ function(new_platform_specific_target)
 
   new_target_(
     ${type}
+    ${exceptions}
     TARGET
     ${arg_TARGET}
     DIRECTORY
