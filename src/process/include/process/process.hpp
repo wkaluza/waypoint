@@ -94,26 +94,28 @@ private:
   std::unique_ptr<OutputPipeEnd_impl> impl_;
 };
 
-class ChildProcessRAII_impl;
+class ChildProcess_impl;
 
-class ChildProcessRAII
+class ChildProcess
 {
 public:
-  ~ChildProcessRAII();
-  ChildProcessRAII();
-  ChildProcessRAII(ChildProcessRAII const &other) = delete;
-  ChildProcessRAII(ChildProcessRAII &&other) noexcept = delete;
-  auto operator=(ChildProcessRAII const &other) -> ChildProcessRAII & = delete;
-  auto operator=(ChildProcessRAII &&other) noexcept
-    -> ChildProcessRAII & = delete;
+  ~ChildProcess();
+  ChildProcess();
+  ChildProcess(ChildProcess const &other) = delete;
+  ChildProcess(ChildProcess &&other) noexcept = delete;
+  auto operator=(ChildProcess const &other) -> ChildProcess & = delete;
+  auto operator=(ChildProcess &&other) noexcept -> ChildProcess & = delete;
 
   [[nodiscard]]
   auto command_write_pipe() const -> InputPipeEnd const &;
   [[nodiscard]]
   auto response_read_pipe() const -> OutputPipeEnd const &;
 
+  [[nodiscard]]
+  auto wait() const -> unsigned long long;
+
 private:
-  std::unique_ptr<ChildProcessRAII_impl const> impl_;
+  std::unique_ptr<ChildProcess_impl const> impl_;
 };
 
 [[nodiscard]]

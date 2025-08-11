@@ -1,10 +1,16 @@
 #include "test_helpers.hpp"
 
+#include "test_helpers_crash.hpp"
+
+#include "coverage/coverage.hpp"
 #include "waypoint/waypoint.hpp"
 
+// NOLINTNEXTLINE(misc-include-cleaner)
+#include <chrono>
 #include <cstdlib>
 #include <optional>
 #include <string>
+#include <thread>
 
 namespace waypoint::test
 {
@@ -70,6 +76,43 @@ auto get_env(std::string const &var_name) -> std::optional<std::string>
   }
 
   return {var_value};
+}
+
+void body_long_sleep(waypoint::Context const &ctx) noexcept
+{
+  ctx.assert(true);
+  waypoint::coverage::gcov_dump();
+  std::this_thread::sleep_for(std::chrono::years{100});
+}
+
+void body_call_std_exit_123(waypoint::Context const &ctx)
+{
+  ctx.assert(true);
+  call_std_exit_123();
+}
+
+void body_call_std_abort(waypoint::Context const &ctx)
+{
+  ctx.assert(true);
+  call_std_abort();
+}
+
+void body_failing_assertion(waypoint::Context const &ctx)
+{
+  ctx.assert(true);
+  failing_assertion();
+}
+
+void body_throws_exception(waypoint::Context const &ctx)
+{
+  ctx.assert(true);
+  throws_exception();
+}
+
+void body_throws_exception_while_noexcept(waypoint::Context const &ctx) noexcept
+{
+  ctx.assert(true);
+  throws_exception_while_noexcept();
 }
 
 } // namespace waypoint::test

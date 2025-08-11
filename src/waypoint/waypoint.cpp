@@ -567,10 +567,11 @@ auto run_all_tests_in_process(Engine const &t) noexcept -> RunResult
 auto run_all_tests(Engine const &t) noexcept -> RunResult
 {
   initialize(t);
-  if(internal::get_impl(t).has_errors())
+  auto &impl = internal::get_impl(t);
+  if(impl.has_errors())
   {
     // Initialization had errors, skip running tests and emit results
-    return internal::get_impl(t).generate_results();
+    return impl.generate_results();
   }
 
   if(waypoint::internal::is_child())
@@ -587,10 +588,10 @@ auto run_all_tests(Engine const &t) noexcept -> RunResult
     std::exit(0);
   }
 
-  waypoint::TestId initial_test_index = 0;
+  unsigned long long initial_test_index = 0;
   while(true)
   {
-    waypoint::internal::ChildProcessRAII const child;
+    waypoint::internal::ChildProcess const child;
 
     auto results = parent_main(
       t,
@@ -598,12 +599,22 @@ auto run_all_tests(Engine const &t) noexcept -> RunResult
       child.response_read_pipe(),
       initial_test_index);
     auto run_result = std::move(std::get<0>(results));
-    auto const crash_detected = std::get<1>(results);
+    auto const crash_or_timeout = std::get<1>(results);
     auto const creshed_test_index = std::get<2>(results);
 
-    if(!crash_detected)
+    auto const exit_status = child.wait();
+
+    if(!crash_or_timeout)
     {
       return run_result;
+    }
+
+    auto const *record =
+      impl.get_shuffled_test_record_ptrs().at(creshed_test_index);
+    if(record->status() == internal::TestRecord::Status::Crashed)
+    {
+      auto const crashed_test_id = record->test_id();
+      impl.register_crashed_exit_status(crashed_test_id, exit_status);
     }
 
     initial_test_index = creshed_test_index + 1;
@@ -700,6 +711,19 @@ auto TestOutcome::disabled() const noexcept -> bool
 auto TestOutcome::status() const noexcept -> TestOutcome::Status
 {
   return this->impl_->status();
+}
+
+auto TestOutcome::exit_code() const noexcept -> unsigned long long const *
+{
+  auto const &maybe_exit_code = this->impl_->exit_status();
+  if(maybe_exit_code.has_value())
+  {
+    auto const &exit_code = maybe_exit_code.value();
+
+    return &exit_code;
+  }
+
+  return nullptr;
 }
 
 Group::~Group() = default;

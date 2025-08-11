@@ -332,11 +332,20 @@ auto create_child_process_with_pipes() noexcept -> std::tuple<int, int, int>
   return create_child_process(pipe_command, pipe_response);
 }
 
-void wait_for_child_process_end(int const child_pid)
+auto wait_for_child_process_end(int const child_pid) -> unsigned long long
 {
   int status = 0;
   [[maybe_unused]]
   auto const ret = ::waitpid(child_pid, &status, 0);
+
+  if(WIFEXITED(status))
+  {
+    return WEXITSTATUS(status);
+  }
+
+  // process did not exit normally,
+  // therefore probably WIFSIGNALED(status) == true
+  return WTERMSIG(status);
 }
 
 } // namespace
@@ -344,15 +353,12 @@ void wait_for_child_process_end(int const child_pid)
 namespace waypoint::internal
 {
 
-class ChildProcessRAII_impl
+class ChildProcess_impl
 {
 public:
-  ~ChildProcessRAII_impl()
-  {
-    wait_for_child_process_end(this->child_pid_);
-  }
+  ~ChildProcess_impl() = default;
 
-  ChildProcessRAII_impl()
+  ChildProcess_impl()
   {
     auto const [child_pid, raw_command_write_pipe, raw_response_read_pipe] =
       create_child_process_with_pipes();
@@ -364,12 +370,12 @@ public:
       new OutputPipeEnd_impl{raw_response_read_pipe});
   }
 
-  ChildProcessRAII_impl(ChildProcessRAII_impl const &other) = delete;
-  ChildProcessRAII_impl(ChildProcessRAII_impl &&other) noexcept = delete;
-  auto operator=(ChildProcessRAII_impl const &other)
-    -> ChildProcessRAII_impl & = delete;
-  auto operator=(ChildProcessRAII_impl &&other) noexcept
-    -> ChildProcessRAII_impl & = delete;
+  ChildProcess_impl(ChildProcess_impl const &other) = delete;
+  ChildProcess_impl(ChildProcess_impl &&other) noexcept = delete;
+  auto operator=(ChildProcess_impl const &other)
+    -> ChildProcess_impl & = delete;
+  auto operator=(ChildProcess_impl &&other) noexcept
+    -> ChildProcess_impl & = delete;
 
   [[nodiscard]]
   auto command_write_pipe() const -> InputPipeEnd const &
@@ -383,27 +389,38 @@ public:
     return *this->response_read_pipe_;
   }
 
+  [[nodiscard]]
+  auto wait() const -> unsigned long long
+  {
+    return wait_for_child_process_end(this->child_pid_);
+  }
+
 private:
   int child_pid_;
   std::unique_ptr<InputPipeEnd> command_write_pipe_;
   std::unique_ptr<OutputPipeEnd> response_read_pipe_;
 };
 
-ChildProcessRAII::ChildProcessRAII()
-  : impl_{std::make_unique<ChildProcessRAII_impl>()}
+ChildProcess::ChildProcess()
+  : impl_{std::make_unique<ChildProcess_impl>()}
 {
 }
 
-ChildProcessRAII::~ChildProcessRAII() = default;
+ChildProcess::~ChildProcess() = default;
 
-auto ChildProcessRAII::command_write_pipe() const -> InputPipeEnd const &
+auto ChildProcess::command_write_pipe() const -> InputPipeEnd const &
 {
   return this->impl_->command_write_pipe();
 }
 
-auto ChildProcessRAII::response_read_pipe() const -> OutputPipeEnd const &
+auto ChildProcess::response_read_pipe() const -> OutputPipeEnd const &
 {
   return this->impl_->response_read_pipe();
+}
+
+auto ChildProcess::wait() const -> unsigned long long
+{
+  return this->impl_->wait();
 }
 
 } // namespace waypoint::internal

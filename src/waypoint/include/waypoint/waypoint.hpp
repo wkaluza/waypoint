@@ -815,6 +815,8 @@ public:
   auto disabled() const noexcept -> bool;
   [[nodiscard]]
   auto status() const noexcept -> TestOutcome::Status;
+  [[nodiscard]]
+  auto exit_code() const noexcept -> unsigned long long const *;
 
 private:
   explicit TestOutcome(internal::TestOutcome_impl *impl);

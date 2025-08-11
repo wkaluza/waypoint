@@ -66,17 +66,20 @@ new_target(
   process)
 
 new_target(
-  STATIC
+  TEST_STATIC
   TARGET
   test_helpers
   DIRECTORY
   ${PROJECT_ROOT_DIR}/test/test_helpers
   SOURCES
   test_helpers.cpp
+  test_helpers_crash.cpp
   PUBLIC_HEADERS
   test_helpers.hpp
   PRIVATE_HEADERS
+  test_helpers_crash.hpp
   LINKS
+  coverage
   waypoint)
 
 new_basic_test(000_include_only)
@@ -162,26 +165,17 @@ new_impl_test(072_assume)
 new_basic_test(073_disable)
 new_basic_test(074_status)
 new_basic_test(075_env_vars)
-
 new_basic_test(076_crash)
-target_link_libraries(076_crash PRIVATE coverage)
 new_basic_test(077_crash)
-target_link_libraries(077_crash PRIVATE coverage)
 new_basic_test(078_crash)
-target_link_libraries(078_crash PRIVATE coverage)
 new_basic_test(079_crash)
-target_link_libraries(079_crash PRIVATE coverage)
 new_basic_test(080_crash)
-target_link_libraries(080_crash PRIVATE coverage)
 new_basic_test(081_crash)
-target_link_libraries(081_crash PRIVATE coverage)
 new_basic_test(082_crash)
-target_link_libraries(082_crash PRIVATE coverage)
 new_basic_test(083_crash)
-target_link_libraries(083_crash PRIVATE coverage)
-
 new_basic_test(084_timeout)
 new_basic_test(085_timeout)
 new_basic_test(086_timeout)
 new_basic_test(087_timeout)
 new_basic_test(088_timeout)
+new_basic_test(089_process_exit_status)

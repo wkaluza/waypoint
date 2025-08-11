@@ -85,7 +85,8 @@ void TestOutcome_impl::initialize(
   std::string test_name,
   unsigned long long const index,
   bool const disabled,
-  TestOutcome::Status const status)
+  TestOutcome::Status const status,
+  std::optional<unsigned long long> const maybe_exit_status)
 {
   this->test_id_ = test_id;
   this->group_id_ = group_id;
@@ -95,6 +96,7 @@ void TestOutcome_impl::initialize(
   this->test_index_ = index;
   this->disabled_ = disabled;
   this->status_ = status;
+  this->exit_status_ = maybe_exit_status;
 }
 
 auto TestOutcome_impl::get_test_name() const -> std::string const &
@@ -141,6 +143,12 @@ auto TestOutcome_impl::disabled() const -> bool
 auto TestOutcome_impl::status() const -> TestOutcome::Status
 {
   return this->status_;
+}
+
+auto TestOutcome_impl::exit_status() const
+  -> std::optional<unsigned long long> const &
+{
+  return this->exit_status_;
 }
 
 TestRecord::TestRecord(
@@ -502,7 +510,8 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
     this->get_test_name(test_id),
     this->get_test_index(test_id),
     this->is_disabled(test_id),
-    status);
+    status,
+    this->get_crashed_exit_status(test_id));
 
   return std::unique_ptr<TestOutcome>(new TestOutcome{impl});
 }
@@ -684,6 +693,24 @@ auto Engine_impl::is_disabled(TestId const test_id) const -> bool
     });
 
   return it->disabled();
+}
+
+void Engine_impl::register_crashed_exit_status(
+  TestId const crashed_test_id,
+  unsigned long long const exit_status)
+{
+  crashed_exit_statuses_[crashed_test_id] = exit_status;
+}
+
+auto Engine_impl::get_crashed_exit_status(TestId const test_id) const
+  -> std::optional<unsigned long long>
+{
+  if(this->crashed_exit_statuses_.contains(test_id))
+  {
+    return {this->crashed_exit_statuses_.at(test_id)};
+  }
+
+  return std::nullopt;
 }
 
 auto Engine_impl::errors() const noexcept -> std::vector<std::string>

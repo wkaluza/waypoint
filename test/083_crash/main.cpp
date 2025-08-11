@@ -1,8 +1,6 @@
-#include "coverage/coverage.hpp"
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
-#include <cstdlib>
 #include <vector>
 
 WAYPOINT_AUTORUN(waypoint::Engine const &t)
@@ -19,15 +17,7 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
 
   t.test(g1, "Test 5").run(waypoint::test::trivial_test_body);
 
-  t.test(g1, "Test 6")
-    .run(
-      [](auto const &ctx)
-      {
-        ctx.assert(true);
-        waypoint::coverage::gcov_dump();
-        std::abort();
-        ctx.assert(true);
-      });
+  t.test(g1, "Test 6").run(waypoint::test::body_call_std_abort);
 }
 
 auto main() -> int

@@ -68,7 +68,8 @@ public:
     std::string test_name,
     unsigned long long index,
     bool disabled,
-    TestOutcome::Status status);
+    TestOutcome::Status status,
+    std::optional<unsigned long long> maybe_exit_status);
 
   [[nodiscard]]
   auto get_test_name() const -> std::string const &;
@@ -89,6 +90,8 @@ public:
   auto disabled() const -> bool;
   [[nodiscard]]
   auto status() const -> TestOutcome::Status;
+  [[nodiscard]]
+  auto exit_status() const -> std::optional<unsigned long long> const &;
 
 private:
   std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes_;
@@ -99,6 +102,7 @@ private:
   unsigned long long test_index_;
   bool disabled_;
   TestOutcome::Status status_;
+  std::optional<unsigned long long> exit_status_;
 };
 
 class TestRecord
@@ -343,6 +347,11 @@ public:
     -> std::vector<TestRecord *> const &;
   [[nodiscard]]
   auto is_disabled(TestId test_id) const -> bool;
+  void register_crashed_exit_status(
+    TestId crashed_test_id,
+    unsigned long long exit_status);
+  auto get_crashed_exit_status(TestId test_id) const
+    -> std::optional<unsigned long long>;
 
 private:
   Engine const *engine_;
@@ -358,6 +367,7 @@ private:
   std::vector<AssertionRecord> assertions_;
   std::vector<TestRecord> test_records_;
   std::vector<TestRecord *> shuffled_test_record_ptrs_;
+  std::unordered_map<TestId, unsigned long long> crashed_exit_statuses_;
 };
 
 class RunResult_impl

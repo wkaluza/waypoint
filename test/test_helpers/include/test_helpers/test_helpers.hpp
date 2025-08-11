@@ -107,6 +107,15 @@ void int_fixture_teardown(waypoint::Context const &ctx, int const &fixture);
 
 auto get_env(std::string const &var_name) -> std::optional<std::string>;
 
+void body_long_sleep(waypoint::Context const &ctx) noexcept;
+
+void body_call_std_exit_123(waypoint::Context const &ctx);
+void body_call_std_abort(waypoint::Context const &ctx);
+void body_failing_assertion(waypoint::Context const &ctx);
+void body_throws_exception(waypoint::Context const &ctx);
+void body_throws_exception_while_noexcept(
+  waypoint::Context const &ctx) noexcept;
+
 } // namespace waypoint::test
 
 #define REQUIRE_IN_MAIN(condition) \

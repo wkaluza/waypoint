@@ -1,32 +1,13 @@
-#include "coverage/coverage.hpp"
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
-
-#include <cstdlib>
 
 WAYPOINT_AUTORUN(waypoint::Engine const &t)
 {
   auto const g1 = t.group("Test group 1");
 
-  t.test(g1, "Test 1")
-    .run(
-      [](auto const &ctx)
-      {
-        ctx.assert(false);
-        waypoint::coverage::gcov_dump();
-        std::abort();
-        ctx.assert(false);
-      });
+  t.test(g1, "Test 1").run(waypoint::test::body_call_std_abort);
 
-  t.test(g1, "Test 2")
-    .run(
-      [](auto const &ctx)
-      {
-        ctx.assert(false);
-        waypoint::coverage::gcov_dump();
-        std::abort();
-        ctx.assert(false);
-      });
+  t.test(g1, "Test 2").run(waypoint::test::body_call_std_abort);
 }
 
 auto main() -> int
