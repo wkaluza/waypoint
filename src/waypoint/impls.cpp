@@ -206,11 +206,9 @@ void TestRecord::mark_as_timed_out()
 
 AssertionRecord::AssertionRecord(
   bool const condition,
-  TestId const test_id,
   AssertionIndex const index,
   std::optional<std::string> maybe_message)
   : condition_{condition},
-    test_id_{test_id},
     index_{index},
     maybe_message_{std::move(maybe_message)}
 {
@@ -219,11 +217,6 @@ AssertionRecord::AssertionRecord(
 auto AssertionRecord::passed() const -> bool
 {
   return this->condition_;
-}
-
-auto AssertionRecord::test_id() const -> TestId
-{
-  return this->test_id_;
 }
 
 auto AssertionRecord::index() const -> AssertionIndex
@@ -434,13 +427,26 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
 {
   std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes;
 
-  auto const assertions = this->get_assertions() |
-    std::ranges::views::filter(
-                            [test_id](auto const &assertion)
-                            {
-                              return assertion.test_id() == test_id;
-                            }) |
-    std::ranges::to<std::vector<AssertionRecord>>();
+  auto const assertions = std::invoke(
+    [this, test_id]() -> std::vector<AssertionRecord>
+    {
+      auto const &passing_assertions = this->get_passing_assertions(test_id);
+      auto const &failing_assertions = this->get_failing_assertions(test_id);
+
+      auto assertions2 =
+        std::ranges::views::join(
+          std::vector{passing_assertions, failing_assertions}) |
+        std::ranges::to<std::vector<AssertionRecord>>();
+
+      std::ranges::sort(
+        assertions2,
+        [](auto const &a, auto const &b)
+        {
+          return a.index() < b.index();
+        });
+
+      return assertions2;
+    });
 
   for(auto const &assertion : assertions)
   {
@@ -578,9 +584,31 @@ void Engine_impl::report_incomplete_test(TestId const test_id)
       group_name));
 }
 
-auto Engine_impl::get_assertions() const -> std::vector<AssertionRecord>
+auto Engine_impl::get_passing_assertions(TestId const test_id) const
+  -> std::vector<AssertionRecord>
 {
-  return this->assertions_;
+  if(this->passing_assertions_.contains(test_id))
+  {
+    return this->passing_assertions_.at(test_id);
+  }
+
+  return {};
+}
+
+auto Engine_impl::get_failing_assertions(TestId const test_id) const
+  -> std::vector<AssertionRecord>
+{
+  if(this->failing_assertions_.contains(test_id))
+  {
+    return this->failing_assertions_.at(test_id);
+  }
+
+  return {};
+}
+
+auto Engine_impl::has_failing_assertions() const -> bool
+{
+  return !this->failing_assertions_.empty();
 }
 
 auto Engine_impl::make_in_process_context(TestId const test_id) const
@@ -764,8 +792,20 @@ void Engine_impl::register_assertion(
   AssertionIndex const index,
   std::optional<std::string> maybe_message)
 {
-  this->assertions_
-    .emplace_back(condition, test_id, index, std::move(maybe_message));
+  if(condition)
+  {
+    this->passing_assertions_[test_id].emplace_back(
+      condition,
+      index,
+      std::move(maybe_message));
+  }
+  else
+  {
+    this->failing_assertions_[test_id].emplace_back(
+      condition,
+      index,
+      std::move(maybe_message));
+  }
 }
 
 void Engine_impl::transmit_assertion(
@@ -830,20 +870,7 @@ void RunResult_impl::initialize(Engine const &engine)
     return;
   }
 
-  this->has_failing_assertions_ = std::invoke(
-    [&engine]()
-    {
-      auto const &assertions = get_impl(engine).get_assertions();
-
-      auto const it = std::ranges::find_if(
-        assertions,
-        [](auto const &assertion)
-        {
-          return !assertion.passed();
-        });
-
-      return it != assertions.end();
-    });
+  this->has_failing_assertions_ = get_impl(engine).has_failing_assertions();
 
   this->test_outcomes_ = std::invoke(
     [&engine]()

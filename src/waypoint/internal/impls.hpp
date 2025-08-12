@@ -149,14 +149,11 @@ class AssertionRecord
 public:
   AssertionRecord(
     bool condition,
-    TestId test_id,
     AssertionIndex index,
     std::optional<std::string> maybe_message);
 
   [[nodiscard]]
   auto passed() const -> bool;
-  [[nodiscard]]
-  auto test_id() const -> TestId;
   [[nodiscard]]
   auto index() const -> AssertionIndex;
   [[nodiscard]]
@@ -164,7 +161,6 @@ public:
 
 private:
   bool condition_;
-  TestId test_id_;
   AssertionIndex index_;
   std::optional<std::string> maybe_message_;
 };
@@ -333,7 +329,13 @@ public:
     TestName const &test_name);
   void report_incomplete_test(TestId test_id);
   [[nodiscard]]
-  auto get_assertions() const -> std::vector<AssertionRecord>;
+  auto get_passing_assertions(TestId test_id) const
+    -> std::vector<AssertionRecord>;
+  [[nodiscard]]
+  auto get_failing_assertions(TestId test_id) const
+    -> std::vector<AssertionRecord>;
+  [[nodiscard]]
+  auto has_failing_assertions() const -> bool;
   [[nodiscard]]
   auto make_in_process_context(TestId test_id) const
     -> std::unique_ptr<Context>;
@@ -364,7 +366,8 @@ private:
   std::unordered_map<GroupId, std::unordered_set<TestName>>
     test_names_per_group_;
   std::vector<Error> errors_;
-  std::vector<AssertionRecord> assertions_;
+  std::unordered_map<TestId, std::vector<AssertionRecord>> passing_assertions_;
+  std::unordered_map<TestId, std::vector<AssertionRecord>> failing_assertions_;
   std::vector<TestRecord> test_records_;
   std::vector<TestRecord *> shuffled_test_record_ptrs_;
   std::unordered_map<TestId, unsigned long long> crashed_exit_statuses_;
