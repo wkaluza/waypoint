@@ -1,9 +1,6 @@
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
-// NOLINTNEXTLINE(misc-include-cleaner)
-#include <chrono>
-#include <thread>
 #include <vector>
 
 WAYPOINT_AUTORUN(waypoint::Engine const &t)
@@ -11,25 +8,13 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
   auto const g1 = t.group("Test group 1");
 
   t.test(g1, "Test 1")
-    .run(
-      [](auto const &ctx)
-      {
-        ctx.assert(true);
-        std::this_thread::sleep_for(std::chrono::years{1});
-        ctx.assert(true);
-      })
+    .run(waypoint::test::body_long_sleep)
     .teardown(waypoint::test::trivial_test_teardown)
     .timeout_ms(50);
 
   t.test(g1, "Test 2")
     .setup(waypoint::test::trivial_test_setup)
-    .run(
-      [](auto const &ctx)
-      {
-        ctx.assert(true);
-        std::this_thread::sleep_for(std::chrono::years{1});
-        ctx.assert(true);
-      })
+    .run(waypoint::test::body_long_sleep)
     .teardown(waypoint::test::trivial_test_teardown)
     .timeout_ms(50);
 }

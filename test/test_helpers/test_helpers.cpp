@@ -2,10 +2,8 @@
 
 #include "test_helpers_crash.hpp"
 
-#include "coverage/coverage.hpp"
 #include "waypoint/waypoint.hpp"
 
-// NOLINTNEXTLINE(misc-include-cleaner)
 #include <chrono>
 #include <cstdlib>
 #include <optional>
@@ -53,6 +51,11 @@ auto int_fixture_test_setup(waypoint::Context const &ctx) -> int
   return 42;
 }
 
+void int_fixture_test_body(waypoint::Context const &ctx, int const &fixture)
+{
+  ctx.assert(fixture == 42);
+}
+
 void int_fixture_increment_x_test_body(
   waypoint::Context const &ctx,
   int const &fixture)
@@ -78,10 +81,23 @@ auto get_env(std::string const &var_name) -> std::optional<std::string>
   return {var_value};
 }
 
+void body_short_sleep(waypoint::Context const &ctx) noexcept
+{
+  ctx.assert(true);
+  std::this_thread::sleep_for(std::chrono::milliseconds{1'100});
+}
+
 void body_long_sleep(waypoint::Context const &ctx) noexcept
 {
   ctx.assert(true);
-  waypoint::coverage::gcov_dump();
+  std::this_thread::sleep_for(std::chrono::years{100});
+}
+
+void int_fixture_body_long_sleep(
+  waypoint::Context const &ctx,
+  int const & /*fixture*/) noexcept
+{
+  ctx.assert(true);
   std::this_thread::sleep_for(std::chrono::years{100});
 }
 

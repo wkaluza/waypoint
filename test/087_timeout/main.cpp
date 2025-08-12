@@ -1,9 +1,6 @@
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
-// NOLINTNEXTLINE(misc-include-cleaner)
-#include <chrono>
-#include <thread>
 #include <vector>
 
 WAYPOINT_AUTORUN(waypoint::Engine const &t)
@@ -12,45 +9,19 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
 
   t.test(g1, "Test 1")
     .setup(waypoint::test::int_fixture_test_setup)
-    .run(
-      [](auto const &ctx, auto & /*fixture*/)
-      {
-        ctx.assert(true);
-        std::this_thread::sleep_for(std::chrono::years{1});
-        ctx.assert(true);
-      })
+    .run(waypoint::test::int_fixture_body_long_sleep)
     .timeout_ms(50);
 
   t.test(g1, "Test 2")
     .setup(waypoint::test::int_fixture_test_setup)
-    .run(
-      [](auto const &ctx, auto & /*fixture*/)
-      {
-        ctx.assert(true);
-        std::this_thread::sleep_for(std::chrono::years{1});
-        ctx.assert(true);
-      })
+    .run(waypoint::test::int_fixture_body_long_sleep)
     .teardown(waypoint::test::int_fixture_teardown)
     .timeout_ms(50);
 
-  t.test(g1, "Test 3")
-    .run(
-      [](auto const &ctx)
-      {
-        ctx.assert(true);
-        std::this_thread::sleep_for(std::chrono::years{1});
-        ctx.assert(true);
-      })
-    .timeout_ms(50);
+  t.test(g1, "Test 3").run(waypoint::test::body_long_sleep).timeout_ms(50);
 
   t.test(g1, "Test 4")
-    .run(
-      [](auto const &ctx)
-      {
-        ctx.assert(true);
-        std::this_thread::sleep_for(std::chrono::years{1});
-        ctx.assert(true);
-      })
+    .run(waypoint::test::body_long_sleep)
     .timeout_ms(1'000'000)
     .disable();
 }

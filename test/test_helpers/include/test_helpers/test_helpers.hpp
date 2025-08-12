@@ -100,6 +100,7 @@ void trivial_test_teardown(waypoint::Context const &ctx);
 void increment_x_test_body(waypoint::Context const &ctx);
 
 auto int_fixture_test_setup(waypoint::Context const &ctx) -> int;
+void int_fixture_test_body(waypoint::Context const &ctx, int const &fixture);
 void int_fixture_increment_x_test_body(
   waypoint::Context const &ctx,
   int const &fixture);
@@ -107,7 +108,11 @@ void int_fixture_teardown(waypoint::Context const &ctx, int const &fixture);
 
 auto get_env(std::string const &var_name) -> std::optional<std::string>;
 
+void body_short_sleep(waypoint::Context const &ctx) noexcept;
 void body_long_sleep(waypoint::Context const &ctx) noexcept;
+void int_fixture_body_long_sleep(
+  waypoint::Context const &ctx,
+  int const &fixture) noexcept;
 
 void body_call_std_exit_123(waypoint::Context const &ctx);
 void body_call_std_abort(waypoint::Context const &ctx);

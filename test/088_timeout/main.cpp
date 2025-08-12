@@ -1,9 +1,6 @@
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
-// NOLINTNEXTLINE(misc-include-cleaner)
-#include <chrono>
-#include <thread>
 #include <vector>
 
 WAYPOINT_AUTORUN(waypoint::Engine const &t)
@@ -12,30 +9,16 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
 
   t.test(g1, "Test 1")
     .setup(waypoint::test::int_fixture_test_setup)
-    .run(
-      [](auto const &ctx, auto & /*fixture*/)
-      {
-        ctx.assert(true);
-      });
+    .run(waypoint::test::int_fixture_test_body);
 
   t.test(g1, "Test 2")
-    .setup(waypoint::test::int_fixture_test_setup)
-    .run(
-      [](auto const &ctx, auto & /*fixture*/)
-      {
-        ctx.assert(true);
-        std::this_thread::sleep_for(std::chrono::milliseconds{1'100});
-      })
-    .teardown(waypoint::test::int_fixture_teardown)
+    .setup(waypoint::test::trivial_test_setup)
+    .run(waypoint::test::body_short_sleep)
+    .teardown(waypoint::test::trivial_test_teardown)
     .timeout_ms(0);
 
   t.test(g1, "Test 3")
-    .run(
-      [](auto const &ctx)
-      {
-        ctx.assert(true);
-        std::this_thread::sleep_for(std::chrono::years{1});
-      })
+    .run(waypoint::test::body_long_sleep)
     .timeout_ms(0)
     .disable();
 }
