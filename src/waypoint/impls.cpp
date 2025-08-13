@@ -466,18 +466,7 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
 
   auto *const impl = new TestOutcome_impl{};
 
-  auto const &test_record = std::invoke(
-    [this, test_id]() -> TestRecord const &
-    {
-      auto const it = std::ranges::find_if(
-        this->test_records_,
-        [test_id](auto const &record)
-        {
-          return test_id == record.test_id();
-        });
-
-      return *it;
-    });
+  auto const &test_record = this->test_records_[test_id];
 
   auto const status = std::invoke(
     [&test_record, &assertion_outcomes]()
@@ -713,14 +702,9 @@ auto Engine_impl::get_shuffled_test_record_ptrs() const
 
 auto Engine_impl::is_disabled(TestId const test_id) const -> bool
 {
-  auto const it = std::ranges::find_if(
-    this->test_records_,
-    [test_id](auto const &record)
-    {
-      return record.test_id() == test_id;
-    });
+  auto const &record = this->test_records_[test_id];
 
-  return it->disabled();
+  return record.disabled();
 }
 
 void Engine_impl::register_crashed_exit_status(
