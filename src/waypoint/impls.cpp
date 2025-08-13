@@ -70,7 +70,6 @@ auto AssertionOutcome_impl::index() const -> unsigned long long
 
 TestOutcome_impl::TestOutcome_impl()
   : test_id_{},
-    group_id_{},
     test_index_{},
     disabled_{},
     status_{TestOutcome::Status::NotRun}
@@ -79,7 +78,6 @@ TestOutcome_impl::TestOutcome_impl()
 
 void TestOutcome_impl::initialize(
   TestId const test_id,
-  GroupId const group_id,
   std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes,
   std::string group_name,
   std::string test_name,
@@ -89,7 +87,6 @@ void TestOutcome_impl::initialize(
   std::optional<unsigned long long> const maybe_exit_status)
 {
   this->test_id_ = test_id;
-  this->group_id_ = group_id;
   this->assertion_outcomes_ = std::move(assertion_outcomes);
   this->group_name_ = std::move(group_name);
   this->test_name_ = std::move(test_name);
@@ -112,11 +109,6 @@ auto TestOutcome_impl::get_test_id() const -> unsigned long long
 auto TestOutcome_impl::get_group_name() const -> std::string const &
 {
   return this->group_name_;
-}
-
-auto TestOutcome_impl::get_group_id() const -> unsigned long long
-{
-  return this->group_id_;
 }
 
 auto TestOutcome_impl::get_assertion_count() const -> unsigned long long
@@ -499,7 +491,6 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
 
   impl->initialize(
     test_id,
-    this->get_group_id(test_id),
     std::move(assertion_outcomes),
     this->get_group_name(this->get_group_id(test_id)),
     this->get_test_name(test_id),
@@ -873,7 +864,7 @@ void RunResult_impl::initialize(Engine const &engine)
         output,
         [](auto const &a, auto const &b)
         {
-          return a->test_id() < b->test_id();
+          return *a < *b;
         });
 
       return output;

@@ -62,7 +62,6 @@ public:
 
   void initialize(
     TestId test_id,
-    GroupId group_id,
     std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes,
     std::string group_name,
     std::string test_name,
@@ -77,8 +76,6 @@ public:
   auto get_test_id() const -> unsigned long long;
   [[nodiscard]]
   auto get_group_name() const -> std::string const &;
-  [[nodiscard]]
-  auto get_group_id() const -> unsigned long long;
   [[nodiscard]]
   auto get_assertion_count() const -> unsigned long long;
   [[nodiscard]]
@@ -96,7 +93,6 @@ public:
 private:
   std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes_;
   TestId test_id_;
-  GroupId group_id_;
   std::string group_name_;
   std::string test_name_;
   unsigned long long test_index_;

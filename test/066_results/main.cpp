@@ -5,7 +5,7 @@
 #include <functional>
 #include <sstream>
 #include <string>
-#include <unordered_map>
+#include <vector>
 
 WAYPOINT_AUTORUN(waypoint::Engine const &t)
 {
@@ -66,41 +66,33 @@ auto main() -> int
   auto const test_count = results.test_count();
   REQUIRE_IN_MAIN(test_count == 6);
 
-  std::unordered_map<unsigned long long, unsigned long long> const test_indices{
-    {0, 3},
-    {1, 1},
-    {2, 5},
-    {3, 4},
-    {4, 2},
-    {5, 0},
+  std::vector<unsigned long long> const test_indices{
+    3,
+    1,
+    5,
+    4,
+    2,
+    0,
   };
 
-  for(unsigned test_id = 0; test_id < test_count; ++test_id)
+  for(unsigned i = 0; i < test_count; ++i)
   {
-    auto const &test_outcome = results.test_outcome(test_id);
-    auto const group_id = std::invoke(
-      [test_id]() -> unsigned long long
-      {
-        return test_id < 3 ? 0 : 1;
-      });
-    REQUIRE_IN_MAIN(test_outcome.group_id() == group_id);
-    REQUIRE_IN_MAIN(test_outcome.test_id() == test_id);
-    REQUIRE_IN_MAIN(
-      test_outcome.test_index() == test_indices.at(test_outcome.test_id()));
+    auto const &test_outcome = results.test_outcome(i);
+    REQUIRE_IN_MAIN(test_outcome.test_index() == test_indices.at(i));
 
     auto const group_name = std::invoke(
-      [test_id]() -> std::string
+      [i]() -> std::string
       {
-        return test_id < 3 ? "Test group 1" : "Test group 2";
+        return i < 3 ? "Test group 1" : "Test group 2";
       });
     REQUIRE_IN_MAIN(test_outcome.group_name() == group_name);
 
     auto const test_name = std::invoke(
-      [test_id]()
+      [i]()
       {
         std::ostringstream stream;
 
-        stream << "Test " << test_id + 1;
+        stream << "Test " << i + 1;
 
         return stream.str();
       });

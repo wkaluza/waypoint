@@ -796,14 +796,12 @@ public:
     Timeout
   };
 
+  auto operator<(TestOutcome const &other) const -> bool;
+
   [[nodiscard]]
   auto group_name() const noexcept -> char const *;
   [[nodiscard]]
-  auto group_id() const noexcept -> unsigned long long;
-  [[nodiscard]]
   auto test_name() const noexcept -> char const *;
-  [[nodiscard]]
-  auto test_id() const noexcept -> unsigned long long;
   [[nodiscard]]
   auto test_index() const noexcept -> unsigned long long;
   [[nodiscard]]
