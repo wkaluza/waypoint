@@ -69,15 +69,13 @@ auto AssertionOutcome_impl::index() const -> unsigned long long
 }
 
 TestOutcome_impl::TestOutcome_impl()
-  : test_id_{},
-    test_index_{},
+  : test_index_{},
     disabled_{},
     status_{TestOutcome::Status::NotRun}
 {
 }
 
 void TestOutcome_impl::initialize(
-  TestId const test_id,
   std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes,
   std::string group_name,
   std::string test_name,
@@ -86,7 +84,6 @@ void TestOutcome_impl::initialize(
   TestOutcome::Status const status,
   std::optional<unsigned long long> const maybe_exit_status)
 {
-  this->test_id_ = test_id;
   this->assertion_outcomes_ = std::move(assertion_outcomes);
   this->group_name_ = std::move(group_name);
   this->test_name_ = std::move(test_name);
@@ -99,11 +96,6 @@ void TestOutcome_impl::initialize(
 auto TestOutcome_impl::get_test_name() const -> std::string const &
 {
   return this->test_name_;
-}
-
-auto TestOutcome_impl::get_test_id() const -> unsigned long long
-{
-  return this->test_id_;
 }
 
 auto TestOutcome_impl::get_group_name() const -> std::string const &
@@ -490,7 +482,6 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
     });
 
   impl->initialize(
-    test_id,
     std::move(assertion_outcomes),
     this->get_group_name(this->get_group_id(test_id)),
     this->get_test_name(test_id),
@@ -653,13 +644,6 @@ auto get_test_record_ptrs(Engine const &t) noexcept -> std::vector<TestRecord *>
     [](auto &test_record)
     {
       return &test_record;
-    });
-
-  std::ranges::sort(
-    ptrs,
-    [](auto *a, auto *b)
-    {
-      return a->test_id() < b->test_id();
     });
 
   return ptrs;
@@ -859,13 +843,6 @@ void RunResult_impl::initialize(Engine const &engine)
       {
         output.emplace_back(get_impl(engine).make_test_outcome(id));
       }
-
-      std::ranges::sort(
-        output,
-        [](auto const &a, auto const &b)
-        {
-          return *a < *b;
-        });
 
       return output;
     });

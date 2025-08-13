@@ -61,7 +61,6 @@ public:
   TestOutcome_impl();
 
   void initialize(
-    TestId test_id,
     std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes,
     std::string group_name,
     std::string test_name,
@@ -72,8 +71,6 @@ public:
 
   [[nodiscard]]
   auto get_test_name() const -> std::string const &;
-  [[nodiscard]]
-  auto get_test_id() const -> unsigned long long;
   [[nodiscard]]
   auto get_group_name() const -> std::string const &;
   [[nodiscard]]
@@ -92,7 +89,6 @@ public:
 
 private:
   std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes_;
-  TestId test_id_;
   std::string group_name_;
   std::string test_name_;
   unsigned long long test_index_;

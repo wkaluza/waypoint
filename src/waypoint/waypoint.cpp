@@ -667,11 +667,6 @@ TestOutcome::TestOutcome(internal::TestOutcome_impl *const impl)
 {
 }
 
-auto TestOutcome::operator<(TestOutcome const &other) const -> bool
-{
-  return this->impl_->get_test_id() < other.impl_->get_test_id();
-}
-
 auto TestOutcome::group_name() const noexcept -> char const *
 {
   return this->impl_->get_group_name().c_str();
