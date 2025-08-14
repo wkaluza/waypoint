@@ -6,9 +6,13 @@
 #include <array>
 #include <cstdlib>
 #include <format>
+#include <iterator>
 #include <memory>
 #include <optional>
+#include <ranges>
+#include <sstream>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -45,6 +49,44 @@ auto get_env(std::string const &var_name) -> std::optional<std::string>
 void unset_env(std::string const &var_name)
 {
   ::unsetenv(var_name.c_str());
+}
+
+auto int2str(int num, unsigned char const base) -> std::string
+{
+  constexpr static std::string_view ALPHABET = "0123456789abcdef";
+
+  std::ostringstream ss;
+
+  while(num > 0)
+  {
+    auto const mod = num % base;
+    ss << ALPHABET[mod];
+    num /= base;
+  }
+
+  auto output = ss.str();
+  std::ranges::reverse(output);
+
+  return output;
+}
+
+auto str2int(std::string_view const str, unsigned char const base) -> int
+{
+  constexpr static std::string_view ALPHABET = "0123456789abcdef";
+
+  int result = 0;
+  int multiplier = 1;
+  for(auto const c : std::ranges::views::reverse(str))
+  {
+    auto const *const it = std::ranges::find(ALPHABET, c);
+
+    auto const digit = std::distance(ALPHABET.begin(), it);
+
+    result += static_cast<int>(digit) * multiplier;
+    multiplier *= base;
+  }
+
+  return result;
 }
 
 } // namespace
@@ -184,11 +226,12 @@ auto get_pipes_from_env() noexcept -> std::pair<OutputPipeEnd, InputPipeEnd>
   unset_env(WAYPOINT_INTERNAL_COMMAND_SOURCE_ENV_NAME);
   unset_env(WAYPOINT_INTERNAL_RESPONSE_SINK_ENV_NAME);
 
-  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-  auto const raw_command_read_pipe = std::stoi(maybe_command_read_pipe.value());
+  auto const raw_command_read_pipe =
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+    str2int(maybe_command_read_pipe.value(), 10);
   auto const raw_response_write_pipe =
     // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-    std::stoi(maybe_response_write_pipe.value());
+    str2int(maybe_response_write_pipe.value(), 10);
 
   auto *command_read_pipe = new OutputPipeEnd_impl{raw_command_read_pipe};
   auto *response_write_pipe = new InputPipeEnd_impl{raw_response_write_pipe};
@@ -288,11 +331,11 @@ auto create_child_process(
   auto const command_source_env = std::format(
     "{}={}",
     WAYPOINT_INTERNAL_COMMAND_SOURCE_ENV_NAME,
-    pipe_command[0]);
+    int2str(pipe_command[0], 10));
   auto const response_sink_env = std::format(
     "{}={}",
     WAYPOINT_INTERNAL_RESPONSE_SINK_ENV_NAME,
-    pipe_response[1]);
+    int2str(pipe_response[1], 10));
 
   std::vector<char const *> execve_envp = {
     runner_mode_env.c_str(),
@@ -343,8 +386,8 @@ auto wait_for_child_process_end(int const child_pid) -> unsigned long long
     return WEXITSTATUS(status);
   }
 
-  // process did not exit normally,
-  // therefore probably WIFSIGNALED(status) == true
+  // process did not exit normally, therefore
+  // probably WIFSIGNALED(status) == true
   return WTERMSIG(status);
 }
 
