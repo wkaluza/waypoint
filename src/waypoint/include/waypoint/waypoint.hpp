@@ -84,7 +84,7 @@ struct is_same<T, T>
 template<typename T, typename U>
 constexpr bool is_same_v = is_same<T, U>::value;
 
-template<typename T>
+template<typename /*T*/>
 struct is_void
 {
   constexpr static bool value = false;
@@ -99,7 +99,7 @@ struct is_void<void>
 template<typename T>
 constexpr bool is_void_v = is_void<T>::value;
 
-template<bool B, typename T = void>
+template<bool /*B*/, typename /*T*/ = void>
 struct enable_if
 {
 };
