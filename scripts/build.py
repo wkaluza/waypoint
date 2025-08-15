@@ -443,6 +443,8 @@ def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
                 preset.test,
                 "--build-config",
                 f"{build_config}",
+                "--timeout",
+                "60",
                 "--parallel",
                 f"{jobs}",
                 "--label-regex",
