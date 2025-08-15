@@ -3,7 +3,7 @@
 
 #include <cstring>
 
-WAYPOINT_AUTORUN(waypoint::Engine const &t)
+WAYPOINT_AUTORUN(waypoint::TestRun const &t)
 {
   auto const g1 = t.group("Test group 1");
 
@@ -14,7 +14,7 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
 
 auto main() -> int
 {
-  auto const t = waypoint::make_default_engine();
+  auto const t = waypoint::TestRun::create();
 
   // We expect the call to run_all_tests to fail
   // due to initialization errors

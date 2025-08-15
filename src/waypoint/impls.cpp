@@ -230,28 +230,28 @@ auto Group_impl::get_id() const -> GroupId
 
 Test_impl::~Test_impl()
 {
-  if(incomplete_ && this->engine_ != nullptr)
+  if(incomplete_ && this->test_run_ != nullptr)
   {
-    get_impl(*this->engine_).report_incomplete_test(this->id_);
+    get_impl(*this->test_run_).report_incomplete_test(this->id_);
   }
 }
 
 Test_impl::Test_impl()
-  : engine_{},
+  : test_run_{},
     id_{},
     incomplete_{true}
 {
 }
 
-void Test_impl::initialize(Engine const &engine, TestId const id)
+void Test_impl::initialize(TestRun const &test_run, TestId const id)
 {
-  this->engine_ = &engine;
+  this->test_run_ = &test_run;
   this->id_ = id;
 }
 
-auto Test_impl::get_engine() const -> Engine const &
+auto Test_impl::get_test_run() const -> TestRun const &
 {
-  return *engine_;
+  return *test_run_;
 }
 
 auto Test_impl::get_id() const -> TestId
@@ -265,24 +265,24 @@ void Test_impl::mark_complete()
 }
 
 ContextInProcess_impl::ContextInProcess_impl()
-  : engine_{},
+  : test_run_{},
     test_id_{},
     assertion_index_{}
 {
 }
 
 void ContextInProcess_impl::initialize(
-  Engine const &engine,
+  TestRun const &test_run,
   TestId const test_id)
 {
-  this->engine_ = &engine;
+  this->test_run_ = &test_run;
   this->test_id_ = test_id;
   this->assertion_index_ = 0;
 }
 
-auto ContextInProcess_impl::get_engine() const -> Engine const &
+auto ContextInProcess_impl::get_test_run() const -> TestRun const &
 {
-  return *engine_;
+  return *test_run_;
 }
 
 auto ContextInProcess_impl::generate_assertion_index() -> AssertionIndex
@@ -296,7 +296,7 @@ auto ContextInProcess_impl::test_id() const -> TestId
 }
 
 ContextChildProcess_impl::ContextChildProcess_impl()
-  : engine_{},
+  : test_run_{},
     test_id_{},
     assertion_index_{},
     response_write_pipe_{},
@@ -305,21 +305,21 @@ ContextChildProcess_impl::ContextChildProcess_impl()
 }
 
 void ContextChildProcess_impl::initialize(
-  Engine const &engine,
+  TestRun const &test_run,
   TestId const test_id,
   InputPipeEnd const &response_write_pipe,
   std::mutex &transmission_mutex)
 {
-  this->engine_ = &engine;
+  this->test_run_ = &test_run;
   this->test_id_ = test_id;
   this->assertion_index_ = 0;
   this->response_write_pipe_ = &response_write_pipe;
   this->transmission_mutex_ = &transmission_mutex;
 }
 
-auto ContextChildProcess_impl::get_engine() const -> Engine const &
+auto ContextChildProcess_impl::get_test_run() const -> TestRun const &
 {
-  return *engine_;
+  return *test_run_;
 }
 
 auto ContextChildProcess_impl::generate_assertion_index() -> AssertionIndex
@@ -343,14 +343,14 @@ auto ContextChildProcess_impl::transmission_mutex() const -> std::mutex *
   return this->transmission_mutex_;
 }
 
-Engine_impl::Engine_impl()
-  : engine_{nullptr},
+TestRun_impl::TestRun_impl()
+  : test_run_{nullptr},
     group_id_counter_{0},
     test_id_counter_{0}
 {
 }
 
-auto Engine_impl::make_group(GroupId const group_id) const -> Group
+auto TestRun_impl::make_group(GroupId const group_id) const -> Group
 {
   auto *impl = new Group_impl{};
 
@@ -359,54 +359,54 @@ auto Engine_impl::make_group(GroupId const group_id) const -> Group
   return Group{impl};
 }
 
-auto Engine_impl::make_test(TestId const test_id) const -> Test
+auto TestRun_impl::make_test(TestId const test_id) const -> Test
 {
   auto *impl = new Test_impl{};
 
-  impl->initialize(*this->engine_, test_id);
+  impl->initialize(*this->test_run_, test_id);
 
   return Test{impl};
 }
 
-auto Engine_impl::get_group_id(TestId const id) const -> GroupId
+auto TestRun_impl::get_group_id(TestId const id) const -> GroupId
 {
   return this->test_id2group_id_.at(id);
 }
 
-auto Engine_impl::get_group_id(Group const &group) const -> GroupId
+auto TestRun_impl::get_group_id(Group const &group) const -> GroupId
 {
   return group.impl_->get_id();
 }
 
-auto Engine_impl::get_group_name(GroupId const id) const -> std::string
+auto TestRun_impl::get_group_name(GroupId const id) const -> std::string
 {
   return this->group_id2group_name_.at(id);
 }
 
-auto Engine_impl::get_test_name(TestId const id) const -> std::string
+auto TestRun_impl::get_test_name(TestId const id) const -> std::string
 {
   return this->test_id2test_name_.at(id);
 }
 
-void Engine_impl::set_test_index(
+void TestRun_impl::set_test_index(
   TestId const test_id,
   unsigned long long const index)
 {
   this->test_id2test_index_[test_id] = index;
 }
 
-auto Engine_impl::get_test_index(TestId const test_id) const
+auto TestRun_impl::get_test_index(TestId const test_id) const
   -> unsigned long long
 {
   return this->test_id2test_index_.at(test_id);
 }
 
-auto Engine_impl::test_count() const -> unsigned long long
+auto TestRun_impl::test_count() const -> unsigned long long
 {
   return test_id_counter_;
 }
 
-auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
+auto TestRun_impl::make_test_outcome(TestId const test_id) const noexcept
   -> std::unique_ptr<TestOutcome>
 {
   std::vector<std::unique_ptr<AssertionOutcome>> assertion_outcomes;
@@ -493,7 +493,7 @@ auto Engine_impl::make_test_outcome(TestId const test_id) const noexcept
   return std::unique_ptr<TestOutcome>(new TestOutcome{impl});
 }
 
-auto Engine_impl::register_test(
+auto TestRun_impl::register_test(
   GroupId const group_id,
   TestName const &test_name) -> TestId
 {
@@ -515,7 +515,7 @@ auto Engine_impl::register_test(
   return test_id;
 }
 
-auto Engine_impl::register_group(GroupName const &group_name) -> GroupId
+auto TestRun_impl::register_group(GroupName const &group_name) -> GroupId
 {
   auto const group_id = group_id_counter_++;
   group_id2group_name_[group_id] = group_name;
@@ -523,12 +523,12 @@ auto Engine_impl::register_group(GroupName const &group_name) -> GroupId
   return group_id;
 }
 
-void Engine_impl::report_error(ErrorType type, std::string const &message)
+void TestRun_impl::report_error(ErrorType type, std::string const &message)
 {
   this->errors_.emplace_back(type, message);
 }
 
-void Engine_impl::report_duplicate_test_name(
+void TestRun_impl::report_duplicate_test_name(
   GroupName const &group_name,
   TestName const &test_name)
 {
@@ -540,7 +540,7 @@ void Engine_impl::report_duplicate_test_name(
       test_name));
 }
 
-void Engine_impl::report_incomplete_test(TestId const test_id)
+void TestRun_impl::report_incomplete_test(TestId const test_id)
 {
   auto const test_name = this->get_test_name(test_id);
   auto const group_id = this->get_group_id(test_id);
@@ -555,7 +555,7 @@ void Engine_impl::report_incomplete_test(TestId const test_id)
       group_name));
 }
 
-auto Engine_impl::get_passing_assertions(TestId const test_id) const
+auto TestRun_impl::get_passing_assertions(TestId const test_id) const
   -> std::vector<AssertionRecord>
 {
   if(this->passing_assertions_.contains(test_id))
@@ -566,7 +566,7 @@ auto Engine_impl::get_passing_assertions(TestId const test_id) const
   return {};
 }
 
-auto Engine_impl::get_failing_assertions(TestId const test_id) const
+auto TestRun_impl::get_failing_assertions(TestId const test_id) const
   -> std::vector<AssertionRecord>
 {
   if(this->failing_assertions_.contains(test_id))
@@ -577,22 +577,22 @@ auto Engine_impl::get_failing_assertions(TestId const test_id) const
   return {};
 }
 
-auto Engine_impl::has_failing_assertions() const -> bool
+auto TestRun_impl::has_failing_assertions() const -> bool
 {
   return !this->failing_assertions_.empty();
 }
 
-auto Engine_impl::make_in_process_context(TestId const test_id) const
+auto TestRun_impl::make_in_process_context(TestId const test_id) const
   -> std::unique_ptr<Context>
 {
   auto *impl = new ContextInProcess_impl{};
 
-  impl->initialize(*this->engine_, test_id);
+  impl->initialize(*this->test_run_, test_id);
 
   return std::unique_ptr<ContextInProcess>(new ContextInProcess{impl});
 }
 
-auto Engine_impl::make_child_process_context(
+auto TestRun_impl::make_child_process_context(
   TestId const test_id,
   InputPipeEnd const &response_write_pipe,
   std::mutex &transmission_mutex) const -> std::unique_ptr<Context>
@@ -600,7 +600,7 @@ auto Engine_impl::make_child_process_context(
   auto *impl = new ContextChildProcess_impl{};
 
   impl->initialize(
-    *this->engine_,
+    *this->test_run_,
     test_id,
     response_write_pipe,
     transmission_mutex);
@@ -633,7 +633,8 @@ auto get_random_number_generator() noexcept -> std::mt19937_64
   return rng;
 }
 
-auto get_test_record_ptrs(Engine const &t) noexcept -> std::vector<TestRecord *>
+auto get_test_record_ptrs(TestRun const &t) noexcept
+  -> std::vector<TestRecord *>
 {
   auto &test_records = get_impl(t).test_records();
   std::vector<TestRecord *> ptrs(test_records.size());
@@ -649,7 +650,7 @@ auto get_test_record_ptrs(Engine const &t) noexcept -> std::vector<TestRecord *>
   return ptrs;
 }
 
-auto get_shuffled_test_record_ptrs_(Engine const &t) noexcept
+auto get_shuffled_test_record_ptrs_(TestRun const &t) noexcept
   -> std::vector<TestRecord *>
 {
   auto ptrs = get_test_record_ptrs(t);
@@ -663,33 +664,33 @@ auto get_shuffled_test_record_ptrs_(Engine const &t) noexcept
 
 } // namespace
 
-void Engine_impl::set_shuffled_test_record_ptrs()
+void TestRun_impl::set_shuffled_test_record_ptrs()
 {
   this->shuffled_test_record_ptrs_ =
-    get_shuffled_test_record_ptrs_(*this->engine_);
+    get_shuffled_test_record_ptrs_(*this->test_run_);
 }
 
-auto Engine_impl::get_shuffled_test_record_ptrs() const
+auto TestRun_impl::get_shuffled_test_record_ptrs() const
   -> std::vector<TestRecord *> const &
 {
   return this->shuffled_test_record_ptrs_;
 }
 
-auto Engine_impl::is_disabled(TestId const test_id) const -> bool
+auto TestRun_impl::is_disabled(TestId const test_id) const -> bool
 {
   auto const &record = this->test_records_[test_id];
 
   return record.disabled();
 }
 
-void Engine_impl::register_crashed_exit_status(
+void TestRun_impl::register_crashed_exit_status(
   TestId const crashed_test_id,
   unsigned long long const exit_status)
 {
   crashed_exit_statuses_[crashed_test_id] = exit_status;
 }
 
-auto Engine_impl::get_crashed_exit_status(TestId const test_id) const
+auto TestRun_impl::get_crashed_exit_status(TestId const test_id) const
   -> std::optional<unsigned long long>
 {
   if(this->crashed_exit_statuses_.contains(test_id))
@@ -700,7 +701,7 @@ auto Engine_impl::get_crashed_exit_status(TestId const test_id) const
   return std::nullopt;
 }
 
-auto Engine_impl::errors() const noexcept -> std::vector<std::string>
+auto TestRun_impl::errors() const noexcept -> std::vector<std::string>
 {
   return std::ranges::views::transform(
            this->errors_,
@@ -711,17 +712,17 @@ auto Engine_impl::errors() const noexcept -> std::vector<std::string>
     std::ranges::to<std::vector<std::string>>();
 }
 
-auto Engine_impl::has_errors() const -> bool
+auto TestRun_impl::has_errors() const -> bool
 {
   return !this->errors_.empty();
 }
 
-void Engine_impl::initialize(Engine const &engine)
+void TestRun_impl::initialize(TestRun const &test_run)
 {
-  this->engine_ = &engine;
+  this->test_run_ = &test_run;
 }
 
-void Engine_impl::register_test_assembly(
+void TestRun_impl::register_test_assembly(
   TestAssembly assembly,
   TestId const test_id,
   unsigned long long const timeout_ms,
@@ -731,21 +732,21 @@ void Engine_impl::register_test_assembly(
     .emplace_back(std::move(assembly), test_id, timeout_ms, disabled);
 }
 
-auto Engine_impl::test_records() -> std::vector<TestRecord> &
+auto TestRun_impl::test_records() -> std::vector<TestRecord> &
 {
   return this->test_records_;
 }
 
-auto Engine_impl::generate_results() const -> RunResult
+auto TestRun_impl::generate_results() const -> TestRunResult
 {
-  auto *impl = new RunResult_impl{};
+  auto *impl = new TestRunResult_impl{};
 
-  impl->initialize(*this->engine_);
+  impl->initialize(*this->test_run_);
 
-  return RunResult{impl};
+  return TestRunResult{impl};
 }
 
-void Engine_impl::register_assertion(
+void TestRun_impl::register_assertion(
   bool const condition,
   TestId const test_id,
   AssertionIndex const index,
@@ -767,7 +768,7 @@ void Engine_impl::register_assertion(
   }
 }
 
-void Engine_impl::transmit_assertion(
+void TestRun_impl::transmit_assertion(
   bool const condition,
   TestId const test_id,
   AssertionIndex const index,
@@ -811,17 +812,17 @@ void Engine_impl::transmit_assertion(
   }
 }
 
-RunResult_impl::RunResult_impl()
+TestRunResult_impl::TestRunResult_impl()
   : has_failing_assertions_{false}
 {
 }
 
-void RunResult_impl::initialize(Engine const &engine)
+void TestRunResult_impl::initialize(TestRun const &test_run)
 {
   this->errors_ = std::invoke(
-    [&engine]()
+    [&test_run]()
     {
-      return get_impl(engine).errors();
+      return get_impl(test_run).errors();
     });
 
   if(!this->errors_.empty())
@@ -829,41 +830,41 @@ void RunResult_impl::initialize(Engine const &engine)
     return;
   }
 
-  this->has_failing_assertions_ = get_impl(engine).has_failing_assertions();
+  this->has_failing_assertions_ = get_impl(test_run).has_failing_assertions();
 
   this->test_outcomes_ = std::invoke(
-    [&engine]()
+    [&test_run]()
     {
-      unsigned long long const n = get_impl(engine).test_count();
+      unsigned long long const n = get_impl(test_run).test_count();
 
       std::vector<std::unique_ptr<TestOutcome>> output;
       output.reserve(n);
 
       for(unsigned long long id = 0; id < n; ++id)
       {
-        output.emplace_back(get_impl(engine).make_test_outcome(id));
+        output.emplace_back(get_impl(test_run).make_test_outcome(id));
       }
 
       return output;
     });
 }
 
-auto RunResult_impl::errors() const -> std::vector<std::string> const &
+auto TestRunResult_impl::errors() const -> std::vector<std::string> const &
 {
   return this->errors_;
 }
 
-auto RunResult_impl::has_errors() const -> bool
+auto TestRunResult_impl::has_errors() const -> bool
 {
   return !this->errors_.empty();
 }
 
-auto RunResult_impl::has_failing_assertions() const -> bool
+auto TestRunResult_impl::has_failing_assertions() const -> bool
 {
   return this->has_failing_assertions_;
 }
 
-auto RunResult_impl::has_crashes() const -> bool
+auto TestRunResult_impl::has_crashes() const -> bool
 {
   auto const it = std::ranges::find_if(
     this->test_outcomes_,
@@ -875,7 +876,7 @@ auto RunResult_impl::has_crashes() const -> bool
   return it != this->test_outcomes_.end();
 }
 
-auto RunResult_impl::has_timeouts() const -> bool
+auto TestRunResult_impl::has_timeouts() const -> bool
 {
   auto const it = std::ranges::find_if(
     this->test_outcomes_,
@@ -887,12 +888,12 @@ auto RunResult_impl::has_timeouts() const -> bool
   return it != this->test_outcomes_.end();
 }
 
-auto RunResult_impl::test_outcome_count() const -> unsigned long long
+auto TestRunResult_impl::test_outcome_count() const -> unsigned long long
 {
   return this->test_outcomes_.size();
 }
 
-auto RunResult_impl::get_test_outcome(unsigned long long const index) const
+auto TestRunResult_impl::get_test_outcome(unsigned long long const index) const
   -> TestOutcome const &
 {
   return *this->test_outcomes_[index];

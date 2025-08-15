@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-WAYPOINT_AUTORUN(waypoint::Engine const &t)
+WAYPOINT_AUTORUN(waypoint::TestRun const &t)
 {
   int const *const captured0 = nullptr;
   std::string const captured1 = "42";
@@ -48,7 +48,7 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
 
 auto main() -> int
 {
-  auto const t = waypoint::make_default_engine();
+  auto const t = waypoint::TestRun::create();
 
   auto const results = run_all_tests_in_process(t);
   REQUIRE_IN_MAIN(results.success());

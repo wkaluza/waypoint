@@ -37,7 +37,7 @@ auto UniquePtr<T>::operator*() const -> T &
 template class UniquePtr<AssertionOutcome_impl>;
 template class UniquePtr<ContextInProcess_impl>;
 template class UniquePtr<ContextChildProcess_impl>;
-template class UniquePtr<Engine_impl>;
+template class UniquePtr<TestRun_impl>;
 template class UniquePtr<Group_impl>;
 template class UniquePtr<Test_impl>;
 template class UniquePtr<TestOutcome_impl>;

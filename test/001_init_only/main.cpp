@@ -3,7 +3,7 @@
 
 auto main() -> int
 {
-  auto const t = waypoint::make_default_engine();
+  auto const t = waypoint::TestRun::create();
 
   auto const result = waypoint::run_all_tests_in_process(t);
   REQUIRE_IN_MAIN(result.success());

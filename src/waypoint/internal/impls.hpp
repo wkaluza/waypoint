@@ -15,7 +15,7 @@
 namespace waypoint
 {
 
-class Engine;
+class TestRun;
 
 } // namespace waypoint
 
@@ -180,16 +180,16 @@ public:
   auto operator=(Test_impl const &other) -> Test_impl & = delete;
   auto operator=(Test_impl &&other) noexcept -> Test_impl & = delete;
 
-  void initialize(Engine const &engine, TestId id);
+  void initialize(TestRun const &test_run, TestId id);
 
   [[nodiscard]]
-  auto get_engine() const -> Engine const &;
+  auto get_test_run() const -> TestRun const &;
   [[nodiscard]]
   auto get_id() const -> TestId;
   void mark_complete();
 
 private:
-  Engine const *engine_;
+  TestRun const *test_run_;
   TestId id_;
   bool incomplete_;
 };
@@ -199,17 +199,17 @@ class ContextInProcess_impl
 public:
   ContextInProcess_impl();
 
-  void initialize(Engine const &engine, TestId test_id);
+  void initialize(TestRun const &test_run, TestId test_id);
 
   [[nodiscard]]
-  auto get_engine() const -> Engine const &;
+  auto get_test_run() const -> TestRun const &;
   [[nodiscard]]
   auto generate_assertion_index() -> AssertionIndex;
   [[nodiscard]]
   auto test_id() const -> TestId;
 
 private:
-  Engine const *engine_;
+  TestRun const *test_run_;
   TestId test_id_;
   AssertionIndex assertion_index_;
 };
@@ -220,13 +220,13 @@ public:
   ContextChildProcess_impl();
 
   void initialize(
-    Engine const &engine,
+    TestRun const &test_run,
     TestId test_id,
     InputPipeEnd const &response_write_pipe,
     std::mutex &transmission_mutex);
 
   [[nodiscard]]
-  auto get_engine() const -> Engine const &;
+  auto get_test_run() const -> TestRun const &;
   [[nodiscard]]
   auto generate_assertion_index() -> AssertionIndex;
   [[nodiscard]]
@@ -237,17 +237,17 @@ public:
   auto transmission_mutex() const -> std::mutex *;
 
 private:
-  Engine const *engine_;
+  TestRun const *test_run_;
   TestId test_id_;
   AssertionIndex assertion_index_;
   InputPipeEnd const *response_write_pipe_;
   std::mutex *transmission_mutex_;
 };
 
-class Engine_impl
+class TestRun_impl
 {
 public:
-  Engine_impl();
+  TestRun_impl();
 
 private:
   using GroupName = std::string;
@@ -266,7 +266,7 @@ private:
   };
 
 public:
-  void initialize(Engine const &engine);
+  void initialize(TestRun const &test_run);
   void register_test_assembly(
     TestAssembly assembly,
     TestId test_id,
@@ -275,7 +275,7 @@ public:
   [[nodiscard]]
   auto test_records() -> std::vector<TestRecord> &;
   [[nodiscard]]
-  auto generate_results() const -> RunResult;
+  auto generate_results() const -> TestRunResult;
   void register_assertion(
     bool condition,
     TestId test_id,
@@ -348,7 +348,7 @@ public:
     -> std::optional<unsigned long long>;
 
 private:
-  Engine const *engine_;
+  TestRun const *test_run_;
   GroupId group_id_counter_;
   TestId test_id_counter_;
   std::unordered_map<GroupId, GroupName> group_id2group_name_;
@@ -365,12 +365,12 @@ private:
   std::unordered_map<TestId, unsigned long long> crashed_exit_statuses_;
 };
 
-class RunResult_impl
+class TestRunResult_impl
 {
 public:
-  RunResult_impl();
+  TestRunResult_impl();
 
-  void initialize(Engine const &engine);
+  void initialize(TestRun const &test_run);
 
   [[nodiscard]]
   auto errors() const -> std::vector<std::string> const &;

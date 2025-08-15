@@ -8,13 +8,13 @@ int x = 0;
 
 } // namespace
 
-WAYPOINT_AUTORUN(waypoint::Engine const &t)
+WAYPOINT_AUTORUN(waypoint::TestRun const &t)
 {
   ++x;
   (void)t;
 }
 
-WAYPOINT_AUTORUN(waypoint::Engine const &t)
+WAYPOINT_AUTORUN(waypoint::TestRun const &t)
 {
   ++x;
   (void)t;
@@ -22,7 +22,7 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
 
 auto main() -> int
 {
-  auto const t = waypoint::make_default_engine();
+  auto const t = waypoint::TestRun::create();
 
   auto const result = waypoint::run_all_tests_in_process(t);
   REQUIRE_IN_MAIN(result.success());

@@ -27,9 +27,9 @@
 namespace waypoint::internal
 {
 
-auto get_impl(Engine const &engine) -> Engine_impl &
+auto get_impl(TestRun const &test_run) -> TestRun_impl &
 {
-  return *engine.impl_;
+  return *test_run.impl_;
 }
 
 } // namespace waypoint::internal
@@ -132,7 +132,7 @@ private:
   std::thread thread_;
 };
 
-void populate_test_indices_(waypoint::Engine const &t)
+void populate_test_indices_(waypoint::TestRun const &t)
 {
   waypoint::internal::get_impl(t).set_shuffled_test_record_ptrs();
   auto const &shuffled_ptrs =
@@ -146,7 +146,7 @@ void populate_test_indices_(waypoint::Engine const &t)
 }
 
 void run_test(
-  waypoint::Engine const &t,
+  waypoint::TestRun const &t,
   unsigned long long const test_index,
   waypoint::internal::InputPipeEnd const &response_write_pipe,
   std::mutex &transmission_mutex) noexcept
@@ -181,7 +181,7 @@ void run_test(
 }
 
 void execute_command(
-  waypoint::Engine const &t,
+  waypoint::TestRun const &t,
   waypoint::internal::Command const &command,
   waypoint::internal::InputPipeEnd const &response_write_pipe,
   std::mutex &transmission_mutex)
@@ -343,7 +343,7 @@ void send_command(
 }
 
 void send_response(
-  waypoint::Engine const &t,
+  waypoint::TestRun const &t,
   waypoint::internal::InputPipeEnd const &response_write_pipe,
   unsigned long long const test_index,
   waypoint::internal::Response::Code const &code_,
@@ -384,11 +384,11 @@ void shut_down_sequence(
 }
 
 auto parent_main(
-  waypoint::Engine const &t,
+  waypoint::TestRun const &t,
   waypoint::internal::InputPipeEnd const &command_write_pipe,
   waypoint::internal::OutputPipeEnd const &response_read_pipe,
   unsigned long long const initial_test_index) noexcept
-  -> std::tuple<waypoint::RunResult, bool, unsigned long long>
+  -> std::tuple<waypoint::TestRunResult, bool, unsigned long long>
 {
   begin_handshake(command_write_pipe);
   await_handshake_end(response_read_pipe);
@@ -461,7 +461,7 @@ auto parent_main(
 }
 
 void child_main(
-  waypoint::Engine const &t,
+  waypoint::TestRun const &t,
   waypoint::internal::OutputPipeEnd const &command_read_pipe,
   waypoint::internal::InputPipeEnd const &response_write_pipe) noexcept
 {
@@ -498,13 +498,13 @@ void child_main(
   }
 }
 
-void initialize(waypoint::Engine const &t) noexcept
+void initialize(waypoint::TestRun const &t) noexcept
 {
   auto const section = waypoint::internal::get_autorun_section_boundaries();
   auto const begin = section.first;
   auto const end = section.second;
 
-  using AutorunFunctionPtr = void (*)(waypoint::Engine const &);
+  using AutorunFunctionPtr = void (*)(waypoint::TestRun const &);
   std::vector<AutorunFunctionPtr> functions;
 
   for(auto fn_ptr = begin; fn_ptr < end; fn_ptr += sizeof(AutorunFunctionPtr))
@@ -530,14 +530,7 @@ void initialize(waypoint::Engine const &t) noexcept
 namespace waypoint
 {
 
-auto make_default_engine() noexcept -> Engine
-{
-  auto *impl = new internal::Engine_impl{};
-
-  return Engine{impl};
-}
-
-auto run_all_tests_in_process(Engine const &t) noexcept -> RunResult
+auto run_all_tests_in_process(TestRun const &t) noexcept -> TestRunResult
 {
   initialize(t);
   if(internal::get_impl(t).has_errors())
@@ -564,7 +557,7 @@ auto run_all_tests_in_process(Engine const &t) noexcept -> RunResult
   return internal::get_impl(t).generate_results();
 }
 
-auto run_all_tests(Engine const &t) noexcept -> RunResult
+auto run_all_tests(TestRun const &t) noexcept -> TestRunResult
 {
   initialize(t);
   auto &impl = internal::get_impl(t);
@@ -759,9 +752,9 @@ auto Test::test_id() const -> unsigned long long
   return this->impl_->get_id();
 }
 
-auto Test::get_engine() const -> Engine const &
+auto Test::get_test_run() const -> TestRun const &
 {
-  return this->impl_->get_engine();
+  return this->impl_->get_test_run();
 }
 
 void Test::mark_complete() const
@@ -769,14 +762,14 @@ void Test::mark_complete() const
   this->impl_->mark_complete();
 }
 
-auto Engine::group(char const *name) const noexcept -> Group
+auto TestRun::group(char const *name) const noexcept -> Group
 {
   auto const group_id = this->impl_->register_group(name);
 
   return this->impl_->make_group(group_id);
 }
 
-auto Engine::test(Group const &group, char const *name) const noexcept -> Test
+auto TestRun::test(Group const &group, char const *name) const noexcept -> Test
 {
   auto const test_id =
     this->impl_->register_test(this->impl_->get_group_id(group), name);
@@ -784,7 +777,14 @@ auto Engine::test(Group const &group, char const *name) const noexcept -> Test
   return this->impl_->make_test(test_id);
 }
 
-void Engine::register_test_assembly(
+auto TestRun::create() -> TestRun
+{
+  auto *impl = new internal::TestRun_impl{};
+
+  return TestRun{impl};
+}
+
+void TestRun::register_test_assembly(
   internal::TestAssembly f,
   unsigned long long const test_id,
   unsigned long long const timeout_ms,
@@ -794,14 +794,14 @@ void Engine::register_test_assembly(
     ->register_test_assembly(std::move(f), test_id, timeout_ms, disabled);
 }
 
-void Engine::report_incomplete_test(unsigned long long const test_id) const
+void TestRun::report_incomplete_test(unsigned long long const test_id) const
 {
   this->impl_->report_incomplete_test(test_id);
 }
 
-Engine::~Engine() = default;
+TestRun::~TestRun() = default;
 
-Engine::Engine(internal::Engine_impl *const impl)
+TestRun::TestRun(internal::TestRun_impl *const impl)
   : impl_{internal::UniquePtr{impl}}
 {
   impl->initialize(*this);
@@ -820,7 +820,7 @@ ContextInProcess::ContextInProcess(internal::ContextInProcess_impl *const impl)
 
 void ContextInProcess::assert(bool const condition) const noexcept
 {
-  internal::get_impl(impl_->get_engine())
+  internal::get_impl(impl_->get_test_run())
     .register_assertion(
       condition,
       this->impl_->test_id(),
@@ -831,7 +831,7 @@ void ContextInProcess::assert(bool const condition) const noexcept
 void ContextInProcess::assert(bool const condition, char const *const message)
   const noexcept
 {
-  internal::get_impl(impl_->get_engine())
+  internal::get_impl(impl_->get_test_run())
     .register_assertion(
       condition,
       this->impl_->test_id(),
@@ -841,7 +841,7 @@ void ContextInProcess::assert(bool const condition, char const *const message)
 
 auto ContextInProcess::assume(bool const condition) const noexcept -> bool
 {
-  internal::get_impl(impl_->get_engine())
+  internal::get_impl(impl_->get_test_run())
     .register_assertion(
       condition,
       this->impl_->test_id(),
@@ -854,7 +854,7 @@ auto ContextInProcess::assume(bool const condition) const noexcept -> bool
 auto ContextInProcess::assume(bool const condition, char const *const message)
   const noexcept -> bool
 {
-  internal::get_impl(impl_->get_engine())
+  internal::get_impl(impl_->get_test_run())
     .register_assertion(
       condition,
       this->impl_->test_id(),
@@ -878,10 +878,10 @@ void ContextChildProcess::assert(bool const condition) const noexcept
 
   auto const index = this->impl_->generate_assertion_index();
 
-  internal::get_impl(impl_->get_engine())
+  internal::get_impl(impl_->get_test_run())
     .register_assertion(condition, this->impl_->test_id(), index, std::nullopt);
 
-  internal::get_impl(impl_->get_engine())
+  internal::get_impl(impl_->get_test_run())
     .transmit_assertion(
       condition,
       this->impl_->test_id(),
@@ -898,10 +898,10 @@ void ContextChildProcess::assert(
 
   auto const index = this->impl_->generate_assertion_index();
 
-  internal::get_impl(impl_->get_engine())
+  internal::get_impl(impl_->get_test_run())
     .register_assertion(condition, this->impl_->test_id(), index, message);
 
-  internal::get_impl(impl_->get_engine())
+  internal::get_impl(impl_->get_test_run())
     .transmit_assertion(
       condition,
       this->impl_->test_id(),
@@ -916,10 +916,10 @@ auto ContextChildProcess::assume(bool const condition) const noexcept -> bool
 
   auto const index = this->impl_->generate_assertion_index();
 
-  internal::get_impl(impl_->get_engine())
+  internal::get_impl(impl_->get_test_run())
     .register_assertion(condition, this->impl_->test_id(), index, std::nullopt);
 
-  internal::get_impl(impl_->get_engine())
+  internal::get_impl(impl_->get_test_run())
     .transmit_assertion(
       condition,
       this->impl_->test_id(),
@@ -938,10 +938,10 @@ auto ContextChildProcess::assume(
 
   auto const index = this->impl_->generate_assertion_index();
 
-  internal::get_impl(impl_->get_engine())
+  internal::get_impl(impl_->get_test_run())
     .register_assertion(condition, this->impl_->test_id(), index, message);
 
-  internal::get_impl(impl_->get_engine())
+  internal::get_impl(impl_->get_test_run())
     .transmit_assertion(
       condition,
       this->impl_->test_id(),
@@ -952,16 +952,16 @@ auto ContextChildProcess::assume(
   return condition;
 }
 
-RunResult::~RunResult() = default;
+TestRunResult::~TestRunResult() = default;
 
-RunResult::RunResult(RunResult &&other) noexcept = default;
+TestRunResult::TestRunResult(TestRunResult &&other) noexcept = default;
 
-RunResult::RunResult(internal::RunResult_impl *const impl)
-  : impl_{internal::MoveableUniquePtr<internal::RunResult_impl>{impl}}
+TestRunResult::TestRunResult(internal::TestRunResult_impl *const impl)
+  : impl_{internal::MoveableUniquePtr<internal::TestRunResult_impl>{impl}}
 {
 }
 
-auto RunResult::success() const noexcept -> bool
+auto TestRunResult::success() const noexcept -> bool
 {
   return !this->impl_->has_errors() &&
     !this->impl_->has_failing_assertions() &&
@@ -969,23 +969,23 @@ auto RunResult::success() const noexcept -> bool
     !this->impl_->has_timeouts();
 }
 
-auto RunResult::test_count() const noexcept -> unsigned long long
+auto TestRunResult::test_count() const noexcept -> unsigned long long
 {
   return this->impl_->test_outcome_count();
 }
 
-auto RunResult::test_outcome(unsigned long long const index) const noexcept
+auto TestRunResult::test_outcome(unsigned long long const index) const noexcept
   -> TestOutcome const &
 {
   return this->impl_->get_test_outcome(index);
 }
 
-auto RunResult::error_count() const noexcept -> unsigned long long
+auto TestRunResult::error_count() const noexcept -> unsigned long long
 {
   return this->impl_->errors().size();
 }
 
-auto RunResult::error(unsigned long long const index) const noexcept
+auto TestRunResult::error(unsigned long long const index) const noexcept
   -> char const *
 {
   return this->impl_->errors().at(index).c_str();
@@ -993,6 +993,6 @@ auto RunResult::error(unsigned long long const index) const noexcept
 
 } // namespace waypoint
 
-WAYPOINT_AUTORUN(waypoint::Engine const &)
+WAYPOINT_AUTORUN(waypoint::TestRun const &)
 {
 }

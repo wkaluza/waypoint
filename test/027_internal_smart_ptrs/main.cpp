@@ -10,7 +10,7 @@ namespace
 
 template<typename T>
 void register_test_unique_ptr(
-  waypoint::Engine const &t,
+  waypoint::TestRun const &t,
   std::string const &suffix)
 {
   auto const g1 = t.group(("Test group 1 " + suffix).c_str());
@@ -41,7 +41,7 @@ void register_test_unique_ptr(
 
 template<typename T>
 void register_test_moveable_unique_ptr(
-  waypoint::Engine const &t,
+  waypoint::TestRun const &t,
   std::string const &suffix)
 {
   auto const g1 = t.group(("Test group 1 " + suffix).c_str());
@@ -193,7 +193,7 @@ void register_test_moveable_unique_ptr(
 
 } // namespace
 
-WAYPOINT_AUTORUN(waypoint::Engine const &t)
+WAYPOINT_AUTORUN(waypoint::TestRun const &t)
 {
   register_test_unique_ptr<waypoint::internal::AssertionOutcome_impl>(
     t,
@@ -204,21 +204,21 @@ WAYPOINT_AUTORUN(waypoint::Engine const &t)
   register_test_unique_ptr<waypoint::internal::ContextChildProcess_impl>(
     t,
     "ContextChildProcess_impl");
-  register_test_unique_ptr<waypoint::internal::Engine_impl>(t, "Engine_impl");
+  register_test_unique_ptr<waypoint::internal::TestRun_impl>(t, "TestRun_impl");
   register_test_unique_ptr<waypoint::internal::Group_impl>(t, "Group_impl");
   register_test_unique_ptr<waypoint::internal::Test_impl>(t, "Test_impl");
   register_test_unique_ptr<waypoint::internal::TestOutcome_impl>(
     t,
     "TestOutcome_impl");
 
-  register_test_moveable_unique_ptr<waypoint::internal::RunResult_impl>(
+  register_test_moveable_unique_ptr<waypoint::internal::TestRunResult_impl>(
     t,
-    "RunResult_impl");
+    "TestRunResult_impl");
 }
 
 auto main() -> int
 {
-  auto const t = waypoint::make_default_engine();
+  auto const t = waypoint::TestRun::create();
 
   auto const results = run_all_tests_in_process(t);
   REQUIRE_IN_MAIN(results.success());

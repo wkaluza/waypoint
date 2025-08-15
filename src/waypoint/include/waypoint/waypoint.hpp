@@ -4,9 +4,9 @@ namespace waypoint
 {
 
 class Context;
-class Engine;
+class TestRun;
 class Group;
-class RunResult;
+class TestRunResult;
 class Test;
 class TestOutcome;
 
@@ -20,13 +20,13 @@ constexpr unsigned long long DEFAULT_TIMEOUT_MS = 1'000;
 class AssertionOutcome_impl;
 class ContextInProcess_impl;
 class ContextChildProcess_impl;
-class Engine_impl;
+class TestRun_impl;
 class Group_impl;
-class RunResult_impl;
+class TestRunResult_impl;
 class Test_impl;
 class TestOutcome_impl;
 
-auto get_impl(Engine const &engine) -> Engine_impl &;
+auto get_impl(TestRun const &test_run) -> TestRun_impl &;
 
 template<typename T>
 struct remove_reference
@@ -462,7 +462,7 @@ private:
 extern template class UniquePtr<AssertionOutcome_impl>;
 extern template class UniquePtr<ContextInProcess_impl>;
 extern template class UniquePtr<ContextChildProcess_impl>;
-extern template class UniquePtr<Engine_impl>;
+extern template class UniquePtr<TestRun_impl>;
 extern template class UniquePtr<Group_impl>;
 extern template class UniquePtr<Test_impl>;
 extern template class UniquePtr<TestOutcome_impl>;
@@ -475,21 +475,23 @@ class Registrar;
 namespace waypoint
 {
 
-class Engine
+class TestRun
 {
 public:
-  ~Engine();
-  Engine(Engine const &other) = delete;
-  Engine(Engine &&other) noexcept = delete;
-  auto operator=(Engine const &other) -> Engine & = delete;
-  auto operator=(Engine &&other) noexcept -> Engine & = delete;
+  ~TestRun();
+  TestRun(TestRun const &other) = delete;
+  TestRun(TestRun &&other) noexcept = delete;
+  auto operator=(TestRun const &other) -> TestRun & = delete;
+  auto operator=(TestRun &&other) noexcept -> TestRun & = delete;
 
   auto group(char const *name) const noexcept -> Group;
   auto test(Group const &group, char const *name) const noexcept
     -> waypoint::Test;
 
+  static auto create() -> TestRun;
+
 private:
-  explicit Engine(internal::Engine_impl *impl);
+  explicit TestRun(internal::TestRun_impl *impl);
 
   void register_test_assembly(
     internal::TestAssembly f,
@@ -498,12 +500,10 @@ private:
     bool disabled) const;
   void report_incomplete_test(unsigned long long test_id) const;
 
-  internal::UniquePtr<internal::Engine_impl> const impl_;
+  internal::UniquePtr<internal::TestRun_impl> const impl_;
 
-  friend auto internal::get_impl(Engine const &engine)
-    -> internal::Engine_impl &;
-
-  friend auto make_default_engine() noexcept -> Engine;
+  friend auto internal::get_impl(TestRun const &test_run)
+    -> internal::TestRun_impl &;
 
   template<typename FixtureT>
   friend class internal::Registrar;
@@ -551,7 +551,7 @@ private:
 
   internal::UniquePtr<internal::ContextInProcess_impl> const impl_;
 
-  friend class internal::Engine_impl;
+  friend class internal::TestRun_impl;
 };
 
 class ContextChildProcess final : public Context
@@ -578,7 +578,7 @@ private:
 
   internal::UniquePtr<internal::ContextChildProcess_impl> const impl_;
 
-  friend class internal::Engine_impl;
+  friend class internal::TestRun_impl;
 };
 
 } // namespace waypoint
@@ -604,7 +604,7 @@ public:
       return;
     }
 
-    this->engine_.register_test_assembly(
+    this->test_run_.register_test_assembly(
       [setup = move(this->setup_),
        body = move(this->body_),
        teardown = move(this->teardown_)](Context const &ctx) noexcept
@@ -625,7 +625,7 @@ public:
 
   Registrar(Registrar &&other) noexcept
     : is_active_{other.is_active_},
-      engine_{other.engine_},
+      test_run_{other.test_run_},
       test_id_{other.test_id_},
       timeout_ms_{other.timeout_ms_},
       setup_{move(other.setup_)},
@@ -671,9 +671,9 @@ public:
   }
 
 private:
-  Registrar(Engine const &engine, unsigned long long const test_id)
+  Registrar(TestRun const &test_run, unsigned long long const test_id)
     : is_active_{false},
-      engine_{engine},
+      test_run_{test_run},
       test_id_{test_id},
       timeout_ms_{DEFAULT_TIMEOUT_MS},
       setup_{},
@@ -685,11 +685,11 @@ private:
 
   void report_incomplete_test(unsigned long long const test_id) const
   {
-    this->engine_.report_incomplete_test(test_id);
+    this->test_run_.report_incomplete_test(test_id);
   }
 
   bool is_active_;
-  Engine const &engine_;
+  TestRun const &test_run_;
   unsigned long long test_id_;
   unsigned long long timeout_ms_;
   NonVoidSetup<FixtureT> setup_;
@@ -721,12 +721,12 @@ public:
   void disable(bool is_disabled);
 
 private:
-  Registrar(Engine const &engine, unsigned long long test_id);
+  Registrar(TestRun const &test_run, unsigned long long test_id);
 
   void report_incomplete_test(unsigned long long test_id) const;
 
   bool is_active_;
-  Engine const &engine_;
+  TestRun const &test_run_;
   unsigned long long test_id_;
   unsigned long long timeout_ms_;
   VoidSetup setup_;
@@ -743,11 +743,9 @@ namespace waypoint
 {
 
 [[nodiscard]]
-auto make_default_engine() noexcept -> Engine;
+auto run_all_tests_in_process(TestRun const &t) noexcept -> TestRunResult;
 [[nodiscard]]
-auto run_all_tests_in_process(Engine const &t) noexcept -> RunResult;
-[[nodiscard]]
-auto run_all_tests(Engine const &t) noexcept -> RunResult;
+auto run_all_tests(TestRun const &t) noexcept -> TestRunResult;
 
 class AssertionOutcome
 {
@@ -775,7 +773,7 @@ private:
 
   internal::UniquePtr<internal::AssertionOutcome_impl> const impl_;
 
-  friend class internal::Engine_impl;
+  friend class internal::TestRun_impl;
 };
 
 class TestOutcome
@@ -819,7 +817,7 @@ private:
 
   internal::UniquePtr<internal::TestOutcome_impl> const impl_;
 
-  friend class internal::Engine_impl;
+  friend class internal::TestRun_impl;
 };
 
 class Group
@@ -836,7 +834,7 @@ private:
 
   internal::UniquePtr<internal::Group_impl> const impl_;
 
-  friend class internal::Engine_impl;
+  friend class internal::TestRun_impl;
 };
 
 template<typename>
@@ -1139,28 +1137,28 @@ private:
   [[nodiscard]]
   auto make_registrar() const -> internal::Registrar<T>
   {
-    return internal::Registrar<T>{this->get_engine(), this->test_id()};
+    return internal::Registrar<T>{this->get_test_run(), this->test_id()};
   }
 
   [[nodiscard]]
   auto test_id() const -> unsigned long long;
   [[nodiscard]]
-  auto get_engine() const -> Engine const &;
+  auto get_test_run() const -> TestRun const &;
   void mark_complete() const;
 
   internal::UniquePtr<internal::Test_impl> const impl_;
 
-  friend class internal::Engine_impl;
+  friend class internal::TestRun_impl;
 };
 
-class RunResult
+class TestRunResult
 {
 public:
-  ~RunResult();
-  RunResult(RunResult const &other) = delete;
-  RunResult(RunResult &&other) noexcept;
-  auto operator=(RunResult const &other) -> RunResult & = delete;
-  auto operator=(RunResult &&other) noexcept -> RunResult & = delete;
+  ~TestRunResult();
+  TestRunResult(TestRunResult const &other) = delete;
+  TestRunResult(TestRunResult &&other) noexcept;
+  auto operator=(TestRunResult const &other) -> TestRunResult & = delete;
+  auto operator=(TestRunResult &&other) noexcept -> TestRunResult & = delete;
 
   [[nodiscard]]
   auto success() const noexcept -> bool;
@@ -1175,28 +1173,36 @@ public:
   auto error(unsigned long long index) const noexcept -> char const *;
 
 private:
-  explicit RunResult(internal::RunResult_impl *impl);
+  explicit TestRunResult(internal::TestRunResult_impl *impl);
 
-  internal::MoveableUniquePtr<internal::RunResult_impl> impl_;
+  internal::MoveableUniquePtr<internal::TestRunResult_impl> impl_;
 
-  friend class internal::Engine_impl;
+  friend class internal::TestRun_impl;
 };
 
 } // namespace waypoint
 
-#define _INTERNAL_WAYPOINT_AUTORUN_IMPL2_(engine, section_name, counter, line) \
-  static void _INTERNAL_WAYPOINT_TEST##_##counter##_##line(engine); \
-  static void (*_INTERNAL_WAYPOINT_TEST_PTR##_##counter##_##line)(engine) \
+#define _INTERNAL_WAYPOINT_AUTORUN_IMPL2_( \
+  test_run, \
+  section_name, \
+  counter, \
+  line) \
+  static void _INTERNAL_WAYPOINT_TEST##_##counter##_##line(test_run); \
+  static void (*_INTERNAL_WAYPOINT_TEST_PTR##_##counter##_##line)(test_run) \
     __attribute__((used, section(#section_name))) = \
       _INTERNAL_WAYPOINT_TEST##_##counter##_##line; \
-  static void _INTERNAL_WAYPOINT_TEST##_##counter##_##line(engine)
+  static void _INTERNAL_WAYPOINT_TEST##_##counter##_##line(test_run)
 
-#define _INTERNAL_WAYPOINT_AUTORUN_IMPL1_(engine, section_name, counter, line) \
-  _INTERNAL_WAYPOINT_AUTORUN_IMPL2_(engine, section_name, counter, line)
+#define _INTERNAL_WAYPOINT_AUTORUN_IMPL1_( \
+  test_run, \
+  section_name, \
+  counter, \
+  line) \
+  _INTERNAL_WAYPOINT_AUTORUN_IMPL2_(test_run, section_name, counter, line)
 
-#define WAYPOINT_AUTORUN(engine) \
+#define WAYPOINT_AUTORUN(test_run) \
   _INTERNAL_WAYPOINT_AUTORUN_IMPL1_( \
-    engine, \
+    test_run, \
     waypoint_tests, \
     __COUNTER__, \
     __LINE__)

@@ -17,7 +17,7 @@ Registrar<void>::~Registrar()
     return;
   }
 
-  this->engine_.register_test_assembly(
+  this->test_run_.register_test_assembly(
     [setup = move(this->setup_),
      body = move(this->body_),
      teardown = move(this->teardown_)](Context const &ctx) noexcept
@@ -39,7 +39,7 @@ Registrar<void>::~Registrar()
 
 Registrar<void>::Registrar(Registrar &&other) noexcept
   : is_active_{other.is_active_},
-    engine_{other.engine_},
+    test_run_{other.test_run_},
     test_id_{other.test_id_},
     timeout_ms_{other.timeout_ms_},
     setup_{move(other.setup_)},
@@ -82,10 +82,10 @@ void Registrar<void>::disable(bool const is_disabled)
 }
 
 Registrar<void>::Registrar(
-  Engine const &engine,
+  TestRun const &test_run,
   unsigned long long const test_id)
   : is_active_{false},
-    engine_{engine},
+    test_run_{test_run},
     test_id_{test_id},
     timeout_ms_{DEFAULT_TIMEOUT_MS},
     is_disabled_{false}
@@ -95,7 +95,7 @@ Registrar<void>::Registrar(
 void Registrar<void>::report_incomplete_test(
   unsigned long long const test_id) const
 {
-  this->engine_.report_incomplete_test(test_id);
+  this->test_run_.report_incomplete_test(test_id);
 }
 
 } // namespace waypoint::internal
