@@ -79,7 +79,7 @@ public:
               {
                 this->latch_arrive_and_wait();
 
-                std::unique_lock<std::mutex> lock{this->transmission_mutex_};
+                std::unique_lock lock{this->transmission_mutex_};
 
                 bool const disarmed = this->cv_.wait_for(
                   lock,
@@ -108,7 +108,7 @@ public:
 
   void disarm()
   {
-    std::lock_guard<std::mutex> const lock{this->transmission_mutex_};
+    std::lock_guard const lock{this->transmission_mutex_};
 
     this->is_armed_.store(false);
     this->cv_.notify_one();
@@ -204,7 +204,7 @@ void await_handshake_start(
   waypoint::internal::OutputPipeEnd const &pipe,
   std::mutex &transmission_mutex)
 {
-  std::lock_guard<std::mutex> const lock{transmission_mutex};
+  std::lock_guard const lock{transmission_mutex};
 
   unsigned char data = 0;
   [[maybe_unused]]
@@ -215,7 +215,7 @@ void complete_handshake(
   waypoint::internal::InputPipeEnd const &pipe,
   std::mutex &transmission_mutex)
 {
-  std::lock_guard<std::mutex> const lock{transmission_mutex};
+  std::lock_guard const lock{transmission_mutex};
 
   constexpr auto ready =
     std::to_underlying(waypoint::internal::Response::Code::Ready);
@@ -234,7 +234,7 @@ auto receive_command(
   waypoint::internal::OutputPipeEnd const &command_read_pipe,
   std::mutex &transmission_mutex) -> waypoint::internal::Command
 {
-  std::lock_guard<std::mutex> const lock{transmission_mutex};
+  std::lock_guard const lock{transmission_mutex};
 
   auto code_ = std::to_underlying(waypoint::internal::Command::Code::Invalid);
   [[maybe_unused]]
@@ -349,7 +349,7 @@ void send_response(
   waypoint::internal::Response::Code const &code_,
   std::mutex &transmission_mutex)
 {
-  std::lock_guard<std::mutex> const lock{transmission_mutex};
+  std::lock_guard const lock{transmission_mutex};
 
   auto const code = std::to_underlying(code_);
   response_write_pipe.write(&code, sizeof code);
@@ -874,7 +874,7 @@ ContextChildProcess::ContextChildProcess(
 
 void ContextChildProcess::assert(bool const condition) const noexcept
 {
-  std::lock_guard<std::mutex> const lock{*this->impl_->transmission_mutex()};
+  std::lock_guard const lock{*this->impl_->transmission_mutex()};
 
   auto const index = this->impl_->generate_assertion_index();
 
@@ -894,7 +894,7 @@ void ContextChildProcess::assert(
   bool const condition,
   char const *const message) const noexcept
 {
-  std::lock_guard<std::mutex> const lock{*this->impl_->transmission_mutex()};
+  std::lock_guard const lock{*this->impl_->transmission_mutex()};
 
   auto const index = this->impl_->generate_assertion_index();
 
@@ -912,7 +912,7 @@ void ContextChildProcess::assert(
 
 auto ContextChildProcess::assume(bool const condition) const noexcept -> bool
 {
-  std::lock_guard<std::mutex> const lock{*this->impl_->transmission_mutex()};
+  std::lock_guard const lock{*this->impl_->transmission_mutex()};
 
   auto const index = this->impl_->generate_assertion_index();
 
@@ -934,7 +934,7 @@ auto ContextChildProcess::assume(
   bool const condition,
   char const *const message) const noexcept -> bool
 {
-  std::lock_guard<std::mutex> const lock{*this->impl_->transmission_mutex()};
+  std::lock_guard const lock{*this->impl_->transmission_mutex()};
 
   auto const index = this->impl_->generate_assertion_index();
 

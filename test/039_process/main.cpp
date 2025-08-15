@@ -36,7 +36,7 @@ auto main() -> int
   auto const test_count = results.test_count();
   REQUIRE_IN_MAIN(test_count == 6);
 
-  std::vector<waypoint::TestOutcome::Status> const statuses{
+  std::vector const statuses{
     waypoint::TestOutcome::Status::Success,
     waypoint::TestOutcome::Status::Success,
     waypoint::TestOutcome::Status::Success,

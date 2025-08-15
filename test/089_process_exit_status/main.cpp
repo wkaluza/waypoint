@@ -61,7 +61,7 @@ auto main() -> int
   auto const test_count = results.test_count();
   REQUIRE_IN_MAIN(test_count == 9);
 
-  std::vector<waypoint::TestOutcome::Status> const expected_statuses = {
+  std::vector const expected_statuses = {
     waypoint::TestOutcome::Status::Crashed,
     waypoint::TestOutcome::Status::Crashed,
     waypoint::TestOutcome::Status::Crashed,
@@ -72,10 +72,10 @@ auto main() -> int
     waypoint::TestOutcome::Status::Timeout,
     waypoint::TestOutcome::Status::Crashed,
   };
-  std::vector<bool> const expected_disabled_states =
+  std::vector const expected_disabled_states =
     {false, false, false, false, false, false, true, false, false};
-  std::vector<unsigned> const expected_assertion_counts =
-    {2, 2, 2, 3, 3, 2, 0, 2, 2};
+  std::vector const expected_assertion_counts =
+    {2U, 2U, 2U, 3U, 3U, 2U, 0U, 2U, 2U};
 
   for(unsigned i = 0; i < test_count; ++i)
   {

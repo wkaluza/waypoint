@@ -337,7 +337,7 @@ auto create_child_process(
     WAYPOINT_INTERNAL_RESPONSE_SINK_ENV_NAME,
     int2str(pipe_response[1], 10));
 
-  std::vector<char const *> execve_envp = {
+  std::vector execve_envp = {
     runner_mode_env.c_str(),
     command_source_env.c_str(),
     response_sink_env.c_str()};

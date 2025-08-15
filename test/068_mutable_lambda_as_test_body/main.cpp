@@ -11,7 +11,7 @@ WAYPOINT_AUTORUN(waypoint::TestRun const &t)
 {
   int const *const captured0 = nullptr;
   std::string const captured1 = "42";
-  std::vector<int> const captured2 = {1, 2, 3, 4};
+  std::vector const captured2 = {1, 2, 3, 4};
   std::function<int()> const captured3 = []()
   {
     return 123;

@@ -118,7 +118,7 @@ auto main() -> int
   auto const test_count = results.test_count();
   REQUIRE_IN_MAIN(test_count == 19);
 
-  std::vector<bool> expected_disabled_states = {
+  std::vector const expected_disabled_states = {
     true,
     true,
     false,
@@ -145,7 +145,7 @@ auto main() -> int
     REQUIRE_IN_MAIN(test_outcome.disabled() == expected_disabled_states[i]);
   }
 
-  std::vector<waypoint::TestOutcome::Status> expected_statuses{
+  std::vector const expected_statuses{
     waypoint::TestOutcome::Status::NotRun,
     waypoint::TestOutcome::Status::NotRun,
     waypoint::TestOutcome::Status::Success,

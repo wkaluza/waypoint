@@ -37,12 +37,12 @@ auto main() -> int
   auto const test_count = results.test_count();
   REQUIRE_IN_MAIN(test_count == 3);
 
-  std::vector<waypoint::TestOutcome::Status> const expected_statuses = {
+  std::vector const expected_statuses = {
     waypoint::TestOutcome::Status::Success,
     waypoint::TestOutcome::Status::Success,
     waypoint::TestOutcome::Status::NotRun};
-  std::vector<bool> const expected_disabled_states = {false, false, true};
-  std::vector<unsigned> const expected_assertion_counts = {2, 3, 0};
+  std::vector const expected_disabled_states = {false, false, true};
+  std::vector const expected_assertion_counts = {2U, 3U, 0U};
 
   for(unsigned i = 0; i < test_count; ++i)
   {

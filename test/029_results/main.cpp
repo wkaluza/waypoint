@@ -66,13 +66,13 @@ auto main() -> int
   auto const test_count = results.test_count();
   REQUIRE_IN_MAIN(test_count == 6);
 
-  std::vector<unsigned long long> const test_indices{
-    3,
-    1,
-    5,
-    4,
-    2,
-    0,
+  std::vector const test_indices{
+    3U,
+    1U,
+    5U,
+    4U,
+    2U,
+    0U,
   };
 
   for(unsigned i = 0; i < test_count; ++i)

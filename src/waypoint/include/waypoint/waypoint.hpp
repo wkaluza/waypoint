@@ -991,7 +991,7 @@ public:
   {
     this->registrar_.register_teardown(internal::forward<F>(f));
 
-    return waypoint::Test4<void>{internal::move(this->registrar_)};
+    return waypoint::Test4{internal::move(this->registrar_)};
   }
 
   auto timeout_ms(unsigned long long const timeout_ms) && noexcept
@@ -999,7 +999,7 @@ public:
   {
     this->registrar_.set_timeout_ms(timeout_ms);
 
-    return waypoint::Test5<void>{internal::move(this->registrar_)};
+    return waypoint::Test5{internal::move(this->registrar_)};
   }
 
   void disable() && noexcept;
@@ -1063,7 +1063,7 @@ public:
   {
     this->registrar_.register_body(internal::forward<F>(f));
 
-    return waypoint::Test3<void>{internal::move(this->registrar_)};
+    return waypoint::Test3{internal::move(this->registrar_)};
   }
 
 private:
@@ -1127,7 +1127,7 @@ public:
 
     registrar.register_body(internal::forward<F>(f));
 
-    return waypoint::Test3<void>{internal::move(registrar)};
+    return waypoint::Test3{internal::move(registrar)};
   }
 
 private:

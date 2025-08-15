@@ -114,7 +114,7 @@ auto main() -> int
   auto const test_count = results.test_count();
   REQUIRE_IN_MAIN(test_count == 18);
 
-  std::vector<bool> expected_disabled_states = {
+  std::vector const expected_disabled_states = {
     true,
     true,
     false,

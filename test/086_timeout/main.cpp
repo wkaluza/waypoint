@@ -33,7 +33,7 @@ auto main() -> int
   auto const test_count = results.test_count();
   REQUIRE_IN_MAIN(test_count == 2);
 
-  std::vector<unsigned> const expected_assertion_counts = {1, 2};
+  std::vector const expected_assertion_counts = {1U, 2U};
 
   for(unsigned i = 0; i < test_count; ++i)
   {
