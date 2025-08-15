@@ -47,7 +47,7 @@ struct remove_reference<T &&>
 };
 
 template<typename T>
-using remove_reference_t = typename remove_reference<T>::type;
+using remove_reference_t = remove_reference<T>::type;
 
 template<typename T>
 // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
@@ -111,7 +111,7 @@ struct enable_if<true, T>
 };
 
 template<bool B, typename T>
-using enable_if_t = typename enable_if<B, T>::type;
+using enable_if_t = enable_if<B, T>::type;
 
 template<typename T>
 auto declval() -> T;
@@ -127,10 +127,10 @@ struct invoke_result
 };
 
 template<typename F, typename... Args>
-using invoke_result_t = typename invoke_result<F, Args...>::type;
+using invoke_result_t = invoke_result<F, Args...>::type;
 
 template<typename F>
-using setup_invoke_result_t = typename invoke_result<F, Context &>::type;
+using setup_invoke_result_t = invoke_result<F, Context &>::type;
 
 template<typename T>
 class MoveableUniquePtr
