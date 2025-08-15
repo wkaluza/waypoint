@@ -457,7 +457,7 @@ def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
 
             return False
 
-        return True
+    return True
 
 
 def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str | None]:
@@ -582,6 +582,7 @@ def run_lcov(build_dir) -> bool:
     success = create_dir(COVERAGE_DIR_LCOV)
     if not success:
         print(f"Failed to create {COVERAGE_DIR_LCOV}")
+
         return False
 
     with contextlib.chdir(PROJECT_ROOT_DIR):
@@ -955,11 +956,14 @@ def collect_depfiles(preset):
     return depfiles
 
 
-def changed_cpp_files_and_dependents(preset):
+def changed_cpp_files_and_dependents(preset) -> typing.List[str]:
+    changed_cpp_files = get_changed_files(is_cpp_file)
+    if len(changed_cpp_files) == 0:
+        return []
+
     depfiles = collect_depfiles(preset)
     index = process_depfiles(depfiles)
     reverse_index = invert_index(index)
-    changed_cpp_files = get_changed_files(is_cpp_file)
     files_for_analysis = set()
     for changed in changed_cpp_files:
         if changed not in reverse_index.keys():
@@ -1000,6 +1004,7 @@ class CliConfig:
 def preamble() -> tuple[CliConfig | None, bool]:
     if not is_linux():
         print(f"Unknown OS: {platform.system()}")
+
         return None, False
 
     parser = argparse.ArgumentParser()
