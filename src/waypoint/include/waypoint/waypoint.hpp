@@ -15,7 +15,7 @@ class TestOutcome;
 namespace waypoint::internal
 {
 
-constexpr unsigned long long DEFAULT_TIMEOUT_MS = 1'000;
+constexpr unsigned long long DEFAULT_TIMEOUT_MS = 100;
 
 class AssertionOutcome_impl;
 class ContextInProcess_impl;

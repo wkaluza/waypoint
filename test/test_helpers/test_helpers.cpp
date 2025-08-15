@@ -84,7 +84,7 @@ auto get_env(std::string const &var_name) -> std::optional<std::string>
 void body_short_sleep(waypoint::Context const &ctx) noexcept
 {
   ctx.assert(true);
-  std::this_thread::sleep_for(std::chrono::milliseconds{1'100});
+  std::this_thread::sleep_for(std::chrono::milliseconds{110});
 }
 
 void body_long_sleep(waypoint::Context const &ctx) noexcept
