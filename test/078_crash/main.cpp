@@ -26,7 +26,8 @@ auto main() -> int
   {
     auto const &outcome = results.test_outcome(i);
 
-    REQUIRE_IN_MAIN(outcome.status() == waypoint::TestOutcome::Status::Crashed);
+    REQUIRE_IN_MAIN(
+      outcome.status() == waypoint::TestOutcome::Status::Terminated);
     REQUIRE_IN_MAIN(outcome.assertion_count() == 1);
   }
 

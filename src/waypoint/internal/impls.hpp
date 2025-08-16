@@ -110,7 +110,7 @@ public:
   {
     NotRun,
     Complete,
-    Crashed,
+    Terminated,
     Timeout
   };
 

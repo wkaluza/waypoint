@@ -604,7 +604,7 @@ auto run_all_tests(TestRun const &t) noexcept -> TestRunResult
 
     auto const *record =
       impl.get_shuffled_test_record_ptrs().at(creshed_test_index);
-    if(record->status() == internal::TestRecord::Status::Crashed)
+    if(record->status() == internal::TestRecord::Status::Terminated)
     {
       auto const crashed_test_id = record->test_id();
       impl.register_crashed_exit_status(crashed_test_id, exit_status);

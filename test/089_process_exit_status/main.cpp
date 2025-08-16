@@ -62,15 +62,15 @@ auto main() -> int
   REQUIRE_IN_MAIN(test_count == 9);
 
   std::vector const expected_statuses = {
-    waypoint::TestOutcome::Status::Crashed,
-    waypoint::TestOutcome::Status::Crashed,
-    waypoint::TestOutcome::Status::Crashed,
+    waypoint::TestOutcome::Status::Terminated,
+    waypoint::TestOutcome::Status::Terminated,
+    waypoint::TestOutcome::Status::Terminated,
     waypoint::TestOutcome::Status::Success,
     waypoint::TestOutcome::Status::Failure,
-    waypoint::TestOutcome::Status::Crashed,
+    waypoint::TestOutcome::Status::Terminated,
     waypoint::TestOutcome::Status::NotRun,
     waypoint::TestOutcome::Status::Timeout,
-    waypoint::TestOutcome::Status::Crashed,
+    waypoint::TestOutcome::Status::Terminated,
   };
   std::vector const expected_disabled_states =
     {false, false, false, false, false, false, true, false, false};
@@ -90,7 +90,7 @@ auto main() -> int
     auto const expected_assertion_count = expected_assertion_counts[i];
     REQUIRE_IN_MAIN(outcome.assertion_count() == expected_assertion_count);
 
-    if(outcome.status() == waypoint::TestOutcome::Status::Crashed)
+    if(outcome.status() == waypoint::TestOutcome::Status::Terminated)
     {
       REQUIRE_IN_MAIN(outcome.exit_code() != nullptr);
       REQUIRE_IN_MAIN(*outcome.exit_code() > 0);

@@ -790,7 +790,7 @@ public:
     NotRun,
     Success,
     Failure,
-    Crashed,
+    Terminated,
     Timeout
   };
 

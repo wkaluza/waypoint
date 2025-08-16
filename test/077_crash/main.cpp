@@ -38,7 +38,7 @@ auto main() -> int
     waypoint::TestOutcome::Status::Success,
     waypoint::TestOutcome::Status::Success,
     waypoint::TestOutcome::Status::Success,
-    waypoint::TestOutcome::Status::Crashed,
+    waypoint::TestOutcome::Status::Terminated,
     waypoint::TestOutcome::Status::Success,
     waypoint::TestOutcome::Status::Success};
 
@@ -49,7 +49,7 @@ auto main() -> int
     auto const expected_status = statuses[i];
     REQUIRE_IN_MAIN(outcome.status() == expected_status);
 
-    if(outcome.status() == waypoint::TestOutcome::Status::Crashed)
+    if(outcome.status() == waypoint::TestOutcome::Status::Terminated)
     {
       REQUIRE_IN_MAIN(outcome.assertion_count() == 1);
     }

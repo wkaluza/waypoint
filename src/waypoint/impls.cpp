@@ -180,7 +180,7 @@ void TestRecord::mark_as_run()
 
 void TestRecord::mark_as_crashed()
 {
-  this->status_ = TestRecord::Status::Crashed;
+  this->status_ = TestRecord::Status::Terminated;
 }
 
 void TestRecord::mark_as_timed_out()
@@ -460,9 +460,9 @@ auto TestRun_impl::make_test_outcome(TestId const test_id) const noexcept
         return TestOutcome::Status::NotRun;
       }
 
-      if(test_record.status() == TestRecord::Status::Crashed)
+      if(test_record.status() == TestRecord::Status::Terminated)
       {
-        return TestOutcome::Status::Crashed;
+        return TestOutcome::Status::Terminated;
       }
 
       if(test_record.status() == TestRecord::Status::Timeout)
@@ -870,7 +870,7 @@ auto TestRunResult_impl::has_crashes() const -> bool
     this->test_outcomes_,
     [](auto const &outcome)
     {
-      return outcome->status() == TestOutcome::Status::Crashed;
+      return outcome->status() == TestOutcome::Status::Terminated;
     });
 
   return it != this->test_outcomes_.end();
