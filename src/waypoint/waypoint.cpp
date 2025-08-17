@@ -625,12 +625,12 @@ AssertionOutcome::AssertionOutcome(internal::AssertionOutcome_impl *const impl)
 
 auto AssertionOutcome::group() const noexcept -> char const *
 {
-  return this->impl_->group_name().c_str();
+  return this->impl_->group_name();
 }
 
 auto AssertionOutcome::test() const noexcept -> char const *
 {
-  return this->impl_->test_name().c_str();
+  return this->impl_->test_name();
 }
 
 auto AssertionOutcome::message() const noexcept -> char const *

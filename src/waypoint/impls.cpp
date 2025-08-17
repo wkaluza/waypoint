@@ -23,33 +23,32 @@ namespace waypoint::internal
 {
 
 AssertionOutcome_impl::AssertionOutcome_impl()
-  : passed_{},
+  : test_outcome_{},
+    passed_{},
     index_{}
 {
 }
 
 void AssertionOutcome_impl::initialize(
-  std::string group_name,
-  std::string test_name,
+  TestOutcome const *const test_outcome,
   std::optional<std::string> message,
   bool const passed,
   unsigned long long const index)
 {
-  this->group_name_ = std::move(group_name);
-  this->test_name_ = std::move(test_name);
+  this->test_outcome_ = test_outcome;
   this->message_ = std::move(message);
   this->passed_ = passed;
   this->index_ = index;
 }
 
-auto AssertionOutcome_impl::group_name() const -> std::string const &
+auto AssertionOutcome_impl::group_name() const -> char const *
 {
-  return this->group_name_;
+  return this->test_outcome_->group_name();
 }
 
-auto AssertionOutcome_impl::test_name() const -> std::string const &
+auto AssertionOutcome_impl::test_name() const -> char const *
 {
-  return this->test_name_;
+  return this->test_outcome_->test_name();
 }
 
 auto AssertionOutcome_impl::message() const
@@ -432,14 +431,16 @@ auto TestRun_impl::make_test_outcome(TestId const test_id) const noexcept
       return assertions2;
     });
 
+  auto *const impl = new TestOutcome_impl{};
+  auto test_outcome = std::unique_ptr<TestOutcome>(new TestOutcome{impl});
+
   for(auto const &assertion : assertions)
   {
     auto const maybe_message = assertion.message();
     auto *const assertion_impl = new AssertionOutcome_impl{};
 
     assertion_impl->initialize(
-      this->get_group_name(this->get_group_id(test_id)),
-      this->get_test_name(test_id),
+      test_outcome.get(),
       maybe_message,
       assertion.passed(),
       assertion.index());
@@ -447,8 +448,6 @@ auto TestRun_impl::make_test_outcome(TestId const test_id) const noexcept
     assertion_outcomes.emplace_back(
       std::unique_ptr<AssertionOutcome>(new AssertionOutcome{assertion_impl}));
   }
-
-  auto *const impl = new TestOutcome_impl{};
 
   auto const &test_record = this->test_records_[test_id];
 
@@ -490,7 +489,7 @@ auto TestRun_impl::make_test_outcome(TestId const test_id) const noexcept
     status,
     this->get_crashed_exit_status(test_id));
 
-  return std::unique_ptr<TestOutcome>(new TestOutcome{impl});
+  return test_outcome;
 }
 
 auto TestRun_impl::register_test(

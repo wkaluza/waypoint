@@ -30,16 +30,15 @@ public:
   AssertionOutcome_impl();
 
   void initialize(
-    std::string group_name,
-    std::string test_name,
+    TestOutcome const *test_outcome,
     std::optional<std::string> message,
     bool passed,
     unsigned long long index);
 
   [[nodiscard]]
-  auto group_name() const -> std::string const &;
+  auto group_name() const -> char const *;
   [[nodiscard]]
-  auto test_name() const -> std::string const &;
+  auto test_name() const -> char const *;
   [[nodiscard]]
   auto message() const -> std::optional<std::string> const &;
   [[nodiscard]]
@@ -48,8 +47,7 @@ public:
   auto index() const -> unsigned long long;
 
 private:
-  std::string group_name_;
-  std::string test_name_;
+  TestOutcome const *test_outcome_;
   std::optional<std::string> message_;
   bool passed_;
   unsigned long long index_;
