@@ -2,6 +2,7 @@
 #include "waypoint/waypoint.hpp"
 
 #include <cstring>
+#include <format>
 
 WAYPOINT_AUTORUN(waypoint::TestRun const &t)
 {
@@ -21,18 +22,23 @@ auto main() -> int
 
   auto const results = waypoint::run_all_tests(t);
 
-  REQUIRE_IN_MAIN(!results.success());
+  REQUIRE_IN_MAIN(!results.success(), "Expected the run to fail");
   auto const error_count = results.error_count();
-  REQUIRE_IN_MAIN(error_count == 1);
+  REQUIRE_IN_MAIN(
+    error_count == 1,
+    std::format("Expected error_count to be 1, but it is {}", error_count));
 
   auto const *const error_message = results.error(0);
   REQUIRE_IN_MAIN(
     std::strcmp(
       error_message,
-      R"(Group "Test group 1" contains duplicate test "Test 2")") == 0);
+      R"(Group "Test group 1" contains duplicate test "Test 2")") == 0,
+    std::format("Unexpected string value: {}", error_message));
 
   auto const test_count = results.test_count();
-  REQUIRE_IN_MAIN(test_count == 0);
+  REQUIRE_IN_MAIN(
+    test_count == 0,
+    std::format("Expected test_count to be 0, but it is {}", test_count));
 
   return 0;
 }

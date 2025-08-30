@@ -1,6 +1,7 @@
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
+#include <format>
 #include <vector>
 
 WAYPOINT_AUTORUN(waypoint::TestRun const &t)
@@ -107,15 +108,24 @@ auto main() -> int
 
   auto const results = run_all_tests_in_process(t);
 
-  REQUIRE_IN_MAIN(!results.success());
+  REQUIRE_IN_MAIN(!results.success(), "Expected the run to fail");
 
-  REQUIRE_IN_MAIN(waypoint::test::x == waypoint::test::x_init + 6);
+  REQUIRE_IN_MAIN(
+    waypoint::test::x == waypoint::test::x_init + 6,
+    std::format(
+      "Expected x to be {}, but it is {}",
+      waypoint::test::x_init + 6,
+      waypoint::test::x));
 
   auto const error_count = results.error_count();
-  REQUIRE_IN_MAIN(error_count == 0);
+  REQUIRE_IN_MAIN(
+    error_count == 0,
+    std::format("Expected error_count to be 0, but it is {}", error_count));
 
   auto const test_count = results.test_count();
-  REQUIRE_IN_MAIN(test_count == 19);
+  REQUIRE_IN_MAIN(
+    test_count == 19,
+    std::format("Expected test_count to be 19, but it is {}", test_count));
 
   std::vector const expected_disabled_states = {
     true,
@@ -141,7 +151,11 @@ auto main() -> int
   for(unsigned i = 0; i < test_count; ++i)
   {
     auto const &test_outcome = results.test_outcome(i);
-    REQUIRE_IN_MAIN(test_outcome.disabled() == expected_disabled_states[i]);
+    auto const actual = test_outcome.disabled();
+    auto const expected = expected_disabled_states[i];
+    REQUIRE_IN_MAIN(
+      actual == expected,
+      std::format("Expected actual to be {}, but it is {}", expected, actual));
   }
 
   std::vector const expected_statuses{
@@ -168,7 +182,13 @@ auto main() -> int
   for(unsigned i = 0; i < test_count; ++i)
   {
     auto const &test_outcome = results.test_outcome(i);
-    REQUIRE_IN_MAIN(test_outcome.status() == expected_statuses[i]);
+    auto const actual_status = test_outcome.status();
+    auto const expected_status = expected_statuses[i];
+    REQUIRE_IN_MAIN(
+      actual_status == expected_status,
+      std::vformat(
+        "Expected actual_status to be {}, but it is {}",
+        std::make_format_args(expected_status, actual_status)));
   }
 
   return 0;

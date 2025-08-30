@@ -2,6 +2,7 @@
 #include "waypoint/waypoint.hpp"
 
 #include <cstring>
+#include <format>
 
 // False positives from clang-tidy (according to Valgrind)
 // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
@@ -56,33 +57,42 @@ auto main() -> int
 
   auto const results = run_all_tests(t);
 
-  // We expect the run to fail
-  REQUIRE_IN_MAIN(!results.success());
+  REQUIRE_IN_MAIN(!results.success(), "Expected the run to fail");
 
   auto const count = results.error_count();
 
-  REQUIRE_IN_MAIN(count == 4);
+  REQUIRE_IN_MAIN(
+    count == 4,
+    std::format("Expected count to be 4, but it is {}", count));
   REQUIRE_IN_MAIN(
     std::strcmp(
       results.error(0),
       R"(Test "Test 1" in group "Test group 1" is incomplete. )"
-      R"(Call the run(...) method to fix this.)") == 0);
+      R"(Call the run(...) method to fix this.)") == 0,
+    std::format("Unexpected string value: {}", results.error(0)));
   REQUIRE_IN_MAIN(
     std::strcmp(
       results.error(1),
       R"(Test "Test 3" in group "Test group 1" is incomplete. )"
-      R"(Call the run(...) method to fix this.)") == 0);
+      R"(Call the run(...) method to fix this.)") == 0,
+    std::format("Unexpected string value: {}", results.error(1)));
   REQUIRE_IN_MAIN(
     std::strcmp(
       results.error(2),
       R"(Test "Test 5" in group "Test group 1" is incomplete. )"
-      R"(Call the run(...) method to fix this.)") == 0);
+      R"(Call the run(...) method to fix this.)") == 0,
+    std::format("Unexpected string value: {}", results.error(2)));
   REQUIRE_IN_MAIN(
     std::strcmp(
       results.error(3),
       R"(Test "Test 7" in group "Test group 1" is incomplete. )"
-      R"(Call the run(...) method to fix this.)") == 0);
-  REQUIRE_IN_MAIN(results.test_count() == 0);
+      R"(Call the run(...) method to fix this.)") == 0,
+    std::format("Unexpected string value: {}", results.error(3)));
+  REQUIRE_IN_MAIN(
+    results.test_count() == 0,
+    std::format(
+      "Expected results.test_count() to be 0, but it is {}",
+      results.test_count()));
 
   return 0;
 }

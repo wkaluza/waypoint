@@ -2,8 +2,14 @@
 
 #include "waypoint/waypoint.hpp"
 
+#include <algorithm>
+#include <format>
+#include <functional>
+// NOLINTNEXTLINE(misc-include-cleaner)
+#include <iostream>
 #include <optional>
 #include <string>
+#include <utility>
 
 namespace waypoint::test
 {
@@ -123,8 +129,51 @@ void body_throws_exception_while_noexcept(
 
 } // namespace waypoint::test
 
-#define REQUIRE_IN_MAIN(condition) \
+namespace std
+{
+
+template<>
+struct formatter<waypoint::TestOutcome::Status, char>
+{
+  template<class ParseContext>
+  constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator
+  {
+    return ctx.end();
+  }
+
+  template<class FormatContext>
+  auto format(waypoint::TestOutcome::Status status, FormatContext &ctx) const
+    -> FormatContext::iterator
+  {
+    std::string out = std::invoke(
+      [status]()
+      {
+        switch(status)
+        {
+        case waypoint::TestOutcome::Status::Failure:
+          return "Failure";
+        case waypoint::TestOutcome::Status::NotRun:
+          return "NotRun";
+        case waypoint::TestOutcome::Status::Success:
+          return "Success";
+        case waypoint::TestOutcome::Status::Terminated:
+          return "Terminated";
+        case waypoint::TestOutcome::Status::Timeout:
+          return "Timeout";
+        }
+
+        std::unreachable();
+      });
+
+    return std::ranges::copy(std::move(out), ctx.out()).out;
+  }
+};
+
+} // namespace std
+
+#define REQUIRE_IN_MAIN(condition, message) \
   if(!(condition)) \
   { \
+    std::cerr << (message) << std::endl; \
     return 1; \
   }

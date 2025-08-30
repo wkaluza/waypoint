@@ -1,6 +1,8 @@
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
+#include <format>
+
 WAYPOINT_AUTORUN(waypoint::TestRun const &t)
 {
   auto const g1 = t.group("Test group 1");
@@ -14,21 +16,34 @@ auto main() -> int
 
   auto const results = run_all_tests(t);
 
-  REQUIRE_IN_MAIN(!results.success());
+  REQUIRE_IN_MAIN(!results.success(), "Expected the run to fail");
 
   auto const error_count = results.error_count();
-  REQUIRE_IN_MAIN(error_count == 0);
+  REQUIRE_IN_MAIN(
+    error_count == 0,
+    std::format("Expected error_count to be 0, but it is {}", error_count));
 
   auto const test_count = results.test_count();
-  REQUIRE_IN_MAIN(test_count == 1);
+  REQUIRE_IN_MAIN(
+    test_count == 1,
+    std::format("Expected test_count to be 1, but it is {}", test_count));
 
   for(unsigned i = 0; i < test_count; ++i)
   {
     auto const &outcome = results.test_outcome(i);
 
+    auto const actual_status = outcome.status();
+    constexpr auto expected_status = waypoint::TestOutcome::Status::Terminated;
     REQUIRE_IN_MAIN(
-      outcome.status() == waypoint::TestOutcome::Status::Terminated);
-    REQUIRE_IN_MAIN(outcome.assertion_count() == 1);
+      actual_status == expected_status,
+      std::vformat(
+        "Expected actual_status to be {}, but it is {}",
+        std::make_format_args(expected_status, actual_status)));
+    REQUIRE_IN_MAIN(
+      outcome.assertion_count() == 1,
+      std::format(
+        "Expected outcome.assertion_count() to be 1, but it is {}",
+        outcome.assertion_count()));
   }
 
   return 0;

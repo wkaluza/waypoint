@@ -59,7 +59,7 @@ auto main() -> int
   auto const t = waypoint::TestRun::create();
 
   auto const results = run_all_tests(t);
-  REQUIRE_IN_MAIN(results.success());
+  REQUIRE_IN_MAIN(results.success(), "Expected the run to succeed");
 
   return 0;
 }

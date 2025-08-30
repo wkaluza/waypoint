@@ -4,6 +4,7 @@
 #include "waypoint/waypoint.hpp"
 
 #include <cstring>
+#include <format>
 #include <vector>
 
 WAYPOINT_AUTORUN(waypoint::TestRun const &t)
@@ -47,18 +48,25 @@ auto main() -> int
 
   auto const results = run_all_tests_in_process(t);
 
-  // We expect the run to fail
-  REQUIRE_IN_MAIN(!results.success());
+  REQUIRE_IN_MAIN(!results.success(), "Expected the run to fail");
 
   auto const error_count = results.error_count();
-  REQUIRE_IN_MAIN(error_count == 0);
+  REQUIRE_IN_MAIN(
+    error_count == 0,
+    std::format("Expected error_count to be 0, but it is {}", error_count));
 
   auto const test_count = results.test_count();
-  REQUIRE_IN_MAIN(test_count == 1);
+  REQUIRE_IN_MAIN(
+    test_count == 1,
+    std::format("Expected test_count to be 1, but it is {}", test_count));
 
   auto const &test_outcome = results.test_outcome(0);
   auto const assertion_count = test_outcome.assertion_count();
-  REQUIRE_IN_MAIN(assertion_count == 8);
+  REQUIRE_IN_MAIN(
+    assertion_count == 8,
+    std::format(
+      "Expected assertion_count to be 8, but it is {}",
+      assertion_count));
 
   for(unsigned i = 0; i < assertion_count; ++i)
   {
@@ -77,16 +85,28 @@ auto main() -> int
     char const *expected_message = messages[i];
     if(expected_message == nullptr)
     {
-      REQUIRE_IN_MAIN(actual_message == expected_message);
+      REQUIRE_IN_MAIN(
+        actual_message == nullptr,
+        "Expected actual_message == nullptr");
     }
     else
     {
-      REQUIRE_IN_MAIN(std::strcmp(actual_message, expected_message) == 0);
+      REQUIRE_IN_MAIN(
+        std::strcmp(actual_message, expected_message) == 0,
+        std::format("Unexpected string value: {}", actual_message));
     }
 
-    std::vector<bool> outcomes =
+    std::vector const expected_outcomes =
       {true, false, true, false, true, false, false, true};
-    REQUIRE_IN_MAIN(assertion_outcome.passed() == outcomes[i]);
+    auto const expected_outcome = expected_outcomes[i];
+    auto const actual_outcome = assertion_outcome.passed();
+
+    REQUIRE_IN_MAIN(
+      actual_outcome == expected_outcome,
+      std::format(
+        "Expected actual_outcome to be {}, but it is {}",
+        expected_outcome,
+        actual_outcome));
   }
 
   return 0;

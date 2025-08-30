@@ -1,6 +1,8 @@
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
+#include <format>
+
 namespace
 {
 
@@ -19,8 +21,8 @@ auto main() -> int
   auto const t = waypoint::TestRun::create();
 
   auto const result = waypoint::run_all_tests_in_process(t);
-  REQUIRE_IN_MAIN(result.success());
-  REQUIRE_IN_MAIN(x == 1);
+  REQUIRE_IN_MAIN(result.success(), "Expected the run to succeed");
+  REQUIRE_IN_MAIN(x == 1, std::format("Expected x to be 1, but it is {}", x));
 
   return 0;
 }
