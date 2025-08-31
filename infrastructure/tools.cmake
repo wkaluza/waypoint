@@ -128,22 +128,26 @@ function(new_target_)
 endfunction()
 
 function(new_basic_test name)
-  new_target(
-    TEST
-    TARGET
-    ${name}
-    SOURCES
-    ${PROJECT_ROOT_DIR}/test/${name}/main.cpp
-    LINKS
-    waypoint
-    test_helpers)
+  if(DEFINED PRESET_BUILD_TESTS)
+    new_target(
+      TEST
+      TARGET
+      ${name}
+      SOURCES
+      ${PROJECT_ROOT_DIR}/test/${name}/main.cpp
+      LINKS
+      waypoint
+      test_helpers)
+  endif()
 endfunction()
 
 function(new_impl_test name)
-  new_basic_test(${name})
-  target_include_directories(
-    ${name} PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
-                    ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
+  if(DEFINED PRESET_BUILD_TESTS)
+    new_basic_test(${name})
+    target_include_directories(
+      ${name} PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
+                      ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
+  endif()
 endfunction()
 
 function(new_target)
