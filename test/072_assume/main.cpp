@@ -3,7 +3,6 @@
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
-#include <cstring>
 #include <format>
 #include <vector>
 
@@ -91,8 +90,9 @@ auto main() -> int
     }
     else
     {
-      REQUIRE_IN_MAIN(
-        std::strcmp(actual_message, expected_message) == 0,
+      REQUIRE_STRING_EQUAL_IN_MAIN(
+        actual_message,
+        expected_message,
         std::format(
           "Expected actual_message to be {}, but it is {}",
           expected_message,

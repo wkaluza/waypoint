@@ -3,6 +3,8 @@
 #include "waypoint/waypoint.hpp"
 
 #include <algorithm>
+// NOLINTNEXTLINE(misc-include-cleaner)
+#include <cstring>
 #include <format>
 #include <functional>
 // NOLINTNEXTLINE(misc-include-cleaner)
@@ -173,6 +175,13 @@ struct formatter<waypoint::TestOutcome::Status, char>
 
 #define REQUIRE_IN_MAIN(condition, message) \
   if(!(condition)) \
+  { \
+    std::cerr << (message) << std::endl; \
+    return 1; \
+  }
+
+#define REQUIRE_STRING_EQUAL_IN_MAIN(str1, str2, message) \
+  if(std::strcmp((str1), (str2)) != 0) \
   { \
     std::cerr << (message) << std::endl; \
     return 1; \

@@ -1,7 +1,6 @@
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
-#include <cstring>
 #include <format>
 #include <functional>
 #include <sstream>
@@ -137,8 +136,9 @@ auto main() -> int
         "Expected assertion_outcome.test() to be {}, but it is {}",
         test_name,
         assertion_outcome.test()));
-    REQUIRE_IN_MAIN(
-      std::strcmp(assertion_outcome.message(), "Condition must be true") == 0,
+    REQUIRE_STRING_EQUAL_IN_MAIN(
+      assertion_outcome.message(),
+      "Condition must be true",
       std::format("Unexpected string value: {}", assertion_outcome.message()));
     REQUIRE_IN_MAIN(
       assertion_outcome.passed(),

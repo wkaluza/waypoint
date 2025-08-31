@@ -1,7 +1,6 @@
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
-#include <cstring>
 #include <format>
 
 WAYPOINT_AUTORUN(waypoint::TestRun const &t)
@@ -29,10 +28,9 @@ auto main() -> int
     std::format("Expected error_count to be 1, but it is {}", error_count));
 
   auto const *const error_message = results.error(0);
-  REQUIRE_IN_MAIN(
-    std::strcmp(
-      error_message,
-      R"(Group "Test group 1" contains duplicate test "Test 2")") == 0,
+  REQUIRE_STRING_EQUAL_IN_MAIN(
+    error_message,
+    R"(Group "Test group 1" contains duplicate test "Test 2")",
     std::format("Unexpected string value: {}", error_message));
 
   auto const test_count = results.test_count();

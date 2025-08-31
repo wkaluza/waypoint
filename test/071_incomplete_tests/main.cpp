@@ -1,7 +1,6 @@
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
-#include <cstring>
 #include <format>
 
 // False positives from clang-tidy (according to Valgrind)
@@ -64,29 +63,25 @@ auto main() -> int
   REQUIRE_IN_MAIN(
     count == 4,
     std::format("Expected count to be 4, but it is {}", count));
-  REQUIRE_IN_MAIN(
-    std::strcmp(
-      results.error(0),
-      R"(Test "Test 1" in group "Test group 1" is incomplete. )"
-      R"(Call the run(...) method to fix this.)") == 0,
+  REQUIRE_STRING_EQUAL_IN_MAIN(
+    results.error(0),
+    R"(Test "Test 1" in group "Test group 1" is incomplete. )"
+    R"(Call the run(...) method to fix this.)",
     std::format("Unexpected string value: {}", results.error(0)));
-  REQUIRE_IN_MAIN(
-    std::strcmp(
-      results.error(1),
-      R"(Test "Test 3" in group "Test group 1" is incomplete. )"
-      R"(Call the run(...) method to fix this.)") == 0,
+  REQUIRE_STRING_EQUAL_IN_MAIN(
+    results.error(1),
+    R"(Test "Test 3" in group "Test group 1" is incomplete. )"
+    R"(Call the run(...) method to fix this.)",
     std::format("Unexpected string value: {}", results.error(1)));
-  REQUIRE_IN_MAIN(
-    std::strcmp(
-      results.error(2),
-      R"(Test "Test 5" in group "Test group 1" is incomplete. )"
-      R"(Call the run(...) method to fix this.)") == 0,
+  REQUIRE_STRING_EQUAL_IN_MAIN(
+    results.error(2),
+    R"(Test "Test 5" in group "Test group 1" is incomplete. )"
+    R"(Call the run(...) method to fix this.)",
     std::format("Unexpected string value: {}", results.error(2)));
-  REQUIRE_IN_MAIN(
-    std::strcmp(
-      results.error(3),
-      R"(Test "Test 7" in group "Test group 1" is incomplete. )"
-      R"(Call the run(...) method to fix this.)") == 0,
+  REQUIRE_STRING_EQUAL_IN_MAIN(
+    results.error(3),
+    R"(Test "Test 7" in group "Test group 1" is incomplete. )"
+    R"(Call the run(...) method to fix this.)",
     std::format("Unexpected string value: {}", results.error(3)));
   REQUIRE_IN_MAIN(
     results.test_count() == 0,

@@ -1,7 +1,6 @@
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 
-#include <cstring>
 #include <format>
 #include <vector>
 
@@ -80,9 +79,9 @@ auto main() -> int
       REQUIRE_IN_MAIN(
         assertion_outcome2.passed(),
         "Expected assertion_outcome2.passed() to be true");
-      REQUIRE_IN_MAIN(
-        std::strcmp(assertion_outcome2.message(), "body assertion message") ==
-          0,
+      REQUIRE_STRING_EQUAL_IN_MAIN(
+        assertion_outcome2.message(),
+        "body assertion message",
         std::format(
           "Unexpected string value: {}",
           assertion_outcome2.message()));
@@ -108,10 +107,9 @@ auto main() -> int
       REQUIRE_IN_MAIN(
         !assertion_outcome2.passed(),
         "Expected assertion_outcome2.passed() to be false");
-      REQUIRE_IN_MAIN(
-        std::strcmp(
-          assertion_outcome2.message(),
-          "failing body assertion message") == 0,
+      REQUIRE_STRING_EQUAL_IN_MAIN(
+        assertion_outcome2.message(),
+        "failing body assertion message",
         std::format(
           "Unexpected string value: {}",
           assertion_outcome2.message()));
