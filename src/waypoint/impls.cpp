@@ -6,7 +6,6 @@
 #include "process/process.hpp"
 
 #include <algorithm>
-#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <functional>
@@ -610,23 +609,18 @@ auto TestRun_impl::make_child_process_context(
 namespace
 {
 
-auto get_random_number_generator() noexcept -> std::mt19937_64
+using knuth_lcg = std::linear_congruential_engine<
+  std::uint64_t,
+  6'364'136'223'846'793'005U,
+  1'442'695'040'888'963'407U,
+  0U>;
+
+auto get_random_number_generator() noexcept -> knuth_lcg
 {
-  constexpr std::size_t arbitrary_constant = 0x1234;
-  constexpr std::size_t arbitrary_seed = 0x0123'4567'89ab'cdef;
+  constexpr std::uint64_t arbitrary_constant = 0x1234;
+  constexpr std::uint64_t arbitrary_seed = 0x0123'4567'89ab'cdef;
 
-  using knuth_lcg = std::linear_congruential_engine<
-    std::uint64_t,
-    6'364'136'223'846'793'005U,
-    1'442'695'040'888'963'407U,
-    0U>;
-  knuth_lcg seed_rng(arbitrary_seed);
-  seed_rng.discard(arbitrary_constant);
-
-  std::vector<std::uint64_t> seeds(624);
-  std::ranges::generate(seeds, seed_rng);
-  std::seed_seq seq(seeds.begin(), seeds.end());
-  std::mt19937_64 rng(seq);
+  knuth_lcg rng(arbitrary_seed);
   rng.discard(arbitrary_constant);
 
   return rng;

@@ -70,12 +70,12 @@ auto main() -> int
     std::format("Expected test_count to be 6, but it is {}", test_count));
 
   std::vector const test_indices{
-    3U,
-    1U,
-    5U,
     4U,
     2U,
     0U,
+    1U,
+    3U,
+    5U,
   };
 
   for(unsigned i = 0; i < test_count; ++i)
