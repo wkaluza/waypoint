@@ -30,6 +30,19 @@ new_platform_specific_target(
   PUBLIC_HEADERS
   coverage.hpp)
 
+new_target(
+  STATIC
+  TARGET
+  assert
+  DIRECTORY
+  ${PROJECT_ROOT_DIR}/src/assert
+  SOURCES
+  assert.cpp
+  PUBLIC_HEADERS
+  assert.hpp
+  LINKS
+  coverage)
+
 new_platform_specific_target(
   STATIC
   TARGET
@@ -41,6 +54,7 @@ new_platform_specific_target(
   PUBLIC_HEADERS
   process.hpp
   LINKS
+  assert
   coverage)
 
 new_target(
@@ -182,3 +196,5 @@ new_basic_test(086_timeout)
 new_basic_test(087_timeout)
 new_basic_test(088_timeout)
 new_basic_test(089_process_exit_status)
+
+new_impl_test(090_assert)

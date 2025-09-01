@@ -144,6 +144,7 @@ endfunction()
 function(new_impl_test name)
   if(DEFINED PRESET_BUILD_TESTS)
     new_basic_test(${name})
+    target_link_libraries(${name} PRIVATE assert)
     target_include_directories(
       ${name} PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
                       ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)

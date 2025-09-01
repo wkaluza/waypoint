@@ -1,5 +1,6 @@
 #include "process.hpp"
 
+#include "assert/assert.hpp"
 #include "coverage/coverage.hpp"
 
 #include <algorithm>
@@ -388,6 +389,10 @@ auto wait_for_child_process_end(int const child_pid) -> unsigned long long
 
   // process did not exit normally, therefore
   // probably WIFSIGNALED(status) == true
+  waypoint::internal::assert(
+    WIFSIGNALED(status),
+    "Expected WIFSIGNALED(status) to be true");
+
   return WTERMSIG(status);
 }
 
