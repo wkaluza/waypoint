@@ -136,9 +136,7 @@ new_basic_test(031_mutable_lambda_as_test_body)
 new_basic_test(032_setup)
 new_basic_test(033_teardown)
 new_basic_test(034_incomplete_tests)
-
-new_impl_test(035_assume)
-
+new_basic_test(035_assume)
 new_basic_test(036_disable)
 new_basic_test(037_status)
 new_basic_test(038_process)
@@ -176,9 +174,7 @@ new_basic_test(068_mutable_lambda_as_test_body)
 new_basic_test(069_setup)
 new_basic_test(070_teardown)
 new_basic_test(071_incomplete_tests)
-
-new_impl_test(072_assume)
-
+new_basic_test(072_assume)
 new_basic_test(073_disable)
 new_basic_test(074_status)
 new_basic_test(075_env_vars)
