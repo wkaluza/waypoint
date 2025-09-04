@@ -8,6 +8,8 @@ enable_testing()
 
 set(PROJECT_ROOT_DIR ${CMAKE_SOURCE_DIR}/..)
 
+add_custom_target(all_tests)
+
 new_platform_specific_target(
   STATIC
   TARGET
@@ -79,25 +81,24 @@ new_target(
   coverage
   process)
 
-if(DEFINED PRESET_BUILD_TESTS)
-  new_target(
-    STATIC
-    ENABLE_EXCEPTIONS_IN_COVERAGE
-    TARGET
-    test_helpers
-    DIRECTORY
-    ${PROJECT_ROOT_DIR}/test/test_helpers
-    SOURCES
-    test_helpers.cpp
-    test_helpers_crash.cpp
-    PUBLIC_HEADERS
-    test_helpers.hpp
-    PRIVATE_HEADERS
-    test_helpers_crash.hpp
-    LINKS
-    coverage
-    waypoint)
-endif()
+new_target(
+  STATIC
+  ENABLE_EXCEPTIONS_IN_COVERAGE
+  EXCLUDE_FROM_ALL
+  TARGET
+  test_helpers
+  DIRECTORY
+  ${PROJECT_ROOT_DIR}/test/test_helpers
+  SOURCES
+  test_helpers.cpp
+  test_helpers_crash.cpp
+  PUBLIC_HEADERS
+  test_helpers.hpp
+  PRIVATE_HEADERS
+  test_helpers_crash.hpp
+  LINKS
+  coverage
+  waypoint)
 
 new_basic_test(000_include_only)
 new_basic_test(001_init_only)

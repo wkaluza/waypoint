@@ -1,5 +1,6 @@
 function(new_target_)
-  set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE)
+  set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE
+              EXCLUDE_FROM_ALL)
   set(singleValueKeywords DIRECTORY TARGET)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
@@ -10,6 +11,14 @@ function(new_target_)
   endif()
   if(arg_TEST)
     add_executable(${arg_TARGET})
+    set_target_properties(${arg_TARGET} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+    if(TARGET test_helpers)
+      target_link_libraries(${arg_TARGET} PRIVATE test_helpers)
+    endif()
+    if(TARGET all_tests)
+      add_dependencies(all_tests ${arg_TARGET})
+    endif()
 
     add_test(NAME test_${arg_TARGET} COMMAND $<TARGET_FILE:${arg_TARGET}>)
     set_tests_properties(test_${arg_TARGET} PROPERTIES LABELS test)
@@ -31,6 +40,10 @@ function(new_target_)
   endif()
   if(arg_STATIC)
     add_library(${arg_TARGET} STATIC)
+  endif()
+
+  if(arg_EXCLUDE_FROM_ALL)
+    set_target_properties(${arg_TARGET} PROPERTIES EXCLUDE_FROM_ALL TRUE)
   endif()
 
   target_compile_features(
@@ -128,31 +141,27 @@ function(new_target_)
 endfunction()
 
 function(new_basic_test name)
-  if(DEFINED PRESET_BUILD_TESTS)
-    new_target(
-      TEST
-      TARGET
-      ${name}
-      SOURCES
-      ${PROJECT_ROOT_DIR}/test/${name}/main.cpp
-      LINKS
-      waypoint
-      test_helpers)
-  endif()
+  new_target(
+    TEST
+    TARGET
+    ${name}
+    SOURCES
+    ${PROJECT_ROOT_DIR}/test/${name}/main.cpp
+    LINKS
+    waypoint)
 endfunction()
 
 function(new_impl_test name)
-  if(DEFINED PRESET_BUILD_TESTS)
-    new_basic_test(${name})
-    target_link_libraries(${name} PRIVATE assert)
-    target_include_directories(
-      ${name} PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
-                      ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
-  endif()
+  new_basic_test(${name})
+  target_link_libraries(${name} PRIVATE assert)
+  target_include_directories(
+    ${name} PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
+                    ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
 endfunction()
 
 function(new_target)
-  set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE)
+  set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE
+              EXCLUDE_FROM_ALL)
   set(singleValueKeywords DIRECTORY TARGET)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
@@ -174,6 +183,12 @@ function(new_target)
     set(exceptions "")
   endif()
 
+  if(arg_EXCLUDE_FROM_ALL)
+    set(exclude_from_all EXCLUDE_FROM_ALL)
+  else()
+    set(exclude_from_all "")
+  endif()
+
   list(TRANSFORM arg_SOURCES PREPEND ${arg_DIRECTORY}/)
   list(TRANSFORM arg_PRIVATE_HEADERS PREPEND ${arg_DIRECTORY}/internal/)
   list(TRANSFORM arg_PUBLIC_HEADERS
@@ -182,6 +197,7 @@ function(new_target)
   new_target_(
     ${type}
     ${exceptions}
+    ${exclude_from_all}
     TARGET
     ${arg_TARGET}
     DIRECTORY
@@ -197,7 +213,8 @@ function(new_target)
 endfunction()
 
 function(new_platform_specific_target)
-  set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE)
+  set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE
+              EXCLUDE_FROM_ALL)
   set(singleValueKeywords DIRECTORY TARGET)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
@@ -219,6 +236,12 @@ function(new_platform_specific_target)
     set(exceptions "")
   endif()
 
+  if(arg_EXCLUDE_FROM_ALL)
+    set(exclude_from_all EXCLUDE_FROM_ALL)
+  else()
+    set(exclude_from_all "")
+  endif()
+
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(system_name "linux")
   endif()
@@ -231,6 +254,7 @@ function(new_platform_specific_target)
   new_target_(
     ${type}
     ${exceptions}
+    ${exclude_from_all}
     TARGET
     ${arg_TARGET}
     DIRECTORY

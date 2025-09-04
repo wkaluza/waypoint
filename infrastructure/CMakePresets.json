@@ -66,13 +66,6 @@
   "configurePresets": [
     {
       "cacheVariables": {
-        "PRESET_BUILD_TESTS": true
-      },
-      "hidden": true,
-      "name": "base_build_tests"
-    },
-    {
-      "cacheVariables": {
         "PRESET_PROP_COMPILE_WARNING_AS_ERROR": true,
         "PRESET_PROP_CXX_EXTENSIONS": false,
         "PRESET_PROP_EXPORT_COMPILE_COMMANDS": true,
@@ -123,7 +116,6 @@
         "base_compiler_clang",
         "base_generator_ninja",
         "base_system_linux",
-        "base_build_tests",
         "base_target_properties"
       ],
       "name": "configure_linux_clang"
@@ -135,7 +127,6 @@
         "base_compiler_gcc",
         "base_generator_ninja",
         "base_system_linux",
-        "base_build_tests",
         "base_target_properties"
       ],
       "name": "configure_linux_gcc"
@@ -147,7 +138,6 @@
         "base_compiler_clang",
         "base_generator_ninja",
         "base_system_linux",
-        "base_build_tests",
         "base_target_properties"
       ],
       "name": "configure_linux_clang_ide"
@@ -159,7 +149,6 @@
         "base_compiler_gcc",
         "base_generator_ninja",
         "base_system_linux",
-        "base_build_tests",
         "base_target_properties",
         "base_enable_coverage"
       ],

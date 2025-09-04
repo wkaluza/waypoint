@@ -421,6 +421,9 @@ def build_cmake(config, preset, env_patch):
                     f"{preset.build}",
                     "--config",
                     f"{config}",
+                    "--target",
+                    "all",
+                    "all_tests",
                     "--parallel",
                     f"{JOBS}",
                 ]
