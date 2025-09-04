@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 4.0)
 
-project(waypoint LANGUAGES CXX)
+project(project_waypoint LANGUAGES CXX)
 
 include(tools.cmake)
 
