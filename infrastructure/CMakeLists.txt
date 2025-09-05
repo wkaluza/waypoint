@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 4.0)
 
-project(project_waypoint LANGUAGES CXX)
+project(
+  project_waypoint
+  VERSION 0.0.1
+  DESCRIPTION "Lightweight C++ unit testing framework"
+  LANGUAGES CXX)
 
 include(tools.cmake)
 
