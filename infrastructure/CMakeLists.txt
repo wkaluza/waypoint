@@ -6,11 +6,9 @@ project(
   DESCRIPTION "Lightweight C++ unit testing framework"
   LANGUAGES CXX)
 
-include(tools.cmake)
-
 enable_testing()
 
-set(PROJECT_ROOT_DIR ${CMAKE_SOURCE_DIR}/..)
+include(tools.cmake)
 
 add_custom_target(all_tests)
 
@@ -19,7 +17,7 @@ new_platform_specific_target(
   TARGET
   autorun
   DIRECTORY
-  ${PROJECT_ROOT_DIR}/src/autorun
+  src/autorun
   SOURCES
   autorun.cpp
   PUBLIC_HEADERS
@@ -30,7 +28,7 @@ new_platform_specific_target(
   TARGET
   coverage
   DIRECTORY
-  ${PROJECT_ROOT_DIR}/src/coverage
+  src/coverage
   SOURCES
   coverage.cpp
   PUBLIC_HEADERS
@@ -41,7 +39,7 @@ new_target(
   TARGET
   assert
   DIRECTORY
-  ${PROJECT_ROOT_DIR}/src/assert
+  src/assert
   SOURCES
   assert.cpp
   PUBLIC_HEADERS
@@ -54,7 +52,7 @@ new_platform_specific_target(
   TARGET
   process
   DIRECTORY
-  ${PROJECT_ROOT_DIR}/src/process
+  src/process
   SOURCES
   process.cpp
   PUBLIC_HEADERS
@@ -68,7 +66,7 @@ new_target(
   TARGET
   waypoint
   DIRECTORY
-  ${PROJECT_ROOT_DIR}/src/waypoint
+  src/waypoint
   SOURCES
   function.cpp
   impls.cpp
@@ -92,7 +90,7 @@ new_target(
   TARGET
   test_helpers
   DIRECTORY
-  ${PROJECT_ROOT_DIR}/test/test_helpers
+  test/test_helpers
   SOURCES
   test_helpers.cpp
   test_helpers_crash.cpp

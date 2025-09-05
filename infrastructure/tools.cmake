@@ -1,3 +1,11 @@
+set(PROJECT_ROOT_DIR ${CMAKE_SOURCE_DIR}/..)
+
+set(WAYPOINT_INTERNAL_HEADER_DIR ${PROJECT_ROOT_DIR}/src/waypoint/internal)
+set(WAYPOINT_OWN_HEADER_DIR ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
+
+set(MAIN_LIBRARY waypoint)
+set(INTERNAL_LIBRARIES assert autorun coverage process)
+
 function(new_target_)
   set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE
               EXCLUDE_FROM_ALL)
@@ -146,17 +154,16 @@ function(new_basic_test name)
     TARGET
     ${name}
     SOURCES
-    ${PROJECT_ROOT_DIR}/test/${name}/main.cpp
+    test/${name}/main.cpp
     LINKS
-    waypoint)
+    ${MAIN_LIBRARY})
 endfunction()
 
 function(new_impl_test name)
   new_basic_test(${name})
-  target_link_libraries(${name} PRIVATE assert)
-  target_include_directories(
-    ${name} PRIVATE ${PROJECT_ROOT_DIR}/src/waypoint/internal
-                    ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
+  target_link_libraries(${name} PRIVATE ${INTERNAL_LIBRARIES})
+  target_include_directories(${name} PRIVATE ${WAYPOINT_INTERNAL_HEADER_DIR}
+                                             ${WAYPOINT_OWN_HEADER_DIR})
 endfunction()
 
 function(new_target)
@@ -189,10 +196,11 @@ function(new_target)
     set(exclude_from_all "")
   endif()
 
-  list(TRANSFORM arg_SOURCES PREPEND ${arg_DIRECTORY}/)
-  list(TRANSFORM arg_PRIVATE_HEADERS PREPEND ${arg_DIRECTORY}/internal/)
+  list(TRANSFORM arg_SOURCES PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/)
+  list(TRANSFORM arg_PRIVATE_HEADERS
+       PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/internal/)
   list(TRANSFORM arg_PUBLIC_HEADERS
-       PREPEND ${arg_DIRECTORY}/include/${arg_TARGET}/)
+       PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/include/${arg_TARGET}/)
 
   new_target_(
     ${type}
@@ -201,7 +209,7 @@ function(new_target)
     TARGET
     ${arg_TARGET}
     DIRECTORY
-    ${arg_DIRECTORY}
+    ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}
     SOURCES
     ${arg_SOURCES}
     PRIVATE_HEADERS
@@ -246,10 +254,12 @@ function(new_platform_specific_target)
     set(system_name "linux")
   endif()
 
-  list(TRANSFORM arg_SOURCES PREPEND ${arg_DIRECTORY}/${system_name}/)
-  list(TRANSFORM arg_PRIVATE_HEADERS PREPEND ${arg_DIRECTORY}/internal/)
+  list(TRANSFORM arg_SOURCES
+       PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/${system_name}/)
+  list(TRANSFORM arg_PRIVATE_HEADERS
+       PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/internal/)
   list(TRANSFORM arg_PUBLIC_HEADERS
-       PREPEND ${arg_DIRECTORY}/include/${arg_TARGET}/)
+       PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/include/${arg_TARGET}/)
 
   new_target_(
     ${type}
@@ -258,7 +268,7 @@ function(new_platform_specific_target)
     TARGET
     ${arg_TARGET}
     DIRECTORY
-    ${arg_DIRECTORY}
+    ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}
     SOURCES
     ${arg_SOURCES}
     PRIVATE_HEADERS
