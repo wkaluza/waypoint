@@ -1,3 +1,5 @@
+include_guard(GLOBAL)
+
 set(PROJECT_ROOT_DIR ${CMAKE_SOURCE_DIR}/..)
 
 set(WAYPOINT_INTERNAL_HEADER_DIR ${PROJECT_ROOT_DIR}/src/waypoint/internal)
