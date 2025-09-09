@@ -170,8 +170,10 @@ function(new_basic_test name)
     TEST
     TARGET
     ${name}
+    DIRECTORY
+    test/${name}
     SOURCES
-    test/${name}/main.cpp
+    main.cpp
     LINKS
     ${MAIN_LIBRARY})
 endfunction()
