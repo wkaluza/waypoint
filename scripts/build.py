@@ -320,7 +320,7 @@ def dir_from_preset(dir_key, preset) -> str:
         configure_presets = configure_presets[0]
 
         dir_path = configure_presets[dir_key]
-        dir_path.replace("${sourceDir}", f"{CMAKE_SOURCE_DIR}")
+        dir_path = dir_path.replace("${sourceDir}", f"{cmake_source_dir}")
 
         return os.path.realpath(dir_path)
 
