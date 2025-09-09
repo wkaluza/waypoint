@@ -8,7 +8,7 @@ project(
 
 enable_testing()
 
-include(tools.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/tools.cmake)
 
 add_custom_target(all_tests)
 

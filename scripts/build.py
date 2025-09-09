@@ -36,6 +36,17 @@ assert os.path.isfile(CMAKE_LISTS_FILE) and os.path.isfile(CMAKE_PRESETS_FILE)
 MAIN_HEADER_PATH = f"{PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp"
 assert os.path.isfile(MAIN_HEADER_PATH), "waypoint.hpp does not exist"
 
+INSTALL_TESTS_DIR_PATH = os.path.realpath(f"{PROJECT_ROOT_DIR}/test/install_tests")
+TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CLANG_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/find_package_no_version_test/waypoint_install_linux_clang___"
+)
+TEST_INSTALL_FIND_PACKAGE_NO_VERSION_GCC_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/find_package_no_version_test/waypoint_install_linux_gcc___"
+)
+TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/find_package_no_version_test/infrastructure"
+)
+
 JOBS = os.process_cpu_count()
 
 CLANG20_ENV_PATCH = {"CC": "clang-20", "CXX": "clang++-20"}
@@ -56,6 +67,7 @@ class ModeConfig:
     coverage: bool = False
     misc: bool = False
     install: bool = False
+    test_install: bool = False
 
 
 @enum.unique
@@ -80,6 +92,7 @@ class Mode(enum.Enum):
         coverage=True,
         misc=True,
         install=True,
+        test_install=True,
     )
     Clean = ModeConfig(
         clean=True,
@@ -97,14 +110,19 @@ class Mode(enum.Enum):
         coverage=True,
         misc=True,
         install=True,
+        test_install=True,
     )
     Coverage = ModeConfig(
+        gcc=True,
         coverage=True,
     )
     StaticAnalysis = ModeConfig(
+        clang=True,
         static_analysis=True,
     )
     Valgrind = ModeConfig(
+        clang=True,
+        gcc=True,
         valgrind=True,
     )
 
@@ -182,6 +200,10 @@ class Mode(enum.Enum):
     @property
     def install(self):
         return self.config.install
+
+    @property
+    def test_install(self):
+        return self.config.test_install
 
 
 @enum.unique
@@ -310,8 +332,9 @@ def misc_checks_fn() -> bool:
     return True
 
 
-def dir_from_preset(dir_key, preset) -> str:
-    with open(CMAKE_PRESETS_FILE) as f:
+def dir_from_preset(dir_key, preset, cmake_source_dir) -> str:
+    presets_path = os.path.realpath(f"{cmake_source_dir}/CMakePresets.json")
+    with open(presets_path) as f:
         data = json.load(f)
         configure_presets = [
             p for p in data["configurePresets"] if p["name"] == preset.configure
@@ -325,12 +348,12 @@ def dir_from_preset(dir_key, preset) -> str:
         return os.path.realpath(dir_path)
 
 
-def build_dir_from_preset(preset) -> str:
-    return dir_from_preset("binaryDir", preset)
+def build_dir_from_preset(preset, cmake_source_dir) -> str:
+    return dir_from_preset("binaryDir", preset, cmake_source_dir)
 
 
-def install_dir_from_preset(preset) -> str:
-    return dir_from_preset("installDir", preset)
+def install_dir_from_preset(preset, cmake_source_dir) -> str:
+    return dir_from_preset("installDir", preset, cmake_source_dir)
 
 
 def remove_dir(path):
@@ -347,13 +370,13 @@ def create_dir(path) -> bool:
     return True
 
 
-def clean_build_dir(preset):
-    build_dir = build_dir_from_preset(preset)
+def clean_build_dir(preset, cmake_source_dir):
+    build_dir = build_dir_from_preset(preset, cmake_source_dir)
     remove_dir(build_dir)
 
 
 def clean_install_dir(preset):
-    install_dir = install_dir_from_preset(preset)
+    install_dir = install_dir_from_preset(preset, CMAKE_SOURCE_DIR)
     remove_dir(install_dir)
 
 
@@ -396,10 +419,10 @@ def find_files_by_name(pred) -> typing.List[str]:
     return output
 
 
-def install_cmake(preset, config) -> bool:
-    build_dir = build_dir_from_preset(preset)
+def install_cmake(preset, config, working_dir) -> bool:
+    build_dir = build_dir_from_preset(preset, CMAKE_SOURCE_DIR)
 
-    with contextlib.chdir(PROJECT_ROOT_DIR):
+    with contextlib.chdir(working_dir):
         success, output = run(
             [
                 "cmake",
@@ -421,49 +444,61 @@ def install_cmake(preset, config) -> bool:
 
 
 def install_gcc_debug_fn() -> bool:
-    return install_cmake(CMakePresets.LinuxGcc, CMakeBuildConfig.Debug)
+    return install_cmake(
+        CMakePresets.LinuxGcc, CMakeBuildConfig.Debug, PROJECT_ROOT_DIR
+    )
 
 
 def install_gcc_relwithdebinfo_fn() -> bool:
-    return install_cmake(CMakePresets.LinuxGcc, CMakeBuildConfig.RelWithDebInfo)
+    return install_cmake(
+        CMakePresets.LinuxGcc, CMakeBuildConfig.RelWithDebInfo, PROJECT_ROOT_DIR
+    )
 
 
 def install_gcc_release_fn() -> bool:
-    return install_cmake(CMakePresets.LinuxGcc, CMakeBuildConfig.Release)
+    return install_cmake(
+        CMakePresets.LinuxGcc, CMakeBuildConfig.Release, PROJECT_ROOT_DIR
+    )
 
 
 def install_clang_debug_fn() -> bool:
-    return install_cmake(CMakePresets.LinuxClang, CMakeBuildConfig.Debug)
+    return install_cmake(
+        CMakePresets.LinuxClang, CMakeBuildConfig.Debug, PROJECT_ROOT_DIR
+    )
 
 
 def install_clang_relwithdebinfo_fn() -> bool:
-    return install_cmake(CMakePresets.LinuxClang, CMakeBuildConfig.RelWithDebInfo)
+    return install_cmake(
+        CMakePresets.LinuxClang, CMakeBuildConfig.RelWithDebInfo, PROJECT_ROOT_DIR
+    )
 
 
 def install_clang_release_fn() -> bool:
-    return install_cmake(CMakePresets.LinuxClang, CMakeBuildConfig.Release)
+    return install_cmake(
+        CMakePresets.LinuxClang, CMakeBuildConfig.Release, PROJECT_ROOT_DIR
+    )
 
 
 def configure_cmake_clang_fn() -> bool:
-    return configure_cmake(CMakePresets.LinuxClang, CLANG20_ENV_PATCH)
+    return configure_cmake(CMakePresets.LinuxClang, CLANG20_ENV_PATCH, CMAKE_SOURCE_DIR)
 
 
 def configure_cmake_gcc_fn() -> bool:
-    return configure_cmake(CMakePresets.LinuxGcc, GCC15_ENV_PATCH)
+    return configure_cmake(CMakePresets.LinuxGcc, GCC15_ENV_PATCH, CMAKE_SOURCE_DIR)
 
 
-def configure_cmake(preset, env_patch) -> bool:
+def configure_cmake(preset, env_patch, cmake_source_dir) -> bool:
     env = os.environ.copy()
     env.update(env_patch)
     with NewEnv(env):
-        build_dir = build_dir_from_preset(preset)
+        build_dir = build_dir_from_preset(preset, cmake_source_dir)
 
         if os.path.exists(build_dir):
             return True
 
         os.mkdir(build_dir)
 
-        with contextlib.chdir(CMAKE_SOURCE_DIR):
+        with contextlib.chdir(cmake_source_dir):
             success, output = run(["cmake", "--preset", f"{preset.configure}"])
             if not success:
                 if output is not None:
@@ -474,11 +509,11 @@ def configure_cmake(preset, env_patch) -> bool:
     return True
 
 
-def build_cmake(config, preset, env_patch):
+def build_cmake(config, preset, env_patch, cmake_source_dir):
     env = os.environ.copy()
     env.update(env_patch)
     with NewEnv(env):
-        with contextlib.chdir(CMAKE_SOURCE_DIR):
+        with contextlib.chdir(cmake_source_dir):
             success, output = run(
                 [
                     "cmake",
@@ -503,8 +538,10 @@ def build_cmake(config, preset, env_patch):
     return True
 
 
-def run_ctest(preset, build_config, jobs, label_include_regex) -> bool:
-    with contextlib.chdir(CMAKE_SOURCE_DIR):
+def run_ctest(
+    preset, build_config, jobs, label_include_regex, cmake_source_dir
+) -> bool:
+    with contextlib.chdir(cmake_source_dir):
         success, output = run(
             [
                 "ctest",
@@ -553,21 +590,24 @@ def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str |
 
 
 def run_clang_static_analysis_all_files_fn() -> bool:
-    return run_clang_tidy(CMakePresets.LinuxClang, find_files_by_name(is_cpp_file))
+    files = find_files_by_name(is_cpp_file)
+    files = [f for f in files if not f.startswith(INSTALL_TESTS_DIR_PATH)]
+
+    return run_clang_tidy(CMakePresets.LinuxClang, files)
 
 
 def run_clang_static_analysis_changed_files_fn() -> bool:
-    return run_clang_tidy(
-        CMakePresets.LinuxClang,
-        changed_cpp_files_and_dependents(CMakePresets.LinuxClang),
-    )
+    files = changed_cpp_files_and_dependents(CMakePresets.LinuxClang)
+    files = [f for f in files if not f.startswith(INSTALL_TESTS_DIR_PATH)]
+
+    return run_clang_tidy(CMakePresets.LinuxClang, files)
 
 
 def run_clang_tidy(preset, files) -> bool:
     if len(files) == 0:
         return True
 
-    build_dir = build_dir_from_preset(preset)
+    build_dir = build_dir_from_preset(preset, CMAKE_SOURCE_DIR)
 
     inputs = [(f, build_dir) for f in files]
     with multiprocessing.Pool(JOBS) as pool:
@@ -588,63 +628,79 @@ def run_clang_tidy(preset, files) -> bool:
 
 
 def test_gcc_debug_fn() -> bool:
-    jobs = JOBS
-    regex = r"^test$"
-
-    return run_ctest(CMakePresets.LinuxGcc, CMakeBuildConfig.Debug, jobs, regex)
+    return run_ctest(
+        CMakePresets.LinuxGcc, CMakeBuildConfig.Debug, JOBS, r"^test$", CMAKE_SOURCE_DIR
+    )
 
 
 def test_gcc_relwithdebinfo_fn() -> bool:
-    jobs = JOBS
-    regex = r"^test$"
-
     return run_ctest(
-        CMakePresets.LinuxGcc, CMakeBuildConfig.RelWithDebInfo, jobs, regex
+        CMakePresets.LinuxGcc,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        CMAKE_SOURCE_DIR,
     )
 
 
 def test_gcc_release_fn() -> bool:
-    jobs = JOBS
-    regex = r"^test$"
-
-    return run_ctest(CMakePresets.LinuxGcc, CMakeBuildConfig.Release, jobs, regex)
+    return run_ctest(
+        CMakePresets.LinuxGcc,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        CMAKE_SOURCE_DIR,
+    )
 
 
 def test_clang_debug_fn() -> bool:
-    jobs = JOBS
-    regex = r"^test$"
-
-    return run_ctest(CMakePresets.LinuxClang, CMakeBuildConfig.Debug, jobs, regex)
+    return run_ctest(
+        CMakePresets.LinuxClang,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        CMAKE_SOURCE_DIR,
+    )
 
 
 def test_clang_relwithdebinfo_fn() -> bool:
-    jobs = JOBS
-    regex = r"^test$"
-
     return run_ctest(
-        CMakePresets.LinuxClang, CMakeBuildConfig.RelWithDebInfo, jobs, regex
+        CMakePresets.LinuxClang,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        CMAKE_SOURCE_DIR,
     )
 
 
 def test_clang_release_fn() -> bool:
-    jobs = JOBS
-    regex = r"^test$"
-
-    return run_ctest(CMakePresets.LinuxClang, CMakeBuildConfig.Release, jobs, regex)
+    return run_ctest(
+        CMakePresets.LinuxClang,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        CMAKE_SOURCE_DIR,
+    )
 
 
 def test_gcc_valgrind_fn() -> bool:
-    jobs = JOBS
-    regex = r"^valgrind$"
-
-    return run_ctest(CMakePresets.LinuxGcc, CMakeBuildConfig.Debug, jobs, regex)
+    return run_ctest(
+        CMakePresets.LinuxGcc,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^valgrind$",
+        CMAKE_SOURCE_DIR,
+    )
 
 
 def test_clang_valgrind_fn() -> bool:
-    jobs = JOBS
-    regex = r"^valgrind$"
-
-    return run_ctest(CMakePresets.LinuxClang, CMakeBuildConfig.Debug, jobs, regex)
+    return run_ctest(
+        CMakePresets.LinuxClang,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^valgrind$",
+        CMAKE_SOURCE_DIR,
+    )
 
 
 def run_lcov(build_dir) -> bool:
@@ -752,7 +808,7 @@ def run_gcovr(build_dir) -> bool:
 
 
 def process_coverage_fn() -> bool:
-    build_dir = build_dir_from_preset(CMakePresets.LinuxGccCoverage)
+    build_dir = build_dir_from_preset(CMakePresets.LinuxGccCoverage, CMAKE_SOURCE_DIR)
 
     success = run_lcov(build_dir)
     if not success:
@@ -766,20 +822,28 @@ def process_coverage_fn() -> bool:
 
 
 def configure_cmake_gcc_coverage_fn() -> bool:
-    return configure_cmake(CMakePresets.LinuxGccCoverage, GCC15_ENV_PATCH)
+    return configure_cmake(
+        CMakePresets.LinuxGccCoverage, GCC15_ENV_PATCH, CMAKE_SOURCE_DIR
+    )
 
 
 def build_gcc_coverage_fn() -> bool:
     return build_cmake(
-        CMakeBuildConfig.Debug, CMakePresets.LinuxGccCoverage, GCC15_ENV_PATCH
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGccCoverage,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
     )
 
 
 def test_gcc_coverage_fn() -> bool:
-    jobs = JOBS
-    regex = r"^test$"
-
-    return run_ctest(CMakePresets.LinuxGccCoverage, CMakeBuildConfig.Debug, jobs, regex)
+    return run_ctest(
+        CMakePresets.LinuxGccCoverage,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        CMAKE_SOURCE_DIR,
+    )
 
 
 def analyze_gcc_coverage_fn() -> bool:
@@ -805,34 +869,53 @@ def analyze_gcc_coverage_fn() -> bool:
 
 def build_clang_debug_fn() -> bool:
     return build_cmake(
-        CMakeBuildConfig.Debug, CMakePresets.LinuxClang, CLANG20_ENV_PATCH
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
     )
 
 
 def build_clang_relwithdebinfo_fn() -> bool:
     return build_cmake(
-        CMakeBuildConfig.RelWithDebInfo, CMakePresets.LinuxClang, CLANG20_ENV_PATCH
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
     )
 
 
 def build_clang_release_fn() -> bool:
     return build_cmake(
-        CMakeBuildConfig.Release, CMakePresets.LinuxClang, CLANG20_ENV_PATCH
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
     )
 
 
 def build_gcc_debug_fn() -> bool:
-    return build_cmake(CMakeBuildConfig.Debug, CMakePresets.LinuxGcc, GCC15_ENV_PATCH)
+    return build_cmake(
+        CMakeBuildConfig.Debug, CMakePresets.LinuxGcc, GCC15_ENV_PATCH, CMAKE_SOURCE_DIR
+    )
 
 
 def build_gcc_relwithdebinfo_fn() -> bool:
     return build_cmake(
-        CMakeBuildConfig.RelWithDebInfo, CMakePresets.LinuxGcc, GCC15_ENV_PATCH
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
     )
 
 
 def build_gcc_release_fn() -> bool:
-    return build_cmake(CMakeBuildConfig.Release, CMakePresets.LinuxGcc, GCC15_ENV_PATCH)
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+    )
 
 
 def is_json_file(f) -> bool:
@@ -1010,7 +1093,7 @@ def get_changed_files(predicate) -> typing.List[str]:
 
 
 def collect_depfiles(preset):
-    build_dir = build_dir_from_preset(preset)
+    build_dir = build_dir_from_preset(preset, CMAKE_SOURCE_DIR)
     depfiles = []
     for root, dirs, files in os.walk(build_dir):
         for f in files:
@@ -1110,14 +1193,22 @@ def preamble() -> tuple[CliConfig | None, bool]:
 
 
 def clean_fn() -> bool:
-    clean_build_dir(CMakePresets.LinuxClang)
-    clean_build_dir(CMakePresets.LinuxGcc)
-    clean_build_dir(CMakePresets.LinuxGccCoverage)
+    clean_build_dir(CMakePresets.LinuxClang, CMAKE_SOURCE_DIR)
+    clean_build_dir(CMakePresets.LinuxGcc, CMAKE_SOURCE_DIR)
+    clean_build_dir(
+        CMakePresets.LinuxClang, TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR
+    )
+    clean_build_dir(
+        CMakePresets.LinuxGcc, TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR
+    )
+    clean_build_dir(CMakePresets.LinuxGccCoverage, CMAKE_SOURCE_DIR)
     clean_install_dir(CMakePresets.LinuxClang)
     clean_install_dir(CMakePresets.LinuxGcc)
     clean_install_dir(CMakePresets.LinuxGccCoverage)
     remove_dir(COVERAGE_DIR_GCOVR)
     remove_dir(COVERAGE_DIR_LCOV)
+    remove_dir(TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CLANG_DIR)
+    remove_dir(TEST_INSTALL_FIND_PACKAGE_NO_VERSION_GCC_DIR)
 
     return True
 
@@ -1178,6 +1269,154 @@ class Task:
         self.success_ = True
 
         return True
+
+
+def recursively_copy_dir(source, destination):
+    shutil.copytree(source, destination, dirs_exist_ok=True)
+
+
+def test_install_find_package_no_version_gcc_copy_artifacts_fn() -> bool:
+    install_dir = install_dir_from_preset(CMakePresets.LinuxGcc, CMAKE_SOURCE_DIR)
+    recursively_copy_dir(install_dir, TEST_INSTALL_FIND_PACKAGE_NO_VERSION_GCC_DIR)
+
+    return True
+
+
+def test_install_find_package_no_version_clang_copy_artifacts_fn() -> bool:
+    install_dir = install_dir_from_preset(CMakePresets.LinuxClang, CMAKE_SOURCE_DIR)
+    recursively_copy_dir(install_dir, TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CLANG_DIR)
+
+    return True
+
+
+def test_install_find_package_no_version_gcc_configure_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_clang_configure_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_gcc_debug_build_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_gcc_relwithdebinfo_build_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_gcc_release_build_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_clang_debug_build_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_clang_relwithdebinfo_build_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_clang_release_build_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_gcc_debug_test_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGcc,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_gcc_relwithdebinfo_test_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGcc,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_gcc_release_test_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGcc,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_clang_debug_test_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClang,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_clang_relwithdebinfo_test_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClang,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_clang_release_test_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClang,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
 
 
 def main() -> int:
@@ -1301,6 +1540,126 @@ def main() -> int:
 
     clean = Task("Clean build files", clean_fn)
 
+    test_install_find_package_no_version_gcc_copy_artifacts = Task(
+        "Copy GCC artifacts for test install (find_package, no version)",
+        test_install_find_package_no_version_gcc_copy_artifacts_fn,
+    )
+    test_install_find_package_no_version_clang_copy_artifacts = Task(
+        "Copy Clang artifacts for test install (find_package, no version)",
+        test_install_find_package_no_version_clang_copy_artifacts_fn,
+    )
+
+    test_install_find_package_no_version_gcc_copy_artifacts.depends_on(
+        [install_gcc_debug, install_gcc_relwithdebinfo, install_gcc_release]
+    )
+    test_install_find_package_no_version_clang_copy_artifacts.depends_on(
+        [install_clang_debug, install_clang_relwithdebinfo, install_clang_release]
+    )
+
+    test_install_find_package_no_version_gcc_configure = Task(
+        "Configure CMake for GCC test install (find_package, no version)",
+        test_install_find_package_no_version_gcc_configure_fn,
+    )
+    test_install_find_package_no_version_clang_configure = Task(
+        "Configure CMake for Clang test install (find_package, no version)",
+        test_install_find_package_no_version_clang_configure_fn,
+    )
+
+    test_install_find_package_no_version_gcc_configure.depends_on(
+        [test_install_find_package_no_version_gcc_copy_artifacts]
+    )
+    test_install_find_package_no_version_clang_configure.depends_on(
+        [test_install_find_package_no_version_clang_copy_artifacts]
+    )
+
+    test_install_find_package_no_version_gcc_debug_build = Task(
+        "Build GCC Debug test install (find_package, no version)",
+        test_install_find_package_no_version_gcc_debug_build_fn,
+    )
+    test_install_find_package_no_version_gcc_relwithdebinfo_build = Task(
+        "Build GCC RelWithDebInfo test install (find_package, no version)",
+        test_install_find_package_no_version_gcc_relwithdebinfo_build_fn,
+    )
+    test_install_find_package_no_version_gcc_release_build = Task(
+        "Build GCC Release test install (find_package, no version)",
+        test_install_find_package_no_version_gcc_release_build_fn,
+    )
+    test_install_find_package_no_version_clang_debug_build = Task(
+        "Build Clang Debug test install (find_package, no version)",
+        test_install_find_package_no_version_clang_debug_build_fn,
+    )
+    test_install_find_package_no_version_clang_relwithdebinfo_build = Task(
+        "Build Clang RelWithDebInfo test install (find_package, no version)",
+        test_install_find_package_no_version_clang_relwithdebinfo_build_fn,
+    )
+    test_install_find_package_no_version_clang_release_build = Task(
+        "Build Clang Release test install (find_package, no version)",
+        test_install_find_package_no_version_clang_release_build_fn,
+    )
+
+    test_install_find_package_no_version_gcc_debug_build.depends_on(
+        [test_install_find_package_no_version_gcc_configure]
+    )
+    test_install_find_package_no_version_gcc_relwithdebinfo_build.depends_on(
+        [test_install_find_package_no_version_gcc_configure]
+    )
+    test_install_find_package_no_version_gcc_release_build.depends_on(
+        [test_install_find_package_no_version_gcc_configure]
+    )
+    test_install_find_package_no_version_clang_debug_build.depends_on(
+        [test_install_find_package_no_version_clang_configure]
+    )
+    test_install_find_package_no_version_clang_relwithdebinfo_build.depends_on(
+        [test_install_find_package_no_version_clang_configure]
+    )
+    test_install_find_package_no_version_clang_release_build.depends_on(
+        [test_install_find_package_no_version_clang_configure]
+    )
+
+    test_install_find_package_no_version_gcc_debug_test = Task(
+        "Test GCC Debug test install (find_package, no version)",
+        test_install_find_package_no_version_gcc_debug_test_fn,
+    )
+    test_install_find_package_no_version_gcc_relwithdebinfo_test = Task(
+        "Test GCC RelWithDebInfo test install (find_package, no version)",
+        test_install_find_package_no_version_gcc_relwithdebinfo_test_fn,
+    )
+    test_install_find_package_no_version_gcc_release_test = Task(
+        "Test GCC Release test install (find_package, no version)",
+        test_install_find_package_no_version_gcc_release_test_fn,
+    )
+    test_install_find_package_no_version_clang_debug_test = Task(
+        "Test Clang Debug test install (find_package, no version)",
+        test_install_find_package_no_version_clang_debug_test_fn,
+    )
+    test_install_find_package_no_version_clang_relwithdebinfo_test = Task(
+        "Test Clang RelWithDebInfo test install (find_package, no version)",
+        test_install_find_package_no_version_clang_relwithdebinfo_test_fn,
+    )
+    test_install_find_package_no_version_clang_release_test = Task(
+        "Test Clang Release test install (find_package, no version)",
+        test_install_find_package_no_version_clang_release_test_fn,
+    )
+
+    test_install_find_package_no_version_gcc_debug_test.depends_on(
+        [test_install_find_package_no_version_gcc_debug_build]
+    )
+    test_install_find_package_no_version_gcc_relwithdebinfo_test.depends_on(
+        [test_install_find_package_no_version_gcc_relwithdebinfo_build]
+    )
+    test_install_find_package_no_version_gcc_release_test.depends_on(
+        [test_install_find_package_no_version_gcc_release_build]
+    )
+    test_install_find_package_no_version_clang_debug_test.depends_on(
+        [test_install_find_package_no_version_clang_debug_build]
+    )
+    test_install_find_package_no_version_clang_relwithdebinfo_test.depends_on(
+        [test_install_find_package_no_version_clang_relwithdebinfo_build]
+    )
+    test_install_find_package_no_version_clang_release_test.depends_on(
+        [test_install_find_package_no_version_clang_release_build]
+    )
+
     root_dependencies = []
 
     if mode.clean:
@@ -1355,17 +1714,48 @@ def main() -> int:
                 root_dependencies.append(install_clang_release)
 
     if mode.coverage:
-        root_dependencies.append(analyze_gcc_coverage)
+        if mode.gcc:
+            root_dependencies.append(analyze_gcc_coverage)
 
     if mode.valgrind:
-        root_dependencies.append(test_gcc_valgrind)
-        root_dependencies.append(test_clang_valgrind)
+        if mode.gcc:
+            root_dependencies.append(test_gcc_valgrind)
+        if mode.clang:
+            root_dependencies.append(test_clang_valgrind)
+
+    if mode.test_install:
+        if mode.gcc:
+            if mode.debug:
+                root_dependencies.append(
+                    test_install_find_package_no_version_gcc_debug_test
+                )
+            if mode.release:
+                root_dependencies.append(
+                    test_install_find_package_no_version_gcc_relwithdebinfo_test
+                )
+                root_dependencies.append(
+                    test_install_find_package_no_version_gcc_release_test
+                )
+
+        if mode.clang:
+            if mode.debug:
+                root_dependencies.append(
+                    test_install_find_package_no_version_clang_debug_test
+                )
+            if mode.release:
+                root_dependencies.append(
+                    test_install_find_package_no_version_clang_relwithdebinfo_test
+                )
+                root_dependencies.append(
+                    test_install_find_package_no_version_clang_release_test
+                )
 
     if mode.static_analysis:
-        if mode.incremental:
-            root_dependencies.append(run_clang_static_analysis_changed_files)
-        else:
-            root_dependencies.append(run_clang_static_analysis_all_files)
+        if mode.clang:
+            if mode.incremental:
+                root_dependencies.append(run_clang_static_analysis_changed_files)
+            else:
+                root_dependencies.append(run_clang_static_analysis_all_files)
 
     root = Task("Build")
     root.depends_on(root_dependencies)
