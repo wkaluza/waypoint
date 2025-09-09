@@ -316,7 +316,7 @@ def is_linux():
 
 
 def check_no_spaces_in_paths_() -> bool:
-    files = find_files_by_name(lambda x: True)
+    files = find_files_by_name(PROJECT_ROOT_DIR, lambda x: True)
 
     for f in files:
         assert f.startswith(PROJECT_ROOT_DIR)
@@ -336,6 +336,42 @@ def check_main_header_has_no_includes_() -> bool:
     return re.search(r"# *include", contents) is None
 
 
+def verify_installation_contents_(preset) -> bool:
+    install_dir = install_dir_from_preset(preset)
+
+    expected_files = [
+        "cmake/waypoint-config.cmake",
+        "cmake/waypoint-config-debug.cmake",
+        "cmake/waypoint-config-relwithdebinfo.cmake",
+        "cmake/waypoint-config-release.cmake",
+        "cmake/waypoint-config-version.cmake",
+        "include/waypoint/waypoint.hpp",
+        "lib/Debug/libassert.a",
+        "lib/Debug/libautorun.a",
+        "lib/Debug/libcoverage.a",
+        "lib/Debug/libprocess.a",
+        "lib/Debug/libwaypoint.a",
+        "lib/RelWithDebInfo/libassert.a",
+        "lib/RelWithDebInfo/libautorun.a",
+        "lib/RelWithDebInfo/libcoverage.a",
+        "lib/RelWithDebInfo/libprocess.a",
+        "lib/RelWithDebInfo/libwaypoint.a",
+        "lib/Release/libassert.a",
+        "lib/Release/libautorun.a",
+        "lib/Release/libcoverage.a",
+        "lib/Release/libprocess.a",
+        "lib/Release/libwaypoint.a",
+    ]
+
+    files = find_files_by_name(install_dir, lambda x: True)
+    for expected in expected_files:
+        assert os.path.realpath(f"{install_dir}/{expected}") in files
+
+    assert len(files) == len(expected_files)
+
+    return True
+
+
 def misc_checks_fn() -> bool:
     success = check_main_header_has_no_includes_()
     if not success:
@@ -346,6 +382,18 @@ def misc_checks_fn() -> bool:
     success = check_no_spaces_in_paths_()
     if not success:
         print("Error: file paths must not contain spaces")
+
+        return False
+
+    success = verify_installation_contents_(CMakePresets.LinuxClang)
+    if not success:
+        print("Error: Invalid Clang installation contents")
+
+        return False
+
+    success = verify_installation_contents_(CMakePresets.LinuxGcc)
+    if not success:
+        print("Error: Invalid GCC installation contents")
 
         return False
 
@@ -372,8 +420,8 @@ def build_dir_from_preset(preset, cmake_source_dir) -> str:
     return dir_from_preset("binaryDir", preset, cmake_source_dir)
 
 
-def install_dir_from_preset(preset, cmake_source_dir) -> str:
-    return dir_from_preset("installDir", preset, cmake_source_dir)
+def install_dir_from_preset(preset) -> str:
+    return dir_from_preset("installDir", preset, CMAKE_SOURCE_DIR)
 
 
 def remove_dir(path):
@@ -396,13 +444,13 @@ def clean_build_dir(preset, cmake_source_dir):
 
 
 def clean_install_dir(preset):
-    install_dir = install_dir_from_preset(preset, CMAKE_SOURCE_DIR)
+    install_dir = install_dir_from_preset(preset)
     remove_dir(install_dir)
 
 
-def find_files_by_name(pred) -> typing.List[str]:
+def find_files_by_name(dir_path, pred) -> typing.List[str]:
     output = []
-    for root, dirs, files in os.walk(PROJECT_ROOT_DIR):
+    for root, dirs, files in os.walk(dir_path):
         indices_to_remove = []
         for i, d in enumerate(dirs):
             if d.startswith("."):
@@ -610,7 +658,7 @@ def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str |
 
 
 def run_clang_static_analysis_all_files_fn() -> bool:
-    files = find_files_by_name(is_cpp_file)
+    files = find_files_by_name(PROJECT_ROOT_DIR, is_cpp_file)
     files = [f for f in files if not f.startswith(INSTALL_TESTS_DIR_PATH)]
 
     return run_clang_tidy(CMakePresets.LinuxClang, files)
@@ -971,10 +1019,10 @@ def format_single_file(f) -> typing.Tuple[bool, str]:
 
 
 def format_sources_fn() -> bool:
-    files = find_files_by_name(is_json_file)
-    files += find_files_by_name(is_cmake_file)
-    files += find_files_by_name(is_python_file)
-    files += find_files_by_name(is_cpp_file)
+    files = find_files_by_name(PROJECT_ROOT_DIR, is_json_file)
+    files += find_files_by_name(PROJECT_ROOT_DIR, is_cmake_file)
+    files += find_files_by_name(PROJECT_ROOT_DIR, is_python_file)
+    files += find_files_by_name(PROJECT_ROOT_DIR, is_cpp_file)
     files.sort()
 
     with multiprocessing.Pool(JOBS) as pool:
@@ -1099,7 +1147,7 @@ def get_changed_files(predicate) -> typing.List[str]:
         success, output = run(["git", "status", "--porcelain"])
         # Fall back to all files if git is not available
         if not success:
-            return find_files_by_name(predicate)
+            return find_files_by_name(PROJECT_ROOT_DIR, predicate)
 
         files = output.split("\n")
         files = [f"{PROJECT_ROOT_DIR}/{f[3:]}" for f in files if len(f) > 0]
@@ -1305,14 +1353,14 @@ def recursively_copy_dir(source, destination):
 
 
 def test_install_find_package_no_version_gcc_copy_artifacts_fn() -> bool:
-    install_dir = install_dir_from_preset(CMakePresets.LinuxGcc, CMAKE_SOURCE_DIR)
+    install_dir = install_dir_from_preset(CMakePresets.LinuxGcc)
     recursively_copy_dir(install_dir, TEST_INSTALL_FIND_PACKAGE_NO_VERSION_GCC_DIR)
 
     return True
 
 
 def test_install_find_package_no_version_clang_copy_artifacts_fn() -> bool:
-    install_dir = install_dir_from_preset(CMakePresets.LinuxClang, CMAKE_SOURCE_DIR)
+    install_dir = install_dir_from_preset(CMakePresets.LinuxClang)
     recursively_copy_dir(install_dir, TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CLANG_DIR)
 
     return True
@@ -1449,14 +1497,14 @@ def test_install_find_package_no_version_clang_release_test_fn() -> bool:
 
 
 def test_install_find_package_exact_version_gcc_copy_artifacts_fn() -> bool:
-    install_dir = install_dir_from_preset(CMakePresets.LinuxGcc, CMAKE_SOURCE_DIR)
+    install_dir = install_dir_from_preset(CMakePresets.LinuxGcc)
     recursively_copy_dir(install_dir, TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_GCC_DIR)
 
     return True
 
 
 def test_install_find_package_exact_version_clang_copy_artifacts_fn() -> bool:
-    install_dir = install_dir_from_preset(CMakePresets.LinuxClang, CMAKE_SOURCE_DIR)
+    install_dir = install_dir_from_preset(CMakePresets.LinuxClang)
     recursively_copy_dir(install_dir, TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CLANG_DIR)
 
     return True
@@ -1958,9 +2006,6 @@ def main() -> int:
     if mode.clean:
         root_dependencies.append(clean)
 
-    if mode.misc:
-        root_dependencies.append(misc_checks)
-
     if mode.format:
         root_dependencies.append(format_sources)
 
@@ -2060,6 +2105,9 @@ def main() -> int:
                 root_dependencies.append(
                     test_install_find_package_exact_version_clang_release_test
                 )
+
+    if mode.misc:
+        root_dependencies.append(misc_checks)
 
     if mode.static_analysis:
         if mode.clang:
