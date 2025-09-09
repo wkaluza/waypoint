@@ -29,9 +29,9 @@ COVERAGE_FILE_HTML_GCOVR = os.path.realpath(f"{COVERAGE_DIR_GCOVR}/index.html")
 COVERAGE_FILE_JSON_GCOVR = os.path.realpath(f"{COVERAGE_DIR_GCOVR}/coverage.json")
 INFRASTRUCTURE_DIR = os.path.realpath(f"{PROJECT_ROOT_DIR}/infrastructure")
 CMAKE_SOURCE_DIR = INFRASTRUCTURE_DIR
-assert os.path.isfile(f"{INFRASTRUCTURE_DIR}/CMakeLists.txt") and os.path.isfile(
-    f"{INFRASTRUCTURE_DIR}/CMakePresets.json"
-)
+CMAKE_LISTS_FILE = os.path.realpath(f"{CMAKE_SOURCE_DIR}/CMakeLists.txt")
+CMAKE_PRESETS_FILE = os.path.realpath(f"{CMAKE_SOURCE_DIR}/CMakePresets.json")
+assert os.path.isfile(CMAKE_LISTS_FILE) and os.path.isfile(CMAKE_PRESETS_FILE)
 
 MAIN_HEADER_PATH = f"{PROJECT_ROOT_DIR}/src/waypoint/include/waypoint/waypoint.hpp"
 assert os.path.isfile(MAIN_HEADER_PATH), "waypoint.hpp does not exist"
@@ -55,6 +55,7 @@ class ModeConfig:
     valgrind: bool = False
     coverage: bool = False
     misc: bool = False
+    install: bool = False
 
 
 @enum.unique
@@ -78,6 +79,7 @@ class Mode(enum.Enum):
         valgrind=True,
         coverage=True,
         misc=True,
+        install=True,
     )
     Clean = ModeConfig(
         clean=True,
@@ -94,6 +96,7 @@ class Mode(enum.Enum):
         valgrind=True,
         coverage=True,
         misc=True,
+        install=True,
     )
     Coverage = ModeConfig(
         coverage=True,
@@ -175,6 +178,10 @@ class Mode(enum.Enum):
     @property
     def misc(self):
         return self.config.misc
+
+    @property
+    def install(self):
+        return self.config.install
 
 
 @enum.unique
@@ -303,10 +310,8 @@ def misc_checks_fn() -> bool:
     return True
 
 
-def build_dir_from_preset(preset) -> str:
-    presets_file = os.path.realpath(f"{CMAKE_SOURCE_DIR}/CMakePresets.json")
-
-    with open(presets_file) as f:
+def dir_from_preset(dir_key, preset) -> str:
+    with open(CMAKE_PRESETS_FILE) as f:
         data = json.load(f)
         configure_presets = [
             p for p in data["configurePresets"] if p["name"] == preset.configure
@@ -314,10 +319,18 @@ def build_dir_from_preset(preset) -> str:
         assert len(configure_presets) == 1
         configure_presets = configure_presets[0]
 
-        binary_dir = configure_presets["binaryDir"]
-        binary_dir.replace("${sourceDir}", f"{CMAKE_SOURCE_DIR}")
+        dir_path = configure_presets[dir_key]
+        dir_path.replace("${sourceDir}", f"{CMAKE_SOURCE_DIR}")
 
-        return os.path.realpath(binary_dir)
+        return os.path.realpath(dir_path)
+
+
+def build_dir_from_preset(preset) -> str:
+    return dir_from_preset("binaryDir", preset)
+
+
+def install_dir_from_preset(preset) -> str:
+    return dir_from_preset("installDir", preset)
 
 
 def remove_dir(path):
@@ -337,6 +350,11 @@ def create_dir(path) -> bool:
 def clean_build_dir(preset):
     build_dir = build_dir_from_preset(preset)
     remove_dir(build_dir)
+
+
+def clean_install_dir(preset):
+    install_dir = install_dir_from_preset(preset)
+    remove_dir(install_dir)
 
 
 def find_files_by_name(pred) -> typing.List[str]:
@@ -376,6 +394,54 @@ def find_files_by_name(pred) -> typing.List[str]:
     output.sort()
 
     return output
+
+
+def install_cmake(preset, config) -> bool:
+    build_dir = build_dir_from_preset(preset)
+
+    with contextlib.chdir(PROJECT_ROOT_DIR):
+        success, output = run(
+            [
+                "cmake",
+                "--build",
+                f"{build_dir}",
+                "--target",
+                "install",
+                "--config",
+                f"{config}",
+            ]
+        )
+        if not success:
+            if output is not None:
+                print(output)
+
+            return False
+
+    return True
+
+
+def install_gcc_debug_fn() -> bool:
+    return install_cmake(CMakePresets.LinuxGcc, CMakeBuildConfig.Debug)
+
+
+def install_gcc_relwithdebinfo_fn() -> bool:
+    return install_cmake(CMakePresets.LinuxGcc, CMakeBuildConfig.RelWithDebInfo)
+
+
+def install_gcc_release_fn() -> bool:
+    return install_cmake(CMakePresets.LinuxGcc, CMakeBuildConfig.Release)
+
+
+def install_clang_debug_fn() -> bool:
+    return install_cmake(CMakePresets.LinuxClang, CMakeBuildConfig.Debug)
+
+
+def install_clang_relwithdebinfo_fn() -> bool:
+    return install_cmake(CMakePresets.LinuxClang, CMakeBuildConfig.RelWithDebInfo)
+
+
+def install_clang_release_fn() -> bool:
+    return install_cmake(CMakePresets.LinuxClang, CMakeBuildConfig.Release)
 
 
 def configure_cmake_clang_fn() -> bool:
@@ -1047,6 +1113,9 @@ def clean_fn() -> bool:
     clean_build_dir(CMakePresets.LinuxClang)
     clean_build_dir(CMakePresets.LinuxGcc)
     clean_build_dir(CMakePresets.LinuxGccCoverage)
+    clean_install_dir(CMakePresets.LinuxClang)
+    clean_install_dir(CMakePresets.LinuxGcc)
+    clean_install_dir(CMakePresets.LinuxGccCoverage)
     remove_dir(COVERAGE_DIR_GCOVR)
     remove_dir(COVERAGE_DIR_LCOV)
 
@@ -1151,6 +1220,24 @@ def main() -> int:
 
     configure_cmake_gcc = Task("Configure CMake for GCC", configure_cmake_gcc_fn)
 
+    install_gcc_debug = Task("Install GCC Debug", install_gcc_debug_fn)
+    install_gcc_relwithdebinfo = Task(
+        "Install GCC RelWithDebInfo", install_gcc_relwithdebinfo_fn
+    )
+    install_gcc_release = Task("Install GCC Release", install_gcc_release_fn)
+    install_clang_debug = Task("Install Clang Debug", install_clang_debug_fn)
+    install_clang_relwithdebinfo = Task(
+        "Install Clang RelWithDebInfo", install_clang_relwithdebinfo_fn
+    )
+    install_clang_release = Task("Install Clang Release", install_clang_release_fn)
+
+    install_gcc_debug.depends_on([build_gcc_debug])
+    install_gcc_relwithdebinfo.depends_on([build_gcc_relwithdebinfo])
+    install_gcc_release.depends_on([build_gcc_release])
+    install_clang_debug.depends_on([build_clang_debug])
+    install_clang_relwithdebinfo.depends_on([build_clang_relwithdebinfo])
+    install_clang_release.depends_on([build_clang_release])
+
     build_gcc_debug.depends_on([configure_cmake_gcc])
     build_gcc_relwithdebinfo.depends_on([configure_cmake_gcc])
     build_gcc_release.depends_on([configure_cmake_gcc])
@@ -1228,34 +1315,44 @@ def main() -> int:
     if mode.gcc:
         if mode.debug:
             root_dependencies.append(build_gcc_debug)
-
             if mode.test:
                 root_dependencies.append(test_gcc_debug)
+            if mode.install:
+                root_dependencies.append(install_gcc_debug)
 
         if mode.release:
             root_dependencies.append(build_gcc_relwithdebinfo)
             if mode.test:
                 root_dependencies.append(test_gcc_relwithdebinfo)
+            if mode.install:
+                root_dependencies.append(install_gcc_relwithdebinfo)
 
             root_dependencies.append(build_gcc_release)
             if mode.test:
                 root_dependencies.append(test_gcc_release)
+            if mode.install:
+                root_dependencies.append(install_gcc_release)
 
     if mode.clang:
         if mode.debug:
             root_dependencies.append(build_clang_debug)
-
             if mode.test:
                 root_dependencies.append(test_clang_debug)
+            if mode.install:
+                root_dependencies.append(install_clang_debug)
 
         if mode.release:
             root_dependencies.append(build_clang_relwithdebinfo)
             if mode.test:
                 root_dependencies.append(test_clang_relwithdebinfo)
+            if mode.install:
+                root_dependencies.append(install_clang_relwithdebinfo)
 
             root_dependencies.append(build_clang_release)
             if mode.test:
                 root_dependencies.append(test_clang_release)
+            if mode.install:
+                root_dependencies.append(install_clang_release)
 
     if mode.coverage:
         root_dependencies.append(analyze_gcc_coverage)

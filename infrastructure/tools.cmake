@@ -1,6 +1,6 @@
 include_guard(GLOBAL)
 
-set(PROJECT_ROOT_DIR ${CMAKE_SOURCE_DIR}/..)
+set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 set(WAYPOINT_INTERNAL_HEADER_DIR ${PROJECT_ROOT_DIR}/src/waypoint/internal)
 set(WAYPOINT_OWN_HEADER_DIR ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
@@ -10,7 +10,7 @@ set(INTERNAL_LIBRARIES assert autorun coverage process)
 
 function(new_target_)
   set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE
-              EXCLUDE_FROM_ALL)
+              EXCLUDE_FROM_ALL EXPORTED)
   set(singleValueKeywords DIRECTORY TARGET)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
@@ -96,19 +96,21 @@ function(new_target_)
     endif()
 
     if(DEFINED arg_PUBLIC_HEADERS)
+      add_library(library_own_headers_${arg_TARGET} INTERFACE)
       target_sources(
-        ${arg_TARGET}
-        PRIVATE FILE_SET
-                own_headers_${arg_TARGET}
-                TYPE
-                HEADERS
-                BASE_DIRS
-                ${arg_DIRECTORY}/include/${arg_TARGET}
-                FILES
-                ${arg_PUBLIC_HEADERS})
+        library_own_headers_${arg_TARGET}
+        INTERFACE FILE_SET
+                  own_headers_${arg_TARGET}
+                  TYPE
+                  HEADERS
+                  BASE_DIRS
+                  ${arg_DIRECTORY}/include/${arg_TARGET}
+                  FILES
+                  ${arg_PUBLIC_HEADERS})
 
+      add_library(library_interface_headers_${arg_TARGET} INTERFACE)
       target_sources(
-        ${arg_TARGET}
+        library_interface_headers_${arg_TARGET}
         INTERFACE FILE_SET
                   interface_headers_${arg_TARGET}
                   TYPE
@@ -117,6 +119,19 @@ function(new_target_)
                   ${arg_DIRECTORY}/include
                   FILES
                   ${arg_PUBLIC_HEADERS})
+
+      if(arg_EXPORTED)
+        target_link_libraries(
+          ${arg_TARGET}
+          PUBLIC library_interface_headers_${arg_TARGET}
+          PRIVATE $<BUILD_LOCAL_INTERFACE:library_own_headers_${arg_TARGET}>)
+      else()
+        target_link_libraries(
+          ${arg_TARGET}
+          PUBLIC
+            $<BUILD_LOCAL_INTERFACE:library_interface_headers_${arg_TARGET}>
+          PRIVATE $<BUILD_LOCAL_INTERFACE:library_own_headers_${arg_TARGET}>)
+      endif()
     endif()
   endif()
 
@@ -170,7 +185,7 @@ endfunction()
 
 function(new_target)
   set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE
-              EXCLUDE_FROM_ALL)
+              EXCLUDE_FROM_ALL EXPORTED)
   set(singleValueKeywords DIRECTORY TARGET)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
@@ -198,6 +213,12 @@ function(new_target)
     set(exclude_from_all "")
   endif()
 
+  if(arg_EXPORTED)
+    set(exported EXPORTED)
+  else()
+    set(exported "")
+  endif()
+
   list(TRANSFORM arg_SOURCES PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/)
   list(TRANSFORM arg_PRIVATE_HEADERS
        PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/internal/)
@@ -208,6 +229,7 @@ function(new_target)
     ${type}
     ${exceptions}
     ${exclude_from_all}
+    ${exported}
     TARGET
     ${arg_TARGET}
     DIRECTORY
@@ -224,7 +246,7 @@ endfunction()
 
 function(new_platform_specific_target)
   set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE
-              EXCLUDE_FROM_ALL)
+              EXCLUDE_FROM_ALL EXPORTED)
   set(singleValueKeywords DIRECTORY TARGET)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
@@ -250,6 +272,12 @@ function(new_platform_specific_target)
     set(exclude_from_all EXCLUDE_FROM_ALL)
   else()
     set(exclude_from_all "")
+  endif()
+
+  if(arg_EXPORTED)
+    set(exported EXPORTED)
+  else()
+    set(exported "")
   endif()
 
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -267,6 +295,7 @@ function(new_platform_specific_target)
     ${type}
     ${exceptions}
     ${exclude_from_all}
+    ${exported}
     TARGET
     ${arg_TARGET}
     DIRECTORY
@@ -279,4 +308,30 @@ function(new_platform_specific_target)
     ${arg_PUBLIC_HEADERS}
     LINKS
     ${arg_LINKS})
+endfunction()
+
+function(prepare_installation)
+  add_library(waypoint::waypoint ALIAS waypoint)
+
+  install(
+    TARGETS waypoint assert autorun coverage process
+            library_interface_headers_waypoint
+    EXPORT waypoint-targets
+    FILE_SET interface_headers_waypoint
+    ARCHIVE DESTINATION lib/$<CONFIG>
+    LIBRARY DESTINATION lib/$<CONFIG>
+    RUNTIME DESTINATION bin/$<CONFIG>)
+  install(
+    EXPORT waypoint-targets
+    DESTINATION cmake
+    FILE waypoint-config.cmake
+    NAMESPACE waypoint::)
+
+  include(CMakePackageConfigHelpers)
+  write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/waypoint-config-version.cmake
+    COMPATIBILITY ExactVersion)
+
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/waypoint-config-version.cmake
+          DESTINATION cmake)
 endfunction()

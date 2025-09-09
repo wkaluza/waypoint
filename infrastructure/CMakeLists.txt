@@ -63,6 +63,7 @@ new_platform_specific_target(
 
 new_target(
   STATIC
+  EXPORTED
   TARGET
   waypoint
   DIRECTORY
@@ -197,3 +198,5 @@ new_basic_test(088_timeout)
 new_basic_test(089_process_exit_status)
 
 new_impl_test(090_assert)
+
+prepare_installation()

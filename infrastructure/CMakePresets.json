@@ -118,6 +118,7 @@
         "base_system_linux",
         "base_target_properties"
       ],
+      "installDir": "${sourceDir}/../install_linux_clang___",
       "name": "configure_linux_clang"
     },
     {
@@ -129,6 +130,7 @@
         "base_system_linux",
         "base_target_properties"
       ],
+      "installDir": "${sourceDir}/../install_linux_gcc___",
       "name": "configure_linux_gcc"
     },
     {
@@ -140,6 +142,7 @@
         "base_system_linux",
         "base_target_properties"
       ],
+      "installDir": "${sourceDir}/../install_linux_clang_ide___",
       "name": "configure_linux_clang_ide"
     },
     {
@@ -152,6 +155,7 @@
         "base_target_properties",
         "base_enable_coverage"
       ],
+      "installDir": "${sourceDir}/../install_linux_gcc_coverage___",
       "name": "configure_linux_gcc_coverage"
     }
   ],
