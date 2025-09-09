@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 4.0)
 
 project(
-  project_waypoint_find_package_no_version_test
+  project_waypoint_find_package_exact_version_test
   VERSION 1.0.0
-  DESCRIPTION "Test project for loading waypoint with find_package (no version)"
+  DESCRIPTION
+    "Test project for loading waypoint with find_package (exact version)"
   LANGUAGES CXX)
 
 enable_testing()
@@ -12,12 +13,24 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/tools.cmake)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   find_package(
-    waypoint REQUIRED CONFIG PATHS
-    ${PROJECT_ROOT_DIR}/waypoint_install_linux_clang___/cmake NO_DEFAULT_PATH)
+    waypoint
+    0.0.1
+    EXACT
+    REQUIRED
+    CONFIG
+    PATHS
+    ${PROJECT_ROOT_DIR}/waypoint_install_linux_clang___/cmake
+    NO_DEFAULT_PATH)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   find_package(
-    waypoint REQUIRED CONFIG PATHS
-    ${PROJECT_ROOT_DIR}/waypoint_install_linux_gcc___/cmake NO_DEFAULT_PATH)
+    waypoint
+    0.0.1
+    EXACT
+    REQUIRED
+    CONFIG
+    PATHS
+    ${PROJECT_ROOT_DIR}/waypoint_install_linux_gcc___/cmake
+    NO_DEFAULT_PATH)
 else()
   message(FATAL_ERROR "Unexpected compiler")
 endif()
