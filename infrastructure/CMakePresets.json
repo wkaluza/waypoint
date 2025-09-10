@@ -75,6 +75,13 @@
       "name": "base_target_properties"
     },
     {
+      "cacheVariables": {
+        "PRESET_BUILD_WAYPOINT_TESTS_jsGLwkD9eVN5hzRr": true
+      },
+      "hidden": true,
+      "name": "base_enable_tests_build"
+    },
+    {
       "generator": "Ninja Multi-Config",
       "hidden": true,
       "name": "base_generator_ninja"
@@ -116,6 +123,7 @@
         "base_compiler_clang",
         "base_generator_ninja",
         "base_system_linux",
+        "base_enable_tests_build",
         "base_target_properties"
       ],
       "installDir": "${sourceDir}/../install_linux_clang___",
@@ -128,6 +136,7 @@
         "base_compiler_gcc",
         "base_generator_ninja",
         "base_system_linux",
+        "base_enable_tests_build",
         "base_target_properties"
       ],
       "installDir": "${sourceDir}/../install_linux_gcc___",
@@ -140,6 +149,7 @@
         "base_compiler_clang",
         "base_generator_ninja",
         "base_system_linux",
+        "base_enable_tests_build",
         "base_target_properties"
       ],
       "installDir": "${sourceDir}/../install_linux_clang_ide___",
@@ -152,6 +162,7 @@
         "base_compiler_gcc",
         "base_generator_ninja",
         "base_system_linux",
+        "base_enable_tests_build",
         "base_target_properties",
         "base_enable_coverage"
       ],

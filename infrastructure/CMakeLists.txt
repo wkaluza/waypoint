@@ -10,8 +10,6 @@ enable_testing()
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/tools.cmake)
 
-add_custom_target(all_tests)
-
 new_platform_specific_target(
   STATIC
   TARGET
@@ -84,119 +82,123 @@ new_target(
   coverage
   process)
 
-new_target(
-  STATIC
-  ENABLE_EXCEPTIONS_IN_COVERAGE
-  EXCLUDE_FROM_ALL
-  TARGET
-  test_helpers
-  DIRECTORY
-  test/test_helpers
-  SOURCES
-  test_helpers.cpp
-  test_helpers_crash.cpp
-  PUBLIC_HEADERS
-  test_helpers.hpp
-  PRIVATE_HEADERS
-  test_helpers_crash.hpp
-  LINKS
-  coverage
-  waypoint)
+if(DEFINED PRESET_BUILD_WAYPOINT_TESTS_jsGLwkD9eVN5hzRr)
+  add_custom_target(all_tests)
 
-new_basic_test(000_include_only)
-new_basic_test(001_init_only)
-new_basic_test(002_empty_autorun_block_with_init)
-new_basic_test(003_two_empty_autoruns_with_init)
-new_basic_test(004_empty_autorun_block_no_init)
-new_basic_test(005_two_empty_autoruns_no_init)
-new_basic_test(006_one_empty_group)
-new_basic_test(007_two_empty_groups_diff_names)
-new_basic_test(008_two_empty_groups_same_name)
-new_basic_test(009_trivial_test)
-new_basic_test(010_two_tests_same_group_diff_name)
-new_basic_test(011_two_tests_diff_group_diff_name)
-new_basic_test(012_two_tests_diff_group_same_name)
-new_basic_test(013_two_tests_same_group_same_name)
-new_basic_test(014_passing_test)
-new_basic_test(015_failing_test)
-new_basic_test(016_passing_test_with_auto)
-new_basic_test(017_failing_test_with_auto)
-new_basic_test(018_failing_test_with_auto)
-new_basic_test(019_failing_test_with_auto)
-new_basic_test(020_failing_test_with_auto)
-new_basic_test(021_failing_test_with_auto)
-new_basic_test(022_failing_test_with_auto)
-new_basic_test(023_failing_test_with_auto)
-new_basic_test(024_failing_test_with_auto)
-new_basic_test(025_failing_test_with_auto)
-new_basic_test(026_multiple_tests)
+  new_target(
+    STATIC
+    ENABLE_EXCEPTIONS_IN_COVERAGE
+    EXCLUDE_FROM_ALL
+    TARGET
+    test_helpers
+    DIRECTORY
+    test/test_helpers
+    SOURCES
+    test_helpers.cpp
+    test_helpers_crash.cpp
+    PUBLIC_HEADERS
+    test_helpers.hpp
+    PRIVATE_HEADERS
+    test_helpers_crash.hpp
+    LINKS
+    coverage
+    waypoint)
 
-new_impl_test(027_internal_smart_ptrs)
+  new_basic_test(000_include_only)
+  new_basic_test(001_init_only)
+  new_basic_test(002_empty_autorun_block_with_init)
+  new_basic_test(003_two_empty_autoruns_with_init)
+  new_basic_test(004_empty_autorun_block_no_init)
+  new_basic_test(005_two_empty_autoruns_no_init)
+  new_basic_test(006_one_empty_group)
+  new_basic_test(007_two_empty_groups_diff_names)
+  new_basic_test(008_two_empty_groups_same_name)
+  new_basic_test(009_trivial_test)
+  new_basic_test(010_two_tests_same_group_diff_name)
+  new_basic_test(011_two_tests_diff_group_diff_name)
+  new_basic_test(012_two_tests_diff_group_same_name)
+  new_basic_test(013_two_tests_same_group_same_name)
+  new_basic_test(014_passing_test)
+  new_basic_test(015_failing_test)
+  new_basic_test(016_passing_test_with_auto)
+  new_basic_test(017_failing_test_with_auto)
+  new_basic_test(018_failing_test_with_auto)
+  new_basic_test(019_failing_test_with_auto)
+  new_basic_test(020_failing_test_with_auto)
+  new_basic_test(021_failing_test_with_auto)
+  new_basic_test(022_failing_test_with_auto)
+  new_basic_test(023_failing_test_with_auto)
+  new_basic_test(024_failing_test_with_auto)
+  new_basic_test(025_failing_test_with_auto)
+  new_basic_test(026_multiple_tests)
 
-new_basic_test(028_assertion_messages)
-new_basic_test(029_results)
-new_basic_test(030_capturing_lambda_as_test_body)
-new_basic_test(031_mutable_lambda_as_test_body)
-new_basic_test(032_setup)
-new_basic_test(033_teardown)
-new_basic_test(034_incomplete_tests)
-new_basic_test(035_assume)
-new_basic_test(036_disable)
-new_basic_test(037_status)
-new_basic_test(038_process)
-new_basic_test(039_process)
-new_basic_test(040_process)
+  new_impl_test(027_internal_smart_ptrs)
 
-new_basic_test(041_init_only)
-new_basic_test(042_empty_autorun_block_with_init)
-new_basic_test(043_two_empty_autoruns_with_init)
-new_basic_test(044_one_empty_group)
-new_basic_test(045_two_empty_groups_diff_names)
-new_basic_test(046_two_empty_groups_same_name)
-new_basic_test(047_trivial_test)
-new_basic_test(048_two_tests_same_group_diff_name)
-new_basic_test(049_two_tests_diff_group_diff_name)
-new_basic_test(050_two_tests_diff_group_same_name)
-new_basic_test(051_two_tests_same_group_same_name)
-new_basic_test(052_passing_test)
-new_basic_test(053_failing_test)
-new_basic_test(054_passing_test_with_auto)
-new_basic_test(055_failing_test_with_auto)
-new_basic_test(056_failing_test_with_auto)
-new_basic_test(057_failing_test_with_auto)
-new_basic_test(058_failing_test_with_auto)
-new_basic_test(059_failing_test_with_auto)
-new_basic_test(060_failing_test_with_auto)
-new_basic_test(061_failing_test_with_auto)
-new_basic_test(062_failing_test_with_auto)
-new_basic_test(063_failing_test_with_auto)
-new_basic_test(064_multiple_tests)
-new_basic_test(065_assertion_messages)
-new_basic_test(066_results)
-new_basic_test(067_capturing_lambda_as_test_body)
-new_basic_test(068_mutable_lambda_as_test_body)
-new_basic_test(069_setup)
-new_basic_test(070_teardown)
-new_basic_test(071_incomplete_tests)
-new_basic_test(072_assume)
-new_basic_test(073_disable)
-new_basic_test(074_status)
-new_basic_test(075_env_vars)
-new_basic_test(076_crash)
-new_basic_test(077_crash)
-new_basic_test(078_crash)
-new_basic_test(079_crash)
-new_basic_test(080_crash)
-new_basic_test(081_crash)
-new_basic_test(082_crash)
-new_basic_test(083_crash)
-new_basic_test(084_timeout)
-new_basic_test(085_timeout)
-new_basic_test(086_timeout)
-new_basic_test(087_timeout)
-new_basic_test(088_timeout)
-new_basic_test(089_process_exit_status)
+  new_basic_test(028_assertion_messages)
+  new_basic_test(029_results)
+  new_basic_test(030_capturing_lambda_as_test_body)
+  new_basic_test(031_mutable_lambda_as_test_body)
+  new_basic_test(032_setup)
+  new_basic_test(033_teardown)
+  new_basic_test(034_incomplete_tests)
+  new_basic_test(035_assume)
+  new_basic_test(036_disable)
+  new_basic_test(037_status)
+  new_basic_test(038_process)
+  new_basic_test(039_process)
+  new_basic_test(040_process)
 
-new_impl_test(090_assert)
+  new_basic_test(041_init_only)
+  new_basic_test(042_empty_autorun_block_with_init)
+  new_basic_test(043_two_empty_autoruns_with_init)
+  new_basic_test(044_one_empty_group)
+  new_basic_test(045_two_empty_groups_diff_names)
+  new_basic_test(046_two_empty_groups_same_name)
+  new_basic_test(047_trivial_test)
+  new_basic_test(048_two_tests_same_group_diff_name)
+  new_basic_test(049_two_tests_diff_group_diff_name)
+  new_basic_test(050_two_tests_diff_group_same_name)
+  new_basic_test(051_two_tests_same_group_same_name)
+  new_basic_test(052_passing_test)
+  new_basic_test(053_failing_test)
+  new_basic_test(054_passing_test_with_auto)
+  new_basic_test(055_failing_test_with_auto)
+  new_basic_test(056_failing_test_with_auto)
+  new_basic_test(057_failing_test_with_auto)
+  new_basic_test(058_failing_test_with_auto)
+  new_basic_test(059_failing_test_with_auto)
+  new_basic_test(060_failing_test_with_auto)
+  new_basic_test(061_failing_test_with_auto)
+  new_basic_test(062_failing_test_with_auto)
+  new_basic_test(063_failing_test_with_auto)
+  new_basic_test(064_multiple_tests)
+  new_basic_test(065_assertion_messages)
+  new_basic_test(066_results)
+  new_basic_test(067_capturing_lambda_as_test_body)
+  new_basic_test(068_mutable_lambda_as_test_body)
+  new_basic_test(069_setup)
+  new_basic_test(070_teardown)
+  new_basic_test(071_incomplete_tests)
+  new_basic_test(072_assume)
+  new_basic_test(073_disable)
+  new_basic_test(074_status)
+  new_basic_test(075_env_vars)
+  new_basic_test(076_crash)
+  new_basic_test(077_crash)
+  new_basic_test(078_crash)
+  new_basic_test(079_crash)
+  new_basic_test(080_crash)
+  new_basic_test(081_crash)
+  new_basic_test(082_crash)
+  new_basic_test(083_crash)
+  new_basic_test(084_timeout)
+  new_basic_test(085_timeout)
+  new_basic_test(086_timeout)
+  new_basic_test(087_timeout)
+  new_basic_test(088_timeout)
+  new_basic_test(089_process_exit_status)
+
+  new_impl_test(090_assert)
+endif()
 
 prepare_installation()
