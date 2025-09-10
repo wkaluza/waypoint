@@ -51,9 +51,9 @@ new_target(
 new_target(
   TEST
   TARGET
-  find_package_test
+  find_package_exact_version_test
   DIRECTORY
-  test/find_package_test
+  test/find_package_exact_version_test
   SOURCES
   main.cpp
   LINKS
