@@ -67,6 +67,21 @@ assert os.path.isfile(
     f"{TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR}/CMakePresets.json"
 )
 
+TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_SOURCES_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_sources___"
+)
+TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_BUILD_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_build___"
+)
+TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/infrastructure"
+)
+assert os.path.isfile(
+    f"{TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR}/CMakeLists.txt"
+) and os.path.isfile(
+    f"{TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR}/CMakePresets.json"
+)
+
 JOBS = os.process_cpu_count()
 
 CLANG20_ENV_PATCH = {"CC": "clang-20", "CXX": "clang++-20"}
@@ -1355,6 +1370,12 @@ def clean_fn() -> bool:
     clean_build_dir(
         CMakePresets.LinuxGcc, TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR
     )
+    clean_build_dir(
+        CMakePresets.LinuxClang, TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR
+    )
+    clean_build_dir(
+        CMakePresets.LinuxGcc, TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR
+    )
     clean_build_dir(CMakePresets.LinuxGccCoverage, CMAKE_SOURCE_DIR)
     clean_install_dir(CMakePresets.LinuxClang)
     clean_install_dir(CMakePresets.LinuxGcc)
@@ -1365,6 +1386,8 @@ def clean_fn() -> bool:
     remove_dir(TEST_INSTALL_FIND_PACKAGE_NO_VERSION_GCC_DIR)
     remove_dir(TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CLANG_DIR)
     remove_dir(TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_GCC_DIR)
+    remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_SOURCES_DIR)
+    remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_BUILD_DIR)
 
     return True
 
@@ -1859,6 +1882,215 @@ def test_install_find_package_exact_version_clang_release_test_fn() -> bool:
     )
 
 
+def test_install_add_subdirectory_copy_sources_fn() -> bool:
+    recursively_copy_dir(
+        INFRASTRUCTURE_DIR,
+        f"{TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_SOURCES_DIR}/infrastructure",
+    )
+    recursively_copy_dir(
+        f"{PROJECT_ROOT_DIR}/src",
+        f"{TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_SOURCES_DIR}/src",
+    )
+
+    return True
+
+
+def test_install_add_subdirectory_gcc_configure_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_clang_configure_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_gcc_debug_build_all_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_add_subdirectory_gcc_debug_build_all_tests_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_add_subdirectory_gcc_relwithdebinfo_build_all_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_add_subdirectory_gcc_relwithdebinfo_build_all_tests_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_add_subdirectory_gcc_release_build_all_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_add_subdirectory_gcc_release_build_all_tests_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_add_subdirectory_clang_debug_build_all_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_add_subdirectory_clang_debug_build_all_tests_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_add_subdirectory_clang_relwithdebinfo_build_all_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_add_subdirectory_clang_relwithdebinfo_build_all_tests_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_add_subdirectory_clang_release_build_all_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_add_subdirectory_clang_release_build_all_tests_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_add_subdirectory_gcc_debug_test_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGcc,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_gcc_relwithdebinfo_test_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGcc,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_gcc_release_test_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGcc,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_clang_debug_test_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClang,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_clang_relwithdebinfo_test_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClang,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_clang_release_test_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClang,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
 def main() -> int:
     config, success = preamble()
     if not success:
@@ -2340,6 +2572,157 @@ def main() -> int:
         [test_install_find_package_exact_version_clang_release_build_all_tests]
     )
 
+    test_install_test_install_add_subdirectory_copy_sources = Task(
+        "Copy sources for test install (add_subdirectory)",
+        test_install_add_subdirectory_copy_sources_fn,
+    )
+
+    test_install_add_subdirectory_gcc_configure = Task(
+        "Configure CMake for GCC test install (add_subdirectory)",
+        test_install_add_subdirectory_gcc_configure_fn,
+    )
+    test_install_add_subdirectory_clang_configure = Task(
+        "Configure CMake for Clang test install (add_subdirectory)",
+        test_install_add_subdirectory_clang_configure_fn,
+    )
+
+    test_install_add_subdirectory_gcc_configure.depends_on(
+        [test_install_test_install_add_subdirectory_copy_sources]
+    )
+    test_install_add_subdirectory_clang_configure.depends_on(
+        [test_install_test_install_add_subdirectory_copy_sources]
+    )
+
+    test_install_add_subdirectory_gcc_debug_build_all = Task(
+        "Build GCC Debug test install (all; add_subdirectory)",
+        test_install_add_subdirectory_gcc_debug_build_all_fn,
+    )
+    test_install_add_subdirectory_gcc_debug_build_all_tests = Task(
+        "Build GCC Debug test install (all_tests; add_subdirectory)",
+        test_install_add_subdirectory_gcc_debug_build_all_tests_fn,
+    )
+    test_install_add_subdirectory_gcc_relwithdebinfo_build_all = Task(
+        "Build GCC RelWithDebInfo test install (all; add_subdirectory)",
+        test_install_add_subdirectory_gcc_relwithdebinfo_build_all_fn,
+    )
+    test_install_add_subdirectory_gcc_relwithdebinfo_build_all_tests = Task(
+        "Build GCC RelWithDebInfo test install (all_tests; add_subdirectory)",
+        test_install_add_subdirectory_gcc_relwithdebinfo_build_all_tests_fn,
+    )
+    test_install_add_subdirectory_gcc_release_build_all = Task(
+        "Build GCC Release test install (all; add_subdirectory)",
+        test_install_add_subdirectory_gcc_release_build_all_fn,
+    )
+    test_install_add_subdirectory_gcc_release_build_all_tests = Task(
+        "Build GCC Release test install (all_tests; add_subdirectory)",
+        test_install_add_subdirectory_gcc_release_build_all_tests_fn,
+    )
+    test_install_add_subdirectory_clang_debug_build_all = Task(
+        "Build Clang Debug test install (all; add_subdirectory)",
+        test_install_add_subdirectory_clang_debug_build_all_fn,
+    )
+    test_install_add_subdirectory_clang_debug_build_all_tests = Task(
+        "Build Clang Debug test install (all_tests; add_subdirectory)",
+        test_install_add_subdirectory_clang_debug_build_all_tests_fn,
+    )
+    test_install_add_subdirectory_clang_relwithdebinfo_build_all = Task(
+        "Build Clang RelWithDebInfo test install (all; add_subdirectory)",
+        test_install_add_subdirectory_clang_relwithdebinfo_build_all_fn,
+    )
+    test_install_add_subdirectory_clang_relwithdebinfo_build_all_tests = Task(
+        "Build Clang RelWithDebInfo test install (all_tests; add_subdirectory)",
+        test_install_add_subdirectory_clang_relwithdebinfo_build_all_tests_fn,
+    )
+    test_install_add_subdirectory_clang_release_build_all = Task(
+        "Build Clang Release test install (all; add_subdirectory)",
+        test_install_add_subdirectory_clang_release_build_all_fn,
+    )
+    test_install_add_subdirectory_clang_release_build_all_tests = Task(
+        "Build Clang Release test install (all_tests; add_subdirectory)",
+        test_install_add_subdirectory_clang_release_build_all_tests_fn,
+    )
+
+    test_install_add_subdirectory_gcc_debug_test = Task(
+        "Test GCC Debug test install (add_subdirectory)",
+        test_install_add_subdirectory_gcc_debug_test_fn,
+    )
+    test_install_add_subdirectory_gcc_relwithdebinfo_test = Task(
+        "Test GCC RelWithDebInfo test install (add_subdirectory)",
+        test_install_add_subdirectory_gcc_relwithdebinfo_test_fn,
+    )
+    test_install_add_subdirectory_gcc_release_test = Task(
+        "Test GCC Release test install (add_subdirectory)",
+        test_install_add_subdirectory_gcc_release_test_fn,
+    )
+    test_install_add_subdirectory_clang_debug_test = Task(
+        "Test Clang Debug test install (add_subdirectory)",
+        test_install_add_subdirectory_clang_debug_test_fn,
+    )
+    test_install_add_subdirectory_clang_relwithdebinfo_test = Task(
+        "Test Clang RelWithDebInfo test install (add_subdirectory)",
+        test_install_add_subdirectory_clang_relwithdebinfo_test_fn,
+    )
+    test_install_add_subdirectory_clang_release_test = Task(
+        "Test Clang Release test install (add_subdirectory)",
+        test_install_add_subdirectory_clang_release_test_fn,
+    )
+
+    test_install_add_subdirectory_gcc_debug_build_all.depends_on(
+        [test_install_add_subdirectory_gcc_configure]
+    )
+    test_install_add_subdirectory_gcc_debug_build_all_tests.depends_on(
+        [test_install_add_subdirectory_gcc_debug_build_all]
+    )
+    test_install_add_subdirectory_gcc_debug_test.depends_on(
+        [test_install_add_subdirectory_gcc_debug_build_all_tests]
+    )
+
+    test_install_add_subdirectory_gcc_relwithdebinfo_build_all.depends_on(
+        [test_install_add_subdirectory_gcc_configure]
+    )
+    test_install_add_subdirectory_gcc_relwithdebinfo_build_all_tests.depends_on(
+        [test_install_add_subdirectory_gcc_relwithdebinfo_build_all]
+    )
+    test_install_add_subdirectory_gcc_relwithdebinfo_test.depends_on(
+        [test_install_add_subdirectory_gcc_relwithdebinfo_build_all_tests]
+    )
+    test_install_add_subdirectory_gcc_release_build_all.depends_on(
+        [test_install_add_subdirectory_gcc_configure]
+    )
+    test_install_add_subdirectory_gcc_release_build_all_tests.depends_on(
+        [test_install_add_subdirectory_gcc_release_build_all]
+    )
+    test_install_add_subdirectory_gcc_release_test.depends_on(
+        [test_install_add_subdirectory_gcc_release_build_all_tests]
+    )
+    test_install_add_subdirectory_clang_debug_build_all.depends_on(
+        [test_install_add_subdirectory_clang_configure]
+    )
+    test_install_add_subdirectory_clang_debug_build_all_tests.depends_on(
+        [test_install_add_subdirectory_clang_debug_build_all]
+    )
+    test_install_add_subdirectory_clang_debug_test.depends_on(
+        [test_install_add_subdirectory_clang_debug_build_all_tests]
+    )
+    test_install_add_subdirectory_clang_relwithdebinfo_build_all.depends_on(
+        [test_install_add_subdirectory_clang_configure]
+    )
+    test_install_add_subdirectory_clang_relwithdebinfo_build_all_tests.depends_on(
+        [test_install_add_subdirectory_clang_relwithdebinfo_build_all]
+    )
+    test_install_add_subdirectory_clang_relwithdebinfo_test.depends_on(
+        [test_install_add_subdirectory_clang_relwithdebinfo_build_all_tests]
+    )
+    test_install_add_subdirectory_clang_release_build_all.depends_on(
+        [test_install_add_subdirectory_clang_configure]
+    )
+    test_install_add_subdirectory_clang_release_build_all_tests.depends_on(
+        [test_install_add_subdirectory_clang_release_build_all]
+    )
+    test_install_add_subdirectory_clang_release_test.depends_on(
+        [test_install_add_subdirectory_clang_release_build_all_tests]
+    )
+
     root_dependencies = []
 
     if mode.clean:
@@ -2409,6 +2792,7 @@ def main() -> int:
                 root_dependencies.append(
                     test_install_find_package_exact_version_gcc_debug_test
                 )
+                root_dependencies.append(test_install_add_subdirectory_clang_debug_test)
             if mode.release:
                 root_dependencies.append(
                     test_install_find_package_no_version_gcc_relwithdebinfo_test
@@ -2422,6 +2806,10 @@ def main() -> int:
                 root_dependencies.append(
                     test_install_find_package_exact_version_gcc_release_test
                 )
+                root_dependencies.append(
+                    test_install_add_subdirectory_gcc_relwithdebinfo_test
+                )
+                root_dependencies.append(test_install_add_subdirectory_gcc_release_test)
 
         if mode.clang:
             if mode.debug:
@@ -2431,6 +2819,7 @@ def main() -> int:
                 root_dependencies.append(
                     test_install_find_package_exact_version_clang_debug_test
                 )
+                root_dependencies.append(test_install_add_subdirectory_clang_debug_test)
             if mode.release:
                 root_dependencies.append(
                     test_install_find_package_no_version_clang_relwithdebinfo_test
@@ -2443,6 +2832,12 @@ def main() -> int:
                 )
                 root_dependencies.append(
                     test_install_find_package_exact_version_clang_release_test
+                )
+                root_dependencies.append(
+                    test_install_add_subdirectory_clang_relwithdebinfo_test
+                )
+                root_dependencies.append(
+                    test_install_add_subdirectory_clang_release_test
                 )
 
     if mode.misc:
