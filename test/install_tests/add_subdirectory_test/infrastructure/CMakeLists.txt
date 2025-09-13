@@ -69,7 +69,7 @@ add_test(NAME test_add_subdirectory_test
          COMMAND $<TARGET_FILE:add_subdirectory_test>)
 set_tests_properties(test_add_subdirectory_test PROPERTIES LABELS test)
 
-target_compile_features(add_subdirectory_test PRIVATE cxx_std_20)
+target_compile_features(add_subdirectory_test PRIVATE cxx_std_11)
 set_target_properties(add_subdirectory_test PROPERTIES COMPILE_WARNING_AS_ERROR
                                                        TRUE)
 set_target_properties(add_subdirectory_test PROPERTIES LINK_WARNING_AS_ERROR

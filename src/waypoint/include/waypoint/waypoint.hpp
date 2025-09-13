@@ -47,24 +47,21 @@ struct remove_reference<T &&>
 };
 
 template<typename T>
-using remove_reference_t = remove_reference<T>::type;
-
-template<typename T>
 // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-constexpr auto move(T &&t) noexcept -> remove_reference_t<T> &&
+constexpr auto move(T &&t) noexcept -> typename remove_reference<T>::type &&
 {
-  return static_cast<remove_reference_t<T> &&>(t);
+  return static_cast<typename remove_reference<T>::type &&>(t);
 }
 
 template<typename T>
-constexpr auto forward(remove_reference_t<T> &t) noexcept -> T &&
+constexpr auto forward(typename remove_reference<T>::type &t) noexcept -> T &&
 {
   return static_cast<T &&>(t);
 }
 
 template<typename T>
 // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
-constexpr auto forward(remove_reference_t<T> &&t) noexcept -> T &&
+constexpr auto forward(typename remove_reference<T>::type &&t) noexcept -> T &&
 {
   return static_cast<T &&>(t);
 }
@@ -110,9 +107,6 @@ struct enable_if<true, T>
   using type = T;
 };
 
-template<bool B, typename T>
-using enable_if_t = enable_if<B, T>::type;
-
 template<typename T>
 auto declval() -> T;
 
@@ -125,12 +119,6 @@ struct invoke_result
 {
   using type = decltype(invoke_impl(declval<F>(), declval<Args>()...));
 };
-
-template<typename F, typename... Args>
-using invoke_result_t = invoke_result<F, Args...>::type;
-
-template<typename F>
-using setup_invoke_result_t = invoke_result<F, Context &>::type;
 
 template<typename T>
 class MoveableUniquePtr
@@ -211,9 +199,12 @@ public:
   auto operator=(Function const &other) -> Function & = delete;
   auto operator=(Function &&other) noexcept -> Function & = default;
 
-  template<typename F>
-  requires requires { !is_same_v<F, Function<R(Context const &)>>; }
-  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
+  template<
+    typename F,
+    typename SFINAE = typename enable_if<
+      !is_same_v<F, Function<R(Context const &)>>,
+      void>::type>
+  // NOLINTNEXTLINE(bugprone-forwarding-reference-overload,cppcoreguidelines-missing-std-forward,google-explicit-constructor)
   Function(F &&f)
     : callable_{MoveableUniquePtr<callable_interface>{
         new callable<F>{internal::forward<F>(f)}}}
@@ -286,9 +277,12 @@ public:
   auto operator=(Function const &other) -> Function & = delete;
   auto operator=(Function &&other) noexcept -> Function &;
 
-  template<typename F>
-  requires requires { !is_same_v<F, Function<void(Context const &)>>; }
-  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
+  template<
+    typename F,
+    typename SFINAE = typename enable_if<
+      !is_same_v<F, Function<void(Context const &)>>,
+      void>::type>
+  // NOLINTNEXTLINE(bugprone-forwarding-reference-overload,cppcoreguidelines-missing-std-forward,google-explicit-constructor)
   Function(F &&f)
     : callable_{MoveableUniquePtr<callable_interface>{
         new callable<F>{internal::forward<F>(f)}}}
@@ -360,11 +354,12 @@ public:
   auto operator=(Function const &other) -> Function & = delete;
   auto operator=(Function &&other) noexcept -> Function & = default;
 
-  template<typename F>
-  requires requires {
-    !is_same_v<F, Function<void(Context const &, FixtureT &)>>;
-  }
-  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
+  template<
+    typename F,
+    typename SFINAE = typename enable_if<
+      !is_same_v<F, Function<void(Context const &, FixtureT &)>>,
+      void>::type>
+  // NOLINTNEXTLINE(bugprone-forwarding-reference-overload,cppcoreguidelines-missing-std-forward,google-explicit-constructor)
   Function(F &&f)
     : callable_{MoveableUniquePtr<callable_interface>{
         new callable<F>{internal::forward<F>(f)}}}
@@ -1086,26 +1081,28 @@ public:
   template<typename F>
   [[nodiscard]]
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto setup(F &&f) && noexcept -> internal::enable_if_t<
-    !internal::is_void_v<internal::setup_invoke_result_t<F>>,
-    waypoint::Test2<internal::setup_invoke_result_t<F>>>
+  auto setup(F &&f) && noexcept -> typename internal::enable_if<
+    !internal::is_void_v<typename internal::invoke_result<F, Context &>::type>,
+    waypoint::Test2<typename internal::invoke_result<F, Context &>::type>>::type
   {
     this->mark_complete();
 
-    auto registrar = this->make_registrar<internal::setup_invoke_result_t<F>>();
+    auto registrar = this->make_registrar<
+      typename internal::invoke_result<F, Context &>::type>();
 
     registrar.register_setup(internal::forward<F>(f));
 
-    return waypoint::Test2<internal::setup_invoke_result_t<F>>{
+    return waypoint::Test2<
+      typename internal::invoke_result<F, Context &>::type>{
       internal::move(registrar)};
   }
 
   template<typename F>
   [[nodiscard]]
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-  auto setup(F &&f) && noexcept -> internal::enable_if_t<
-    internal::is_void_v<internal::setup_invoke_result_t<F>>,
-    waypoint::Test2<void>>
+  auto setup(F &&f) && noexcept -> typename internal::enable_if<
+    internal::is_void_v<typename internal::invoke_result<F, Context &>::type>,
+    waypoint::Test2<void>>::type
   {
     this->mark_complete();
 
@@ -1113,7 +1110,8 @@ public:
 
     registrar.register_setup(internal::forward<F>(f));
 
-    return waypoint::Test2<internal::setup_invoke_result_t<F>>{
+    return waypoint::Test2<
+      typename internal::invoke_result<F, Context &>::type>{
       internal::move(registrar)};
   }
 

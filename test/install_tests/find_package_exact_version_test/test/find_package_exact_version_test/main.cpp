@@ -1,7 +1,6 @@
 #include "stub_library/stub_library.hpp"
 #include "waypoint/waypoint.hpp"
 
-#include <format>
 #include <iostream>
 
 namespace
@@ -54,7 +53,7 @@ auto main() -> int
 
   if(x != 3)
   {
-    std::cerr << std::format("Expected x to be 3, but it is {}", x)
+    std::cerr << "Incorrect value of x == " << x << " instead of 3"
               << std::endl;
 
     return 1;

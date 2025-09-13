@@ -81,7 +81,7 @@ add_test(NAME test_find_package_no_version_test
          COMMAND $<TARGET_FILE:find_package_no_version_test>)
 set_tests_properties(test_find_package_no_version_test PROPERTIES LABELS test)
 
-target_compile_features(find_package_no_version_test PRIVATE cxx_std_20)
+target_compile_features(find_package_no_version_test PRIVATE cxx_std_11)
 set_target_properties(find_package_no_version_test
                       PROPERTIES COMPILE_WARNING_AS_ERROR TRUE)
 set_target_properties(find_package_no_version_test
