@@ -1441,7 +1441,17 @@ class Task:
                 f"{self.name_} ({ns_to_string(time.time_ns() - start)})",
             )
         if not success:
-            print("Task failed:", f"{self.name_}")
+            if len(self.dependencies_) > 0:
+                print(
+                    "Task failed:",
+                    f"{self.name_} ({ns_to_string(time.time_ns() - start)},",
+                    f"total: {ns_to_string(time.time_ns() - start_deps)})",
+                )
+            else:
+                print(
+                    "Task failed:",
+                    f"{self.name_} ({ns_to_string(time.time_ns() - start)})",
+                )
 
             return False
 
