@@ -171,7 +171,7 @@ function(new_basic_test name)
     TARGET
     ${name}
     DIRECTORY
-    test/${name}
+    test/functional_tests/${name}
     SOURCES
     main.cpp
     LINKS
