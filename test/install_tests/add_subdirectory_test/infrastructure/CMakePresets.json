@@ -84,6 +84,9 @@
     },
     {
       "binaryDir": "${sourceDir}/../build_linux_clang_kRuZ9Wdt929O5JHC___",
+      "cacheVariables": {
+        "PRESET_WAYPOINT_BUILD_PATH": "waypoint_build_clang_KGgicppoHf0mkVdJ___"
+      },
       "hidden": false,
       "inherits": [
         "base_compiler_clang",
@@ -95,6 +98,9 @@
     },
     {
       "binaryDir": "${sourceDir}/../build_linux_gcc_BucEcnW6rudbU8Vp___",
+      "cacheVariables": {
+        "PRESET_WAYPOINT_BUILD_PATH": "waypoint_build_gcc_ZcvFQuKcWaEwFis9___"
+      },
       "hidden": false,
       "inherits": [
         "base_compiler_gcc",

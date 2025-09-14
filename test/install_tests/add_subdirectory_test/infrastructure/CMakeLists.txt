@@ -12,7 +12,7 @@ set(PROJECT_ROOT_DIR_W1Fe4INAzomRGHgi ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_subdirectory(
   ${PROJECT_ROOT_DIR_W1Fe4INAzomRGHgi}/waypoint_sources_4XF31O1T1ff3B3Tq___/infrastructure
-  ${PROJECT_ROOT_DIR_W1Fe4INAzomRGHgi}/waypoint_build_KGgicppoHf0mkVdJ___
+  ${PROJECT_ROOT_DIR_W1Fe4INAzomRGHgi}/${PRESET_WAYPOINT_BUILD_PATH}
   EXCLUDE_FROM_ALL)
 
 add_library(stub_library STATIC)

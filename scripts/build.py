@@ -74,8 +74,11 @@ assert os.path.isfile(
 TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_SOURCES_DIR = os.path.realpath(
     f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_sources_4XF31O1T1ff3B3Tq___"
 )
-TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_BUILD_DIR = os.path.realpath(
-    f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_build_KGgicppoHf0mkVdJ___"
+TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_CLANG_BUILD_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_build_clang_KGgicppoHf0mkVdJ___"
+)
+TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_GCC_BUILD_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_build_gcc_ZcvFQuKcWaEwFis9___"
 )
 TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR = os.path.realpath(
     f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/infrastructure"
@@ -1391,7 +1394,8 @@ def clean_fn() -> bool:
     remove_dir(TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CLANG_DIR)
     remove_dir(TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_GCC_DIR)
     remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_SOURCES_DIR)
-    remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_BUILD_DIR)
+    remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_CLANG_BUILD_DIR)
+    remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_GCC_BUILD_DIR)
 
     return True
 
