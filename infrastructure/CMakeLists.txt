@@ -11,7 +11,7 @@ enable_testing()
 include(${CMAKE_CURRENT_SOURCE_DIR}/tools.cmake)
 
 new_platform_specific_target(
-  STATIC
+  INTERNAL_LIBRARY
   TARGET
   autorun
   DIRECTORY
@@ -22,7 +22,7 @@ new_platform_specific_target(
   autorun.hpp)
 
 new_platform_specific_target(
-  STATIC
+  INTERNAL_LIBRARY
   TARGET
   coverage
   DIRECTORY
@@ -33,7 +33,7 @@ new_platform_specific_target(
   coverage.hpp)
 
 new_target(
-  STATIC
+  INTERNAL_LIBRARY
   TARGET
   assert
   DIRECTORY
@@ -46,7 +46,7 @@ new_target(
   coverage)
 
 new_platform_specific_target(
-  STATIC
+  INTERNAL_LIBRARY
   TARGET
   process
   DIRECTORY
@@ -60,8 +60,7 @@ new_platform_specific_target(
   coverage)
 
 new_target(
-  STATIC
-  EXPORTED
+  PUBLIC_LIBRARY
   TARGET
   waypoint
   DIRECTORY
@@ -86,7 +85,7 @@ if(DEFINED PRESET_BUILD_WAYPOINT_TESTS_jsGLwkD9eVN5hzRr)
   add_custom_target(all_tests)
 
   new_target(
-    STATIC
+    INTERNAL_LIBRARY
     ENABLE_EXCEPTIONS_IN_COVERAGE
     EXCLUDE_FROM_ALL
     TARGET
@@ -199,6 +198,8 @@ if(DEFINED PRESET_BUILD_WAYPOINT_TESTS_jsGLwkD9eVN5hzRr)
   new_basic_test(089_process_exit_status)
 
   new_impl_test(090_assert)
+
+  new_cxx_std_11_test(091_cxx_std_11)
 endif()
 
 prepare_installation()

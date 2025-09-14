@@ -5,27 +5,21 @@ set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
 set(WAYPOINT_INTERNAL_HEADER_DIR ${PROJECT_ROOT_DIR}/src/waypoint/internal)
 set(WAYPOINT_OWN_HEADER_DIR ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
 
-set(MAIN_LIBRARY waypoint)
+set(PUBLIC_LIBRARY_NAME waypoint)
 set(INTERNAL_LIBRARIES assert autorun coverage process)
 
 function(new_target_)
-  set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE
-              EXCLUDE_FROM_ALL EXPORTED)
-  set(singleValueKeywords DIRECTORY TARGET)
+  set(options PUBLIC_LIBRARY INTERNAL_LIBRARY TEST
+              ENABLE_EXCEPTIONS_IN_COVERAGE EXCLUDE_FROM_ALL)
+  set(singleValueKeywords DIRECTORY TARGET CPP_STANDARD)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
                         "${singleValueKeywords}" "${multiValueKeywords}")
 
-  if(arg_EXECUTABLE)
-    add_executable(${arg_TARGET})
-  endif()
   if(arg_TEST)
     add_executable(${arg_TARGET})
     set_target_properties(${arg_TARGET} PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
-    if(TARGET test_helpers)
-      target_link_libraries(${arg_TARGET} PRIVATE test_helpers)
-    endif()
     if(TARGET all_tests)
       add_dependencies(all_tests ${arg_TARGET})
     endif()
@@ -47,19 +41,28 @@ function(new_target_)
       valgrind_${arg_TARGET}
       PROPERTIES ENVIRONMENT
                  WAYPOINT_INTERNAL_RUNNING_TEST_XTSyiOp7QMFW8P2H=123)
+    if(DEFINED arg_CPP_STANDARD)
+      target_compile_features(${arg_TARGET} PRIVATE ${arg_CPP_STANDARD})
+    endif()
   endif()
-  if(arg_STATIC)
+  if(arg_INTERNAL_LIBRARY)
     add_library(${arg_TARGET} STATIC)
+    target_compile_features(
+      ${arg_TARGET}
+      PRIVATE cxx_std_23
+      PUBLIC cxx_std_23)
+  endif()
+  if(arg_PUBLIC_LIBRARY)
+    add_library(${arg_TARGET} STATIC)
+    target_compile_features(
+      ${arg_TARGET}
+      PRIVATE cxx_std_23
+      PUBLIC cxx_std_11)
   endif()
 
   if(arg_EXCLUDE_FROM_ALL)
     set_target_properties(${arg_TARGET} PROPERTIES EXCLUDE_FROM_ALL TRUE)
   endif()
-
-  target_compile_features(
-    ${arg_TARGET}
-    PRIVATE cxx_std_23
-    PUBLIC cxx_std_17)
 
   if(DEFINED PRESET_ENABLE_COVERAGE)
     target_compile_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
@@ -120,7 +123,7 @@ function(new_target_)
                   FILES
                   ${arg_PUBLIC_HEADERS})
 
-      if(arg_EXPORTED)
+      if(arg_PUBLIC_LIBRARY)
         target_link_libraries(
           ${arg_TARGET}
           PUBLIC library_interface_headers_${arg_TARGET}
@@ -172,10 +175,28 @@ function(new_basic_test name)
     ${name}
     DIRECTORY
     test/functional_tests/${name}
+    CPP_STANDARD
+    cxx_std_23
     SOURCES
     main.cpp
     LINKS
-    ${MAIN_LIBRARY})
+    test_helpers
+    ${PUBLIC_LIBRARY_NAME})
+endfunction()
+
+function(new_cxx_std_11_test name)
+  new_target(
+    TEST
+    TARGET
+    ${name}
+    DIRECTORY
+    test/functional_tests/${name}
+    CPP_STANDARD
+    cxx_std_11
+    SOURCES
+    main.cpp
+    LINKS
+    ${PUBLIC_LIBRARY_NAME})
 endfunction()
 
 function(new_impl_test name)
@@ -186,18 +207,18 @@ function(new_impl_test name)
 endfunction()
 
 function(new_target)
-  set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE
-              EXCLUDE_FROM_ALL EXPORTED)
-  set(singleValueKeywords DIRECTORY TARGET)
+  set(options PUBLIC_LIBRARY INTERNAL_LIBRARY TEST
+              ENABLE_EXCEPTIONS_IN_COVERAGE EXCLUDE_FROM_ALL)
+  set(singleValueKeywords DIRECTORY TARGET CPP_STANDARD)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
                         "${singleValueKeywords}" "${multiValueKeywords}")
 
-  if(arg_EXECUTABLE)
-    set(type EXECUTABLE)
+  if(arg_PUBLIC_LIBRARY)
+    set(type PUBLIC_LIBRARY)
   endif()
-  if(arg_STATIC)
-    set(type STATIC)
+  if(arg_INTERNAL_LIBRARY)
+    set(type INTERNAL_LIBRARY)
   endif()
   if(arg_TEST)
     set(type TEST)
@@ -213,12 +234,6 @@ function(new_target)
     set(exclude_from_all EXCLUDE_FROM_ALL)
   else()
     set(exclude_from_all "")
-  endif()
-
-  if(arg_EXPORTED)
-    set(exported EXPORTED)
-  else()
-    set(exported "")
   endif()
 
   list(TRANSFORM arg_SOURCES PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/)
@@ -231,11 +246,12 @@ function(new_target)
     ${type}
     ${exceptions}
     ${exclude_from_all}
-    ${exported}
     TARGET
     ${arg_TARGET}
     DIRECTORY
     ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}
+    CPP_STANDARD
+    ${arg_CPP_STANDARD}
     SOURCES
     ${arg_SOURCES}
     PRIVATE_HEADERS
@@ -247,18 +263,18 @@ function(new_target)
 endfunction()
 
 function(new_platform_specific_target)
-  set(options EXECUTABLE STATIC TEST ENABLE_EXCEPTIONS_IN_COVERAGE
-              EXCLUDE_FROM_ALL EXPORTED)
-  set(singleValueKeywords DIRECTORY TARGET)
+  set(options PUBLIC_LIBRARY INTERNAL_LIBRARY TEST
+              ENABLE_EXCEPTIONS_IN_COVERAGE EXCLUDE_FROM_ALL)
+  set(singleValueKeywords DIRECTORY TARGET CPP_STANDARD)
   set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
                         "${singleValueKeywords}" "${multiValueKeywords}")
 
-  if(arg_EXECUTABLE)
-    set(type EXECUTABLE)
+  if(arg_PUBLIC_LIBRARY)
+    set(type PUBLIC_LIBRARY)
   endif()
-  if(arg_STATIC)
-    set(type STATIC)
+  if(arg_INTERNAL_LIBRARY)
+    set(type INTERNAL_LIBRARY)
   endif()
   if(arg_TEST)
     set(type TEST)
@@ -274,12 +290,6 @@ function(new_platform_specific_target)
     set(exclude_from_all EXCLUDE_FROM_ALL)
   else()
     set(exclude_from_all "")
-  endif()
-
-  if(arg_EXPORTED)
-    set(exported EXPORTED)
-  else()
-    set(exported "")
   endif()
 
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -297,11 +307,12 @@ function(new_platform_specific_target)
     ${type}
     ${exceptions}
     ${exclude_from_all}
-    ${exported}
     TARGET
     ${arg_TARGET}
     DIRECTORY
     ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}
+    CPP_STANDARD
+    ${arg_CPP_STANDARD}
     SOURCES
     ${arg_SOURCES}
     PRIVATE_HEADERS
