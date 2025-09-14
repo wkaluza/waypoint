@@ -22,9 +22,13 @@ PYTHON = (
 THIS_SCRIPT_DIR = os.path.realpath(os.path.dirname(__file__))
 PROJECT_ROOT_DIR = os.path.realpath(f"{THIS_SCRIPT_DIR}/..")
 
-COVERAGE_DIR_LCOV = os.path.realpath(f"{PROJECT_ROOT_DIR}/coverage_lcov___")
+COVERAGE_DIR_LCOV = os.path.realpath(
+    f"{PROJECT_ROOT_DIR}/coverage_lcov_3XxYQrYbuY5AnPYH___"
+)
 COVERAGE_FILE_LCOV = os.path.realpath(f"{COVERAGE_DIR_LCOV}/coverage.info")
-COVERAGE_DIR_GCOVR = os.path.realpath(f"{PROJECT_ROOT_DIR}/coverage_gcovr___")
+COVERAGE_DIR_GCOVR = os.path.realpath(
+    f"{PROJECT_ROOT_DIR}/coverage_gcovr_kMkR9SM1S69oCLJ5___"
+)
 COVERAGE_FILE_HTML_GCOVR = os.path.realpath(f"{COVERAGE_DIR_GCOVR}/index.html")
 COVERAGE_FILE_JSON_GCOVR = os.path.realpath(f"{COVERAGE_DIR_GCOVR}/coverage.json")
 INFRASTRUCTURE_DIR = os.path.realpath(f"{PROJECT_ROOT_DIR}/infrastructure")
@@ -38,10 +42,10 @@ assert os.path.isfile(MAIN_HEADER_PATH), "waypoint.hpp does not exist"
 
 INSTALL_TESTS_DIR_PATH = os.path.realpath(f"{PROJECT_ROOT_DIR}/test/install_tests")
 TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CLANG_DIR = os.path.realpath(
-    f"{INSTALL_TESTS_DIR_PATH}/find_package_no_version_test/waypoint_install_linux_clang___"
+    f"{INSTALL_TESTS_DIR_PATH}/find_package_no_version_test/waypoint_install_linux_clang_MItqq12bE9VvgzWH___"
 )
 TEST_INSTALL_FIND_PACKAGE_NO_VERSION_GCC_DIR = os.path.realpath(
-    f"{INSTALL_TESTS_DIR_PATH}/find_package_no_version_test/waypoint_install_linux_gcc___"
+    f"{INSTALL_TESTS_DIR_PATH}/find_package_no_version_test/waypoint_install_linux_gcc_99V4LexZ8aO7qhLC___"
 )
 TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR = os.path.realpath(
     f"{INSTALL_TESTS_DIR_PATH}/find_package_no_version_test/infrastructure"
@@ -53,10 +57,10 @@ assert os.path.isfile(
 )
 
 TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CLANG_DIR = os.path.realpath(
-    f"{INSTALL_TESTS_DIR_PATH}/find_package_exact_version_test/waypoint_install_linux_clang___"
+    f"{INSTALL_TESTS_DIR_PATH}/find_package_exact_version_test/waypoint_install_linux_clang_2dp6n2H9O8te806G___"
 )
 TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_GCC_DIR = os.path.realpath(
-    f"{INSTALL_TESTS_DIR_PATH}/find_package_exact_version_test/waypoint_install_linux_gcc___"
+    f"{INSTALL_TESTS_DIR_PATH}/find_package_exact_version_test/waypoint_install_linux_gcc_vo44y7Bxqbn3kKZA___"
 )
 TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR = os.path.realpath(
     f"{INSTALL_TESTS_DIR_PATH}/find_package_exact_version_test/infrastructure"
@@ -68,10 +72,10 @@ assert os.path.isfile(
 )
 
 TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_SOURCES_DIR = os.path.realpath(
-    f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_sources___"
+    f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_sources_4XF31O1T1ff3B3Tq___"
 )
 TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_BUILD_DIR = os.path.realpath(
-    f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_build___"
+    f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_build_KGgicppoHf0mkVdJ___"
 )
 TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR = os.path.realpath(
     f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/infrastructure"

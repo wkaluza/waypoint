@@ -19,7 +19,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     REQUIRED
     CONFIG
     PATHS
-    ${PROJECT_ROOT_DIR_dQPQvh4OGCgl3crM}/waypoint_install_linux_clang___/cmake
+    ${PROJECT_ROOT_DIR_dQPQvh4OGCgl3crM}/waypoint_install_linux_clang_2dp6n2H9O8te806G___/cmake
     NO_DEFAULT_PATH)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   find_package(
@@ -29,7 +29,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     REQUIRED
     CONFIG
     PATHS
-    ${PROJECT_ROOT_DIR_dQPQvh4OGCgl3crM}/waypoint_install_linux_gcc___/cmake
+    ${PROJECT_ROOT_DIR_dQPQvh4OGCgl3crM}/waypoint_install_linux_gcc_vo44y7Bxqbn3kKZA___/cmake
     NO_DEFAULT_PATH)
 else()
   message(FATAL_ERROR "Unexpected compiler")
