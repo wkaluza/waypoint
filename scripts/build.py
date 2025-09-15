@@ -2810,7 +2810,7 @@ def main() -> int:
                 root_dependencies.append(
                     test_install_find_package_exact_version_gcc_debug_test
                 )
-                root_dependencies.append(test_install_add_subdirectory_clang_debug_test)
+                root_dependencies.append(test_install_add_subdirectory_gcc_debug_test)
             if mode.release:
                 root_dependencies.append(
                     test_install_find_package_no_version_gcc_relwithdebinfo_test
