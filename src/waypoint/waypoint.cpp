@@ -3,7 +3,6 @@
 #include "impls.hpp"
 #include "types.hpp"
 
-#include "autorun/autorun.hpp"
 #include "coverage/coverage.hpp"
 #include "process/process.hpp"
 
@@ -16,7 +15,6 @@
 #include <latch>
 #include <mutex>
 #include <optional>
-#include <ranges>
 #include <span>
 #include <string>
 #include <thread>
@@ -26,6 +24,47 @@
 
 namespace waypoint::internal
 {
+
+auto get_autorun_tests() noexcept -> AutorunManagerTests &
+{
+  // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_START
+  static AutorunManagerTests tests{new AutorunFunctionPtrVector_impl{}};
+  // GCOV_COVERAGE_58QuSuUgMN8onvKx_EXCL_BR_STOP
+
+  return tests;
+}
+
+auto add_autorun_test(AutorunFunctionPtr const fn) noexcept -> int
+{
+  get_autorun_tests().push_back(fn);
+
+  return 0;
+}
+
+AutorunFunctionPtrVector::~AutorunFunctionPtrVector() = default;
+
+AutorunFunctionPtrVector::AutorunFunctionPtrVector(
+  AutorunFunctionPtrVector_impl *const impl) noexcept
+  : impl_{UniquePtr{impl}}
+{
+}
+
+auto AutorunFunctionPtrVector::operator[](
+  unsigned long long const i) const noexcept -> AutorunFunctionPtr
+{
+  return this->impl_->get_data()[i];
+}
+
+void AutorunFunctionPtrVector::push_back(
+  AutorunFunctionPtr const ptr) const noexcept
+{
+  this->impl_->get_data().push_back(ptr);
+}
+
+auto AutorunFunctionPtrVector::size() const noexcept -> unsigned long long
+{
+  return this->impl_->get_data().size();
+}
 
 auto get_impl(TestRun const &test_run) -> TestRun_impl &
 {
@@ -500,25 +539,10 @@ void child_main(
 
 void initialize(waypoint::TestRun const &t) noexcept
 {
-  auto const section = waypoint::internal::get_autorun_section_boundaries();
-  auto const begin = section.first;
-  auto const end = section.second;
-
-  using AutorunFunctionPtr = void (*)(waypoint::TestRun const &);
-  std::vector<AutorunFunctionPtr> functions;
-
-  for(auto fn_ptr = begin; fn_ptr < end; fn_ptr += sizeof(AutorunFunctionPtr))
+  auto const &functions = waypoint::internal::get_autorun_tests();
+  for(unsigned long long i = 0; i < functions.size(); ++i)
   {
-    functions.push_back(*reinterpret_cast<AutorunFunctionPtr *>(fn_ptr));
-  }
-
-  auto is_not_null = [](auto *ptr)
-  {
-    return ptr != nullptr;
-  };
-
-  for(auto const fn_ptr : functions | std::views::filter(is_not_null))
-  {
+    auto const fn_ptr = functions[i];
     fn_ptr(t);
   }
 
@@ -992,7 +1016,3 @@ auto TestRunResult::error(unsigned long long const index) const noexcept
 }
 
 } // namespace waypoint
-
-WAYPOINT_AUTORUN(waypoint::TestRun const &)
-{
-}

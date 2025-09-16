@@ -892,4 +892,15 @@ auto TestRunResult_impl::get_test_outcome(unsigned long long const index) const
   return *this->test_outcomes_[index];
 }
 
+AutorunFunctionPtrVector_impl::~AutorunFunctionPtrVector_impl() = default;
+
+AutorunFunctionPtrVector_impl::AutorunFunctionPtrVector_impl() noexcept =
+  default;
+
+auto AutorunFunctionPtrVector_impl::get_data() noexcept
+  -> std::vector<AutorunFunctionPtr> &
+{
+  return this->data_;
+}
+
 } // namespace waypoint::internal

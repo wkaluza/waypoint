@@ -391,4 +391,24 @@ private:
   std::vector<std::string> errors_;
 };
 
+class AutorunFunctionPtrVector_impl
+{
+public:
+  ~AutorunFunctionPtrVector_impl();
+  AutorunFunctionPtrVector_impl() noexcept;
+  AutorunFunctionPtrVector_impl(AutorunFunctionPtrVector_impl const &other) =
+    delete;
+  AutorunFunctionPtrVector_impl(
+    AutorunFunctionPtrVector_impl &&other) noexcept = delete;
+  auto operator=(AutorunFunctionPtrVector_impl const &other)
+    -> AutorunFunctionPtrVector_impl & = delete;
+  auto operator=(AutorunFunctionPtrVector_impl &&other) noexcept
+    -> AutorunFunctionPtrVector_impl & = delete;
+
+  auto get_data() noexcept -> std::vector<AutorunFunctionPtr> &;
+
+private:
+  std::vector<AutorunFunctionPtr> data_;
+};
+
 } // namespace waypoint::internal

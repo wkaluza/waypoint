@@ -198,6 +198,9 @@ WAYPOINT_AUTORUN(waypoint::TestRun const &t)
   register_test_unique_ptr<waypoint::internal::AssertionOutcome_impl>(
     t,
     "AssertionOutcome_impl");
+  register_test_unique_ptr<waypoint::internal::AutorunFunctionPtrVector_impl>(
+    t,
+    "AutorunFunctionPtrVector_impl");
   register_test_unique_ptr<waypoint::internal::ContextInProcess_impl>(
     t,
     "ContextInProcess_impl");

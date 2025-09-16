@@ -18,6 +18,7 @@ namespace waypoint::internal
 constexpr unsigned long long DEFAULT_TIMEOUT_MS = 100;
 
 class AssertionOutcome_impl;
+class AutorunFunctionPtrVector_impl;
 class ContextInProcess_impl;
 class ContextChildProcess_impl;
 class TestRun_impl;
@@ -455,6 +456,7 @@ private:
 };
 
 extern template class UniquePtr<AssertionOutcome_impl>;
+extern template class UniquePtr<AutorunFunctionPtrVector_impl>;
 extern template class UniquePtr<ContextInProcess_impl>;
 extern template class UniquePtr<ContextChildProcess_impl>;
 extern template class UniquePtr<TestRun_impl>;
@@ -1180,27 +1182,52 @@ private:
 
 } // namespace waypoint
 
-#define _INTERNAL_WAYPOINT_AUTORUN_IMPL2_( \
-  test_run, \
-  section_name, \
-  counter, \
-  line) \
+namespace waypoint::internal
+{
+
+using AutorunFunctionPtr = void (*)(waypoint::TestRun const &);
+
+class AutorunFunctionPtrVector
+{
+public:
+  ~AutorunFunctionPtrVector();
+  explicit AutorunFunctionPtrVector(
+    AutorunFunctionPtrVector_impl *impl) noexcept;
+  AutorunFunctionPtrVector(AutorunFunctionPtrVector const &other) = delete;
+  AutorunFunctionPtrVector(AutorunFunctionPtrVector &&other) noexcept = delete;
+  auto operator=(AutorunFunctionPtrVector const &other)
+    -> AutorunFunctionPtrVector & = delete;
+  auto operator=(AutorunFunctionPtrVector &&other) noexcept
+    -> AutorunFunctionPtrVector & = delete;
+
+  auto operator[](unsigned long long i) const noexcept -> AutorunFunctionPtr;
+
+  void push_back(AutorunFunctionPtr ptr) const noexcept;
+  [[nodiscard]]
+  auto size() const noexcept -> unsigned long long;
+
+private:
+  UniquePtr<AutorunFunctionPtrVector_impl> const impl_;
+};
+
+using AutorunManagerTests = AutorunFunctionPtrVector;
+
+[[nodiscard]]
+auto get_autorun_tests() noexcept -> AutorunManagerTests &;
+[[nodiscard]]
+auto add_autorun_test(AutorunFunctionPtr fn) noexcept -> int;
+
+} // namespace waypoint::internal
+
+#define _INTERNAL_WAYPOINT_AUTORUN_IMPL2_(test_run, counter, line) \
   static void _INTERNAL_WAYPOINT_TEST##_##counter##_##line(test_run); \
-  static void (*_INTERNAL_WAYPOINT_TEST_PTR##_##counter##_##line)(test_run) \
-    __attribute__((used, section(#section_name))) = \
-      _INTERNAL_WAYPOINT_TEST##_##counter##_##line; \
+  static const int _INTERNAL_WAYPOINT_DUMMY_VARIABLE##_##counter##_##line = \
+    waypoint::internal::add_autorun_test( \
+      _INTERNAL_WAYPOINT_TEST##_##counter##_##line); \
   static void _INTERNAL_WAYPOINT_TEST##_##counter##_##line(test_run)
 
-#define _INTERNAL_WAYPOINT_AUTORUN_IMPL1_( \
-  test_run, \
-  section_name, \
-  counter, \
-  line) \
-  _INTERNAL_WAYPOINT_AUTORUN_IMPL2_(test_run, section_name, counter, line)
+#define _INTERNAL_WAYPOINT_AUTORUN_IMPL1_(test_run, counter, line) \
+  _INTERNAL_WAYPOINT_AUTORUN_IMPL2_(test_run, counter, line)
 
 #define WAYPOINT_AUTORUN(test_run) \
-  _INTERNAL_WAYPOINT_AUTORUN_IMPL1_( \
-    test_run, \
-    waypoint_tests, \
-    __COUNTER__, \
-    __LINE__)
+  _INTERNAL_WAYPOINT_AUTORUN_IMPL1_(test_run, __COUNTER__, __LINE__)

@@ -6,7 +6,7 @@ set(WAYPOINT_INTERNAL_HEADER_DIR ${PROJECT_ROOT_DIR}/src/waypoint/internal)
 set(WAYPOINT_OWN_HEADER_DIR ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
 
 set(PUBLIC_LIBRARY_NAME waypoint)
-set(INTERNAL_LIBRARIES assert autorun coverage process)
+set(INTERNAL_LIBRARIES assert coverage process)
 
 function(new_target_)
   set(options PUBLIC_LIBRARY INTERNAL_LIBRARY TEST
@@ -327,8 +327,7 @@ function(prepare_installation)
   add_library(waypoint::waypoint ALIAS waypoint)
 
   install(
-    TARGETS waypoint assert autorun coverage process
-            library_interface_headers_waypoint
+    TARGETS waypoint assert coverage process library_interface_headers_waypoint
     EXPORT waypoint-targets
     FILE_SET interface_headers_waypoint
     ARCHIVE DESTINATION lib/$<CONFIG>
