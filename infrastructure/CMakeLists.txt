@@ -8,6 +8,8 @@ project(
 
 enable_testing()
 
+option(BUILD_SHARED_LIBS "Build shared libraries" FALSE)
+
 include(${CMAKE_CURRENT_SOURCE_DIR}/tools.cmake)
 
 new_platform_specific_target(

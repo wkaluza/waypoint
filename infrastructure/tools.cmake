@@ -53,11 +53,15 @@ function(new_target_)
       PUBLIC cxx_std_23)
   endif()
   if(arg_PUBLIC_LIBRARY)
-    add_library(${arg_TARGET} STATIC)
+    add_library(${arg_TARGET})
     target_compile_features(
       ${arg_TARGET}
       PRIVATE cxx_std_23
       PUBLIC cxx_std_11)
+  endif()
+
+  if(BUILD_SHARED_LIBS)
+    set_property(TARGET ${arg_TARGET} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
   endif()
 
   if(arg_EXCLUDE_FROM_ALL)
@@ -326,13 +330,24 @@ endfunction()
 function(prepare_installation)
   add_library(waypoint::waypoint ALIAS waypoint)
 
-  install(
-    TARGETS waypoint assert coverage process library_interface_headers_waypoint
-    EXPORT waypoint-targets
-    FILE_SET interface_headers_waypoint
-    ARCHIVE DESTINATION lib/$<CONFIG>
-    LIBRARY DESTINATION lib/$<CONFIG>
-    RUNTIME DESTINATION bin/$<CONFIG>)
+  if(BUILD_SHARED_LIBS)
+    install(
+      TARGETS waypoint library_interface_headers_waypoint
+      EXPORT waypoint-targets
+      FILE_SET interface_headers_waypoint
+      ARCHIVE DESTINATION lib/$<CONFIG>
+      LIBRARY DESTINATION lib/$<CONFIG>
+      RUNTIME DESTINATION bin/$<CONFIG>)
+  else()
+    install(
+      TARGETS waypoint assert coverage process
+              library_interface_headers_waypoint
+      EXPORT waypoint-targets
+      FILE_SET interface_headers_waypoint
+      ARCHIVE DESTINATION lib/$<CONFIG>
+      LIBRARY DESTINATION lib/$<CONFIG>
+      RUNTIME DESTINATION bin/$<CONFIG>)
+  endif()
   install(
     EXPORT waypoint-targets
     DESTINATION cmake

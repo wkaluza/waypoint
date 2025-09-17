@@ -33,6 +33,16 @@
       "name": "build_linux_clang"
     },
     {
+      "configurePreset": "configure_linux_clang_shared",
+      "hidden": false,
+      "inherits": [
+        "base_build_ninja",
+        "base_system_linux",
+        "base_verbose"
+      ],
+      "name": "build_linux_clang_shared"
+    },
+    {
       "configurePreset": "configure_linux_gcc",
       "hidden": false,
       "inherits": [
@@ -41,6 +51,16 @@
         "base_verbose"
       ],
       "name": "build_linux_gcc"
+    },
+    {
+      "configurePreset": "configure_linux_gcc_shared",
+      "hidden": false,
+      "inherits": [
+        "base_build_ninja",
+        "base_system_linux",
+        "base_verbose"
+      ],
+      "name": "build_linux_gcc_shared"
     },
     {
       "configurePreset": "configure_linux_clang_ide",
@@ -108,6 +128,13 @@
       "name": "base_enable_coverage"
     },
     {
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": true
+      },
+      "hidden": true,
+      "name": "base_build_shared_libs"
+    },
+    {
       "condition": {
         "lhs": "${hostSystemName}",
         "rhs": "Linux",
@@ -130,6 +157,20 @@
       "name": "configure_linux_clang"
     },
     {
+      "binaryDir": "${sourceDir}/../build_linux_clang_shared_8JxVsxxvHc6JeAN1___",
+      "hidden": false,
+      "inherits": [
+        "base_compiler_clang",
+        "base_generator_ninja",
+        "base_system_linux",
+        "base_enable_tests_build",
+        "base_build_shared_libs",
+        "base_target_properties"
+      ],
+      "installDir": "${sourceDir}/../install_linux_clang_shared_gs79Zn0T0bh10Xy0___",
+      "name": "configure_linux_clang_shared"
+    },
+    {
       "binaryDir": "${sourceDir}/../build_linux_gcc_o3AbIaWOHcdcUq2t___",
       "hidden": false,
       "inherits": [
@@ -141,6 +182,20 @@
       ],
       "installDir": "${sourceDir}/../install_linux_gcc_2KvSTJCdAYuzZYYv___",
       "name": "configure_linux_gcc"
+    },
+    {
+      "binaryDir": "${sourceDir}/../build_linux_gcc_shared_RReTabh9E2qAc4d8___",
+      "hidden": false,
+      "inherits": [
+        "base_compiler_gcc",
+        "base_generator_ninja",
+        "base_system_linux",
+        "base_enable_tests_build",
+        "base_build_shared_libs",
+        "base_target_properties"
+      ],
+      "installDir": "${sourceDir}/../install_linux_gcc_shared_2sNDkgWWrDedNFLw___",
+      "name": "configure_linux_gcc_shared"
     },
     {
       "binaryDir": "${sourceDir}/../build_linux_clang_ide_axkXHTfUdKUVQyvv___",
@@ -204,6 +259,15 @@
       "name": "test_linux_clang"
     },
     {
+      "configurePreset": "configure_linux_clang_shared",
+      "hidden": false,
+      "inherits": [
+        "base_test_config",
+        "base_test_linux"
+      ],
+      "name": "test_linux_clang_shared"
+    },
+    {
       "configurePreset": "configure_linux_gcc",
       "hidden": false,
       "inherits": [
@@ -211,6 +275,15 @@
         "base_test_linux"
       ],
       "name": "test_linux_gcc"
+    },
+    {
+      "configurePreset": "configure_linux_gcc_shared",
+      "hidden": false,
+      "inherits": [
+        "base_test_config",
+        "base_test_linux"
+      ],
+      "name": "test_linux_gcc_shared"
     },
     {
       "configurePreset": "configure_linux_gcc_coverage",

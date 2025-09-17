@@ -11,29 +11,15 @@ enable_testing()
 
 set(PROJECT_ROOT_DIR_dQPQvh4OGCgl3crM ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  find_package(
-    waypoint
-    0.0.1
-    EXACT
-    REQUIRED
-    CONFIG
-    PATHS
-    ${PROJECT_ROOT_DIR_dQPQvh4OGCgl3crM}/waypoint_install_linux_clang_2dp6n2H9O8te806G___/cmake
-    NO_DEFAULT_PATH)
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  find_package(
-    waypoint
-    0.0.1
-    EXACT
-    REQUIRED
-    CONFIG
-    PATHS
-    ${PROJECT_ROOT_DIR_dQPQvh4OGCgl3crM}/waypoint_install_linux_gcc_vo44y7Bxqbn3kKZA___/cmake
-    NO_DEFAULT_PATH)
-else()
-  message(FATAL_ERROR "Unexpected compiler")
-endif()
+find_package(
+  waypoint
+  0.0.1
+  EXACT
+  REQUIRED
+  CONFIG
+  PATHS
+  ${PROJECT_ROOT_DIR_dQPQvh4OGCgl3crM}/${PRESET_WAYPOINT_INSTALL_DIR}/cmake
+  NO_DEFAULT_PATH)
 
 add_library(stub_library STATIC)
 target_sources(

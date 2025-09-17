@@ -33,6 +33,16 @@
       "name": "build_linux_clang"
     },
     {
+      "configurePreset": "configure_linux_clang_shared",
+      "hidden": false,
+      "inherits": [
+        "base_build_ninja",
+        "base_system_linux",
+        "base_verbose"
+      ],
+      "name": "build_linux_clang_shared"
+    },
+    {
       "configurePreset": "configure_linux_gcc",
       "hidden": false,
       "inherits": [
@@ -41,6 +51,16 @@
         "base_verbose"
       ],
       "name": "build_linux_gcc"
+    },
+    {
+      "configurePreset": "configure_linux_gcc_shared",
+      "hidden": false,
+      "inherits": [
+        "base_build_ninja",
+        "base_system_linux",
+        "base_verbose"
+      ],
+      "name": "build_linux_gcc_shared"
     }
   ],
   "configurePresets": [
@@ -53,6 +73,13 @@
       },
       "hidden": true,
       "name": "base_target_properties"
+    },
+    {
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": true
+      },
+      "hidden": true,
+      "name": "base_build_shared_libs"
     },
     {
       "generator": "Ninja Multi-Config",
@@ -84,6 +111,9 @@
     },
     {
       "binaryDir": "${sourceDir}/../build_linux_clang_Ne7ziho0KQ4oAi10___",
+      "cacheVariables": {
+        "PRESET_WAYPOINT_INSTALL_DIR": "waypoint_install_linux_clang_2dp6n2H9O8te806G___"
+      },
       "hidden": false,
       "inherits": [
         "base_compiler_clang",
@@ -94,7 +124,25 @@
       "name": "configure_linux_clang"
     },
     {
+      "binaryDir": "${sourceDir}/../build_linux_clang_shared_DXzpDc5gQobYR1mm___",
+      "cacheVariables": {
+        "PRESET_WAYPOINT_INSTALL_DIR": "waypoint_install_linux_clang_shared_kd2bzSgxWMh8xpx8___"
+      },
+      "hidden": false,
+      "inherits": [
+        "base_compiler_clang",
+        "base_generator_ninja",
+        "base_system_linux",
+        "base_build_shared_libs",
+        "base_target_properties"
+      ],
+      "name": "configure_linux_clang_shared"
+    },
+    {
       "binaryDir": "${sourceDir}/../build_linux_gcc_pTQq9pOI6q1glaUx___",
+      "cacheVariables": {
+        "PRESET_WAYPOINT_INSTALL_DIR": "waypoint_install_linux_gcc_vo44y7Bxqbn3kKZA___"
+      },
       "hidden": false,
       "inherits": [
         "base_compiler_gcc",
@@ -103,6 +151,21 @@
         "base_target_properties"
       ],
       "name": "configure_linux_gcc"
+    },
+    {
+      "binaryDir": "${sourceDir}/../build_linux_gcc_shared_46hdjg2S5MJ5HuNW___",
+      "cacheVariables": {
+        "PRESET_WAYPOINT_INSTALL_DIR": "waypoint_install_linux_gcc_shared_zogAXLEQwWHTZO9T___"
+      },
+      "hidden": false,
+      "inherits": [
+        "base_compiler_gcc",
+        "base_generator_ninja",
+        "base_system_linux",
+        "base_build_shared_libs",
+        "base_target_properties"
+      ],
+      "name": "configure_linux_gcc_shared"
     }
   ],
   "testPresets": [
@@ -139,6 +202,15 @@
       "name": "test_linux_clang"
     },
     {
+      "configurePreset": "configure_linux_clang_shared",
+      "hidden": false,
+      "inherits": [
+        "base_test_config",
+        "base_test_linux"
+      ],
+      "name": "test_linux_clang_shared"
+    },
+    {
       "configurePreset": "configure_linux_gcc",
       "hidden": false,
       "inherits": [
@@ -146,6 +218,15 @@
         "base_test_linux"
       ],
       "name": "test_linux_gcc"
+    },
+    {
+      "configurePreset": "configure_linux_gcc_shared",
+      "hidden": false,
+      "inherits": [
+        "base_test_config",
+        "base_test_linux"
+      ],
+      "name": "test_linux_gcc_shared"
     }
   ],
   "version": 10

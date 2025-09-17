@@ -47,6 +47,12 @@ TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CLANG_DIR = os.path.realpath(
 TEST_INSTALL_FIND_PACKAGE_NO_VERSION_GCC_DIR = os.path.realpath(
     f"{INSTALL_TESTS_DIR_PATH}/find_package_no_version_test/waypoint_install_linux_gcc_99V4LexZ8aO7qhLC___"
 )
+TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CLANG_SHARED_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/find_package_no_version_test/waypoint_install_linux_clang_shared_CJGWSsRXagJ22vHV___"
+)
+TEST_INSTALL_FIND_PACKAGE_NO_VERSION_GCC_SHARED_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/find_package_no_version_test/waypoint_install_linux_gcc_shared_JRXQmCKTnzVcAYbS___"
+)
 TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR = os.path.realpath(
     f"{INSTALL_TESTS_DIR_PATH}/find_package_no_version_test/infrastructure"
 )
@@ -61,6 +67,12 @@ TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CLANG_DIR = os.path.realpath(
 )
 TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_GCC_DIR = os.path.realpath(
     f"{INSTALL_TESTS_DIR_PATH}/find_package_exact_version_test/waypoint_install_linux_gcc_vo44y7Bxqbn3kKZA___"
+)
+TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CLANG_SHARED_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/find_package_exact_version_test/waypoint_install_linux_clang_shared_kd2bzSgxWMh8xpx8___"
+)
+TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_GCC_SHARED_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/find_package_exact_version_test/waypoint_install_linux_gcc_shared_zogAXLEQwWHTZO9T___"
 )
 TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR = os.path.realpath(
     f"{INSTALL_TESTS_DIR_PATH}/find_package_exact_version_test/infrastructure"
@@ -79,6 +91,12 @@ TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_CLANG_BUILD_DIR = os.path.realpath(
 )
 TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_GCC_BUILD_DIR = os.path.realpath(
     f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_build_gcc_ZcvFQuKcWaEwFis9___"
+)
+TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_CLANG_BUILD_SHARED_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_build_clang_shared_ZKPQ5F48VyGbWfTq___"
+)
+TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_GCC_BUILD_SHARED_DIR = os.path.realpath(
+    f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/waypoint_build_gcc_shared_uDavOddLQYiP7PUc___"
 )
 TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR = os.path.realpath(
     f"{INSTALL_TESTS_DIR_PATH}/add_subdirectory_test/infrastructure"
@@ -99,6 +117,8 @@ GCC15_ENV_PATCH = {"CC": "gcc-15", "CXX": "g++-15"}
 class ModeConfig:
     clean: bool = False
     format: bool = False
+    static_lib: bool = False
+    shared_lib: bool = False
     clang: bool = False
     gcc: bool = False
     debug: bool = False
@@ -115,6 +135,7 @@ class ModeConfig:
 @enum.unique
 class Mode(enum.Enum):
     Fast = ModeConfig(
+        static_lib=True,
         clang=True,
         debug=True,
         test=True,
@@ -124,6 +145,8 @@ class Mode(enum.Enum):
     )
     Full = ModeConfig(
         format=True,
+        static_lib=True,
+        shared_lib=True,
         clang=True,
         gcc=True,
         debug=True,
@@ -142,6 +165,8 @@ class Mode(enum.Enum):
     Verify = ModeConfig(
         clean=True,
         format=True,
+        static_lib=True,
+        shared_lib=True,
         clang=True,
         gcc=True,
         debug=True,
@@ -204,6 +229,14 @@ class Mode(enum.Enum):
         return self.config.format
 
     @property
+    def static_lib(self):
+        return self.config.static_lib
+
+    @property
+    def shared_lib(self):
+        return self.config.shared_lib
+
+    @property
     def clang(self):
         return self.config.clang
 
@@ -252,6 +285,16 @@ class Mode(enum.Enum):
 class CMakePresets(enum.Enum):
     LinuxClang = ("configure_linux_clang", "build_linux_clang", "test_linux_clang")
     LinuxGcc = ("configure_linux_gcc", "build_linux_gcc", "test_linux_gcc")
+    LinuxClangShared = (
+        "configure_linux_clang_shared",
+        "build_linux_clang_shared",
+        "test_linux_clang_shared",
+    )
+    LinuxGccShared = (
+        "configure_linux_gcc_shared",
+        "build_linux_gcc_shared",
+        "test_linux_gcc_shared",
+    )
     LinuxGccCoverage = (
         "configure_linux_gcc_coverage",
         "build_linux_gcc_coverage",
@@ -358,7 +401,7 @@ def check_main_header_has_no_includes_() -> bool:
     return re.search(r"# *include", contents) is None
 
 
-def verify_installation_contents_(preset) -> bool:
+def verify_installation_contents_static_(preset) -> bool:
     install_dir = install_dir_from_preset(preset)
 
     expected_files = [
@@ -391,6 +434,30 @@ def verify_installation_contents_(preset) -> bool:
     return True
 
 
+def verify_installation_contents_shared_(preset) -> bool:
+    install_dir = install_dir_from_preset(preset)
+
+    expected_files = [
+        "cmake/waypoint-config.cmake",
+        "cmake/waypoint-config-debug.cmake",
+        "cmake/waypoint-config-relwithdebinfo.cmake",
+        "cmake/waypoint-config-release.cmake",
+        "cmake/waypoint-config-version.cmake",
+        "include/waypoint/waypoint.hpp",
+        "lib/Debug/libwaypoint.so",
+        "lib/RelWithDebInfo/libwaypoint.so",
+        "lib/Release/libwaypoint.so",
+    ]
+
+    files = find_files_by_name(install_dir, lambda x: True)
+    for expected in expected_files:
+        assert os.path.realpath(f"{install_dir}/{expected}") in files
+
+    assert len(files) == len(expected_files)
+
+    return True
+
+
 def misc_checks_fn() -> bool:
     success = check_main_header_has_no_includes_()
     if not success:
@@ -404,15 +471,35 @@ def misc_checks_fn() -> bool:
 
         return False
 
-    success = verify_installation_contents_(CMakePresets.LinuxClang)
+    return True
+
+
+def verify_install_contents_static_fn() -> bool:
+    success = verify_installation_contents_static_(CMakePresets.LinuxClang)
     if not success:
-        print("Error: Invalid Clang installation contents")
+        print("Error: Invalid Clang installation contents (static)")
 
         return False
 
-    success = verify_installation_contents_(CMakePresets.LinuxGcc)
+    success = verify_installation_contents_static_(CMakePresets.LinuxGcc)
     if not success:
-        print("Error: Invalid GCC installation contents")
+        print("Error: Invalid GCC installation contents (static)")
+
+        return False
+
+    return True
+
+
+def verify_install_contents_shared_fn() -> bool:
+    success = verify_installation_contents_shared_(CMakePresets.LinuxClangShared)
+    if not success:
+        print("Error: Invalid Clang installation contents (dynamic)")
+
+        return False
+
+    success = verify_installation_contents_shared_(CMakePresets.LinuxGccShared)
+    if not success:
+        print("Error: Invalid GCC installation contents (dynamic)")
 
         return False
 
@@ -566,12 +653,60 @@ def install_clang_release_fn() -> bool:
     )
 
 
+def install_gcc_debug_shared_fn() -> bool:
+    return install_cmake(
+        CMakePresets.LinuxGccShared, CMakeBuildConfig.Debug, PROJECT_ROOT_DIR
+    )
+
+
+def install_gcc_relwithdebinfo_shared_fn() -> bool:
+    return install_cmake(
+        CMakePresets.LinuxGccShared, CMakeBuildConfig.RelWithDebInfo, PROJECT_ROOT_DIR
+    )
+
+
+def install_gcc_release_shared_fn() -> bool:
+    return install_cmake(
+        CMakePresets.LinuxGccShared, CMakeBuildConfig.Release, PROJECT_ROOT_DIR
+    )
+
+
+def install_clang_debug_shared_fn() -> bool:
+    return install_cmake(
+        CMakePresets.LinuxClangShared, CMakeBuildConfig.Debug, PROJECT_ROOT_DIR
+    )
+
+
+def install_clang_relwithdebinfo_shared_fn() -> bool:
+    return install_cmake(
+        CMakePresets.LinuxClangShared, CMakeBuildConfig.RelWithDebInfo, PROJECT_ROOT_DIR
+    )
+
+
+def install_clang_release_shared_fn() -> bool:
+    return install_cmake(
+        CMakePresets.LinuxClangShared, CMakeBuildConfig.Release, PROJECT_ROOT_DIR
+    )
+
+
 def configure_cmake_clang_fn() -> bool:
     return configure_cmake(CMakePresets.LinuxClang, CLANG20_ENV_PATCH, CMAKE_SOURCE_DIR)
 
 
 def configure_cmake_gcc_fn() -> bool:
     return configure_cmake(CMakePresets.LinuxGcc, GCC15_ENV_PATCH, CMAKE_SOURCE_DIR)
+
+
+def configure_cmake_clang_shared_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.LinuxClangShared, CLANG20_ENV_PATCH, CMAKE_SOURCE_DIR
+    )
+
+
+def configure_cmake_gcc_shared_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.LinuxGccShared, GCC15_ENV_PATCH, CMAKE_SOURCE_DIR
+    )
 
 
 def configure_cmake(preset, env_patch, cmake_source_dir) -> bool:
@@ -586,7 +721,8 @@ def configure_cmake(preset, env_patch, cmake_source_dir) -> bool:
         os.mkdir(build_dir)
 
         with contextlib.chdir(cmake_source_dir):
-            success, output = run(["cmake", "--preset", f"{preset.configure}"])
+            command = ["cmake", "--preset", f"{preset.configure}"]
+            success, output = run(command)
             if not success:
                 if output is not None:
                     print(output)
@@ -762,6 +898,66 @@ def test_clang_relwithdebinfo_fn() -> bool:
 def test_clang_release_fn() -> bool:
     return run_ctest(
         CMakePresets.LinuxClang,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        CMAKE_SOURCE_DIR,
+    )
+
+
+def test_gcc_debug_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGccShared,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        CMAKE_SOURCE_DIR,
+    )
+
+
+def test_gcc_relwithdebinfo_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGccShared,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        CMAKE_SOURCE_DIR,
+    )
+
+
+def test_gcc_release_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGccShared,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        CMAKE_SOURCE_DIR,
+    )
+
+
+def test_clang_debug_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClangShared,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        CMAKE_SOURCE_DIR,
+    )
+
+
+def test_clang_relwithdebinfo_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClangShared,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        CMAKE_SOURCE_DIR,
+    )
+
+
+def test_clang_release_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClangShared,
         CMakeBuildConfig.Release,
         JOBS,
         r"^test$",
@@ -1084,6 +1280,126 @@ def build_gcc_release_all_tests_fn() -> bool:
     )
 
 
+def build_clang_debug_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def build_clang_debug_all_tests_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def build_clang_relwithdebinfo_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def build_clang_relwithdebinfo_all_tests_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def build_clang_release_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def build_clang_release_all_tests_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def build_gcc_debug_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def build_gcc_debug_all_tests_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def build_gcc_relwithdebinfo_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def build_gcc_relwithdebinfo_all_tests_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def build_gcc_release_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def build_gcc_release_all_tests_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
 def is_json_file(f) -> bool:
     return re.search(r"\.json$", f) is not None
 
@@ -1361,11 +1677,21 @@ def preamble() -> tuple[CliConfig | None, bool]:
 def clean_fn() -> bool:
     clean_build_dir(CMakePresets.LinuxClang, CMAKE_SOURCE_DIR)
     clean_build_dir(CMakePresets.LinuxGcc, CMAKE_SOURCE_DIR)
+    clean_build_dir(CMakePresets.LinuxClangShared, CMAKE_SOURCE_DIR)
+    clean_build_dir(CMakePresets.LinuxGccShared, CMAKE_SOURCE_DIR)
     clean_build_dir(
         CMakePresets.LinuxClang, TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR
     )
     clean_build_dir(
         CMakePresets.LinuxGcc, TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR
+    )
+    clean_build_dir(
+        CMakePresets.LinuxClangShared,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+    clean_build_dir(
+        CMakePresets.LinuxGccShared,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
     )
     clean_build_dir(
         CMakePresets.LinuxClang,
@@ -1375,24 +1701,46 @@ def clean_fn() -> bool:
         CMakePresets.LinuxGcc, TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR
     )
     clean_build_dir(
+        CMakePresets.LinuxClangShared,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+    )
+    clean_build_dir(
+        CMakePresets.LinuxGccShared,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+    )
+    clean_build_dir(
         CMakePresets.LinuxClang, TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR
     )
     clean_build_dir(
         CMakePresets.LinuxGcc, TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR
     )
+    clean_build_dir(
+        CMakePresets.LinuxClangShared, TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR
+    )
+    clean_build_dir(
+        CMakePresets.LinuxGccShared, TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR
+    )
     clean_build_dir(CMakePresets.LinuxGccCoverage, CMAKE_SOURCE_DIR)
     clean_install_dir(CMakePresets.LinuxClang)
     clean_install_dir(CMakePresets.LinuxGcc)
+    clean_install_dir(CMakePresets.LinuxClangShared)
+    clean_install_dir(CMakePresets.LinuxGccShared)
     clean_install_dir(CMakePresets.LinuxGccCoverage)
     remove_dir(COVERAGE_DIR_GCOVR)
     remove_dir(COVERAGE_DIR_LCOV)
     remove_dir(TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CLANG_DIR)
     remove_dir(TEST_INSTALL_FIND_PACKAGE_NO_VERSION_GCC_DIR)
+    remove_dir(TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CLANG_SHARED_DIR)
+    remove_dir(TEST_INSTALL_FIND_PACKAGE_NO_VERSION_GCC_SHARED_DIR)
     remove_dir(TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CLANG_DIR)
     remove_dir(TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_GCC_DIR)
+    remove_dir(TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CLANG_SHARED_DIR)
+    remove_dir(TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_GCC_SHARED_DIR)
     remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_SOURCES_DIR)
     remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_CLANG_BUILD_DIR)
+    remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_CLANG_BUILD_SHARED_DIR)
     remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_GCC_BUILD_DIR)
+    remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_GCC_BUILD_SHARED_DIR)
 
     return True
 
@@ -1897,6 +2245,466 @@ def test_install_find_package_exact_version_clang_release_test_fn() -> bool:
     )
 
 
+def test_install_find_package_no_version_gcc_copy_artifacts_shared_fn() -> bool:
+    install_dir = install_dir_from_preset(CMakePresets.LinuxGccShared)
+    recursively_copy_dir(
+        install_dir, TEST_INSTALL_FIND_PACKAGE_NO_VERSION_GCC_SHARED_DIR
+    )
+
+    return True
+
+
+def test_install_find_package_no_version_clang_copy_artifacts_shared_fn() -> bool:
+    install_dir = install_dir_from_preset(CMakePresets.LinuxClangShared)
+    recursively_copy_dir(
+        install_dir, TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CLANG_SHARED_DIR
+    )
+
+    return True
+
+
+def test_install_find_package_no_version_gcc_configure_shared_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_clang_configure_shared_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_gcc_debug_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_find_package_no_version_gcc_debug_build_all_tests_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_find_package_no_version_gcc_relwithdebinfo_build_all_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_find_package_no_version_gcc_relwithdebinfo_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_find_package_no_version_gcc_release_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_find_package_no_version_gcc_release_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_find_package_no_version_clang_debug_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_find_package_no_version_clang_debug_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_find_package_no_version_clang_relwithdebinfo_build_all_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_find_package_no_version_clang_relwithdebinfo_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_find_package_no_version_clang_release_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_find_package_no_version_clang_release_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_find_package_no_version_gcc_debug_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGccShared,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_gcc_relwithdebinfo_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGccShared,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_gcc_release_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGccShared,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_clang_debug_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClangShared,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_clang_relwithdebinfo_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClangShared,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_no_version_clang_release_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClangShared,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_NO_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_exact_version_gcc_copy_artifacts_shared_fn() -> bool:
+    install_dir = install_dir_from_preset(CMakePresets.LinuxGccShared)
+    recursively_copy_dir(
+        install_dir, TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_GCC_SHARED_DIR
+    )
+
+    return True
+
+
+def test_install_find_package_exact_version_clang_copy_artifacts_shared_fn() -> bool:
+    install_dir = install_dir_from_preset(CMakePresets.LinuxClangShared)
+    recursively_copy_dir(
+        install_dir, TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CLANG_SHARED_DIR
+    )
+
+    return True
+
+
+def test_install_find_package_exact_version_gcc_configure_shared_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_exact_version_clang_configure_shared_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_exact_version_gcc_debug_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_find_package_exact_version_gcc_debug_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_find_package_exact_version_gcc_release_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_find_package_exact_version_gcc_release_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_find_package_exact_version_clang_debug_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_find_package_exact_version_clang_debug_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_find_package_exact_version_clang_relwithdebinfo_build_all_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_find_package_exact_version_clang_relwithdebinfo_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_find_package_exact_version_clang_release_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_find_package_exact_version_clang_release_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_find_package_exact_version_gcc_debug_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGccShared,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_exact_version_gcc_relwithdebinfo_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGccShared,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_exact_version_gcc_release_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGccShared,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_exact_version_clang_debug_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClangShared,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_exact_version_clang_relwithdebinfo_test_shared_fn() -> (
+    bool
+):
+    return run_ctest(
+        CMakePresets.LinuxClangShared,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_find_package_exact_version_clang_release_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClangShared,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_FIND_PACKAGE_EXACT_VERSION_CMAKE_SOURCE_DIR,
+    )
+
+
 def test_install_add_subdirectory_copy_sources_fn() -> bool:
     recursively_copy_dir(
         INFRASTRUCTURE_DIR,
@@ -2106,6 +2914,206 @@ def test_install_add_subdirectory_clang_release_test_fn() -> bool:
     )
 
 
+def test_install_add_subdirectory_gcc_configure_shared_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_clang_configure_shared_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_gcc_debug_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_add_subdirectory_gcc_debug_build_all_tests_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_add_subdirectory_gcc_relwithdebinfo_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_add_subdirectory_gcc_relwithdebinfo_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_add_subdirectory_gcc_release_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_add_subdirectory_gcc_release_build_all_tests_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_add_subdirectory_clang_debug_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_add_subdirectory_clang_debug_build_all_tests_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_add_subdirectory_clang_relwithdebinfo_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_add_subdirectory_clang_relwithdebinfo_build_all_tests_shared_fn() -> (
+    bool
+):
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_add_subdirectory_clang_release_build_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def test_install_add_subdirectory_clang_release_build_all_tests_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+        "all_tests",
+    )
+
+
+def test_install_add_subdirectory_gcc_debug_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGccShared,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_gcc_relwithdebinfo_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGccShared,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_gcc_release_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxGccShared,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_clang_debug_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClangShared,
+        CMakeBuildConfig.Debug,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_clang_relwithdebinfo_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClangShared,
+        CMakeBuildConfig.RelWithDebInfo,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
+def test_install_add_subdirectory_clang_release_test_shared_fn() -> bool:
+    return run_ctest(
+        CMakePresets.LinuxClangShared,
+        CMakeBuildConfig.Release,
+        JOBS,
+        r"^test$",
+        TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR,
+    )
+
+
 def main() -> int:
     config, success = preamble()
     if not success:
@@ -2113,30 +3121,68 @@ def main() -> int:
 
     mode = config.mode
 
-    test_clang_debug = Task("Test Clang Debug", test_clang_debug_fn)
+    test_clang_debug = Task("Test Clang Debug (static)", test_clang_debug_fn)
     test_clang_relwithdebinfo = Task(
-        "Test Clang RelWithDebInfo", test_clang_relwithdebinfo_fn
+        "Test Clang RelWithDebInfo (static)", test_clang_relwithdebinfo_fn
     )
-    test_clang_release = Task("Test Clang Release", test_clang_release_fn)
-    build_clang_debug_all = Task("Build Clang Debug (all)", build_clang_debug_all_fn)
+    test_clang_release = Task("Test Clang Release (static)", test_clang_release_fn)
+    build_clang_debug_all = Task(
+        "Build Clang Debug (static; all)", build_clang_debug_all_fn
+    )
     build_clang_debug_all_tests = Task(
-        "Build Clang Debug (all_tests)", build_clang_debug_all_tests_fn
+        "Build Clang Debug (static; all_tests)", build_clang_debug_all_tests_fn
     )
     build_clang_relwithdebinfo_all = Task(
-        "Build Clang RelWithDebInfo (all)", build_clang_relwithdebinfo_all_fn
+        "Build Clang RelWithDebInfo (static; all)", build_clang_relwithdebinfo_all_fn
     )
     build_clang_relwithdebinfo_all_tests = Task(
-        "Build Clang RelWithDebInfo (all_tests)",
+        "Build Clang RelWithDebInfo (static; all_tests)",
         build_clang_relwithdebinfo_all_tests_fn,
     )
     build_clang_release_all = Task(
-        "Build Clang Release (all)", build_clang_release_all_fn
+        "Build Clang Release (static; all)", build_clang_release_all_fn
     )
     build_clang_release_all_tests = Task(
-        "Build Clang Release (all_tests)", build_clang_release_all_tests_fn
+        "Build Clang Release (static; all_tests)", build_clang_release_all_tests_fn
     )
 
-    configure_cmake_clang = Task("Configure CMake for Clang", configure_cmake_clang_fn)
+    configure_cmake_clang = Task(
+        "Configure CMake for Clang (static)", configure_cmake_clang_fn
+    )
+
+    test_clang_debug_shared = Task(
+        "Test Clang Debug (dynamic)", test_clang_debug_shared_fn
+    )
+    test_clang_relwithdebinfo_shared = Task(
+        "Test Clang RelWithDebInfo (dynamic)", test_clang_relwithdebinfo_shared_fn
+    )
+    test_clang_release_shared = Task(
+        "Test Clang Release (dynamic)", test_clang_release_shared_fn
+    )
+    build_clang_debug_all_shared = Task(
+        "Build Clang Debug (dynamic; all)", build_clang_debug_all_shared_fn
+    )
+    build_clang_debug_all_tests_shared = Task(
+        "Build Clang Debug (dynamic; all_tests)", build_clang_debug_all_tests_shared_fn
+    )
+    build_clang_relwithdebinfo_all_shared = Task(
+        "Build Clang RelWithDebInfo (dynamic; all)",
+        build_clang_relwithdebinfo_all_shared_fn,
+    )
+    build_clang_relwithdebinfo_all_tests_shared = Task(
+        "Build Clang RelWithDebInfo (dynamic; all_tests)",
+        build_clang_relwithdebinfo_all_tests_shared_fn,
+    )
+    build_clang_release_all_shared = Task(
+        "Build Clang Release (dynamic; all)", build_clang_release_all_shared_fn
+    )
+    build_clang_release_all_tests_shared = Task(
+        "Build Clang Release (dynamic; all_tests)",
+        build_clang_release_all_tests_shared_fn,
+    )
+    configure_cmake_clang_shared = Task(
+        "Configure CMake for Clang (dynamic)", configure_cmake_clang_shared_fn
+    )
 
     build_clang_debug_all.depends_on([configure_cmake_clang])
     build_clang_debug_all_tests.depends_on([build_clang_debug_all])
@@ -2148,45 +3194,78 @@ def main() -> int:
     build_clang_release_all_tests.depends_on([build_clang_release_all])
     test_clang_release.depends_on([build_clang_release_all_tests])
 
-    test_gcc_debug = Task("Test GCC Debug", test_gcc_debug_fn)
-    test_gcc_relwithdebinfo = Task(
-        "Test GCC RelWithDebInfo", test_gcc_relwithdebinfo_fn
+    build_clang_debug_all_shared.depends_on([configure_cmake_clang_shared])
+    build_clang_debug_all_tests_shared.depends_on([build_clang_debug_all_shared])
+    test_clang_debug_shared.depends_on([build_clang_debug_all_tests_shared])
+    build_clang_relwithdebinfo_all_shared.depends_on([configure_cmake_clang_shared])
+    build_clang_relwithdebinfo_all_tests_shared.depends_on(
+        [build_clang_relwithdebinfo_all_shared]
     )
-    test_gcc_release = Task("Test GCC Release", test_gcc_release_fn)
-    build_gcc_debug_all = Task("Build GCC Debug (all)", build_gcc_debug_all_fn)
+    test_clang_relwithdebinfo_shared.depends_on(
+        [build_clang_relwithdebinfo_all_tests_shared]
+    )
+    build_clang_release_all_shared.depends_on([configure_cmake_clang_shared])
+    build_clang_release_all_tests_shared.depends_on([build_clang_release_all_shared])
+    test_clang_release_shared.depends_on([build_clang_release_all_tests_shared])
+
+    test_gcc_debug = Task("Test GCC Debug (static)", test_gcc_debug_fn)
+    test_gcc_relwithdebinfo = Task(
+        "Test GCC RelWithDebInfo (static)", test_gcc_relwithdebinfo_fn
+    )
+    test_gcc_release = Task("Test GCC Release (static)", test_gcc_release_fn)
+    build_gcc_debug_all = Task("Build GCC Debug (static; all)", build_gcc_debug_all_fn)
     build_gcc_debug_all_tests = Task(
-        "Build GCC Debug (all_tests)", build_gcc_debug_all_tests_fn
+        "Build GCC Debug (static; all_tests)", build_gcc_debug_all_tests_fn
     )
     build_gcc_relwithdebinfo_all = Task(
-        "Build GCC RelWithDebInfo (all)", build_gcc_relwithdebinfo_all_fn
+        "Build GCC RelWithDebInfo (static; all)", build_gcc_relwithdebinfo_all_fn
     )
     build_gcc_relwithdebinfo_all_tests = Task(
-        "Build GCC RelWithDebInfo (all_tests)", build_gcc_relwithdebinfo_all_tests_fn
+        "Build GCC RelWithDebInfo (static; all_tests)",
+        build_gcc_relwithdebinfo_all_tests_fn,
     )
-    build_gcc_release_all = Task("Build GCC Release (all)", build_gcc_release_all_fn)
+    build_gcc_release_all = Task(
+        "Build GCC Release (static; all)", build_gcc_release_all_fn
+    )
     build_gcc_release_all_tests = Task(
-        "Build GCC Release (all_tests)", build_gcc_release_all_tests_fn
+        "Build GCC Release (static; all_tests)", build_gcc_release_all_tests_fn
     )
 
-    configure_cmake_gcc = Task("Configure CMake for GCC", configure_cmake_gcc_fn)
-
-    install_gcc_debug = Task("Install GCC Debug", install_gcc_debug_fn)
-    install_gcc_relwithdebinfo = Task(
-        "Install GCC RelWithDebInfo", install_gcc_relwithdebinfo_fn
+    configure_cmake_gcc = Task(
+        "Configure CMake for GCC (static)", configure_cmake_gcc_fn
     )
-    install_gcc_release = Task("Install GCC Release", install_gcc_release_fn)
-    install_clang_debug = Task("Install Clang Debug", install_clang_debug_fn)
-    install_clang_relwithdebinfo = Task(
-        "Install Clang RelWithDebInfo", install_clang_relwithdebinfo_fn
-    )
-    install_clang_release = Task("Install Clang Release", install_clang_release_fn)
 
-    install_gcc_debug.depends_on([build_gcc_debug_all])
-    install_gcc_relwithdebinfo.depends_on([build_gcc_relwithdebinfo_all])
-    install_gcc_release.depends_on([build_gcc_release_all])
-    install_clang_debug.depends_on([build_clang_debug_all])
-    install_clang_relwithdebinfo.depends_on([build_clang_relwithdebinfo_all])
-    install_clang_release.depends_on([build_clang_release_all])
+    test_gcc_debug_shared = Task("Test GCC Debug (dynamic)", test_gcc_debug_shared_fn)
+    test_gcc_relwithdebinfo_shared = Task(
+        "Test GCC RelWithDebInfo (dynamic)", test_gcc_relwithdebinfo_shared_fn
+    )
+    test_gcc_release_shared = Task(
+        "Test GCC Release (dynamic)", test_gcc_release_shared_fn
+    )
+    build_gcc_debug_all_shared = Task(
+        "Build GCC Debug (dynamic; all)", build_gcc_debug_all_shared_fn
+    )
+    build_gcc_debug_all_tests_shared = Task(
+        "Build GCC Debug (dynamic; all_tests)", build_gcc_debug_all_tests_shared_fn
+    )
+    build_gcc_relwithdebinfo_all_shared = Task(
+        "Build GCC RelWithDebInfo (dynamic; all)",
+        build_gcc_relwithdebinfo_all_shared_fn,
+    )
+    build_gcc_relwithdebinfo_all_tests_shared = Task(
+        "Build GCC RelWithDebInfo (dynamic; all_tests)",
+        build_gcc_relwithdebinfo_all_tests_shared_fn,
+    )
+    build_gcc_release_all_shared = Task(
+        "Build GCC Release (dynamic; all)", build_gcc_release_all_shared_fn
+    )
+    build_gcc_release_all_tests_shared = Task(
+        "Build GCC Release (dynamic; all_tests)", build_gcc_release_all_tests_shared_fn
+    )
+
+    configure_cmake_gcc_shared = Task(
+        "Configure CMake for GCC (dynamic)", configure_cmake_gcc_shared_fn
+    )
 
     build_gcc_debug_all.depends_on([configure_cmake_gcc])
     build_gcc_debug_all_tests.depends_on([build_gcc_debug_all])
@@ -2197,6 +3276,68 @@ def main() -> int:
     build_gcc_release_all.depends_on([configure_cmake_gcc])
     build_gcc_release_all_tests.depends_on([build_gcc_release_all])
     test_gcc_release.depends_on([build_gcc_release_all_tests])
+
+    build_gcc_debug_all_shared.depends_on([configure_cmake_gcc_shared])
+    build_gcc_debug_all_tests_shared.depends_on([build_gcc_debug_all_shared])
+    test_gcc_debug_shared.depends_on([build_gcc_debug_all_tests_shared])
+    build_gcc_relwithdebinfo_all_shared.depends_on([configure_cmake_gcc_shared])
+    build_gcc_relwithdebinfo_all_tests_shared.depends_on(
+        [build_gcc_relwithdebinfo_all_shared]
+    )
+    test_gcc_relwithdebinfo_shared.depends_on(
+        [build_gcc_relwithdebinfo_all_tests_shared]
+    )
+    build_gcc_release_all_shared.depends_on([configure_cmake_gcc_shared])
+    build_gcc_release_all_tests_shared.depends_on([build_gcc_release_all_shared])
+    test_gcc_release_shared.depends_on([build_gcc_release_all_tests_shared])
+
+    install_gcc_debug = Task("Install GCC Debug (static)", install_gcc_debug_fn)
+    install_gcc_relwithdebinfo = Task(
+        "Install GCC RelWithDebInfo (static)", install_gcc_relwithdebinfo_fn
+    )
+    install_gcc_release = Task("Install GCC Release (static)", install_gcc_release_fn)
+    install_clang_debug = Task("Install Clang Debug (static)", install_clang_debug_fn)
+    install_clang_relwithdebinfo = Task(
+        "Install Clang RelWithDebInfo (static)", install_clang_relwithdebinfo_fn
+    )
+    install_clang_release = Task(
+        "Install Clang Release (static)", install_clang_release_fn
+    )
+
+    install_gcc_debug_shared = Task(
+        "Install GCC Debug (dynamic)", install_gcc_debug_shared_fn
+    )
+    install_gcc_relwithdebinfo_shared = Task(
+        "Install GCC RelWithDebInfo (dynamic)", install_gcc_relwithdebinfo_shared_fn
+    )
+    install_gcc_release_shared = Task(
+        "Install GCC Release (dynamic)", install_gcc_release_shared_fn
+    )
+    install_clang_debug_shared = Task(
+        "Install Clang Debug (dynamic)", install_clang_debug_shared_fn
+    )
+    install_clang_relwithdebinfo_shared = Task(
+        "Install Clang RelWithDebInfo (dynamic)", install_clang_relwithdebinfo_shared_fn
+    )
+    install_clang_release_shared = Task(
+        "Install Clang Release (dynamic)", install_clang_release_shared_fn
+    )
+
+    install_gcc_debug.depends_on([build_gcc_debug_all])
+    install_gcc_relwithdebinfo.depends_on([build_gcc_relwithdebinfo_all])
+    install_gcc_release.depends_on([build_gcc_release_all])
+    install_clang_debug.depends_on([build_clang_debug_all])
+    install_clang_relwithdebinfo.depends_on([build_clang_relwithdebinfo_all])
+    install_clang_release.depends_on([build_clang_release_all])
+
+    install_gcc_debug_shared.depends_on([build_gcc_debug_all_shared])
+    install_gcc_relwithdebinfo_shared.depends_on([build_gcc_relwithdebinfo_all_shared])
+    install_gcc_release_shared.depends_on([build_gcc_release_all_shared])
+    install_clang_debug_shared.depends_on([build_clang_debug_all_shared])
+    install_clang_relwithdebinfo_shared.depends_on(
+        [build_clang_relwithdebinfo_all_shared]
+    )
+    install_clang_release_shared.depends_on([build_clang_release_all_shared])
 
     analyze_gcc_coverage = Task("Analyze GCC coverage data", analyze_gcc_coverage_fn)
     process_gcc_coverage = Task("Process GCC coverage data", process_coverage_fn)
@@ -2260,17 +3401,43 @@ def main() -> int:
     run_clang_static_analysis_changed_files.depends_on([build_clang_static_analysis])
 
     misc_checks = Task("Miscellaneous checks", misc_checks_fn)
+    verify_install_contents_static = Task(
+        "Verify installation contents (static)", verify_install_contents_static_fn
+    )
+    verify_install_contents_static.depends_on(
+        [
+            install_clang_debug,
+            install_clang_relwithdebinfo,
+            install_clang_release,
+            install_gcc_debug,
+            install_gcc_relwithdebinfo,
+            install_gcc_release,
+        ]
+    )
+    verify_install_contents_shared = Task(
+        "Verify installation contents (dynamic)", verify_install_contents_shared_fn
+    )
+    verify_install_contents_shared.depends_on(
+        [
+            install_clang_debug_shared,
+            install_clang_relwithdebinfo_shared,
+            install_clang_release_shared,
+            install_gcc_debug_shared,
+            install_gcc_relwithdebinfo_shared,
+            install_gcc_release_shared,
+        ]
+    )
 
     format_sources = Task("Format code", format_sources_fn)
 
     clean = Task("Clean build files", clean_fn)
 
     test_install_find_package_no_version_gcc_copy_artifacts = Task(
-        "Copy GCC artifacts for test install (find_package, no version)",
+        "Copy GCC artifacts for test install (static; find_package, no version)",
         test_install_find_package_no_version_gcc_copy_artifacts_fn,
     )
     test_install_find_package_no_version_clang_copy_artifacts = Task(
-        "Copy Clang artifacts for test install (find_package, no version)",
+        "Copy Clang artifacts for test install (static; find_package, no version)",
         test_install_find_package_no_version_clang_copy_artifacts_fn,
     )
 
@@ -2282,11 +3449,11 @@ def main() -> int:
     )
 
     test_install_find_package_no_version_gcc_configure = Task(
-        "Configure CMake for GCC test install (find_package, no version)",
+        "Configure CMake for GCC test install (static; find_package, no version)",
         test_install_find_package_no_version_gcc_configure_fn,
     )
     test_install_find_package_no_version_clang_configure = Task(
-        "Configure CMake for Clang test install (find_package, no version)",
+        "Configure CMake for Clang test install (static; find_package, no version)",
         test_install_find_package_no_version_clang_configure_fn,
     )
 
@@ -2298,76 +3465,76 @@ def main() -> int:
     )
 
     test_install_find_package_no_version_gcc_debug_build_all = Task(
-        "Build GCC Debug test install (all; find_package, no version)",
+        "Build GCC Debug test install (static; all; find_package, no version)",
         test_install_find_package_no_version_gcc_debug_build_all_fn,
     )
     test_install_find_package_no_version_gcc_debug_build_all_tests = Task(
-        "Build GCC Debug test install (all_tests; find_package, no version)",
+        "Build GCC Debug test install (static; all_tests; find_package, no version)",
         test_install_find_package_no_version_gcc_debug_build_all_tests_fn,
     )
     test_install_find_package_no_version_gcc_relwithdebinfo_build_all = Task(
-        "Build GCC RelWithDebInfo test install (all; find_package, no version)",
+        "Build GCC RelWithDebInfo test install (static; all; find_package, no version)",
         test_install_find_package_no_version_gcc_relwithdebinfo_build_all_fn,
     )
     test_install_find_package_no_version_gcc_relwithdebinfo_build_all_tests = Task(
-        "Build GCC RelWithDebInfo test install (all_tests; find_package, no version)",
+        "Build GCC RelWithDebInfo test install (static; all_tests; find_package, no version)",
         test_install_find_package_no_version_gcc_relwithdebinfo_build_all_tests_fn,
     )
     test_install_find_package_no_version_gcc_release_build_all = Task(
-        "Build GCC Release test install (all; find_package, no version)",
+        "Build GCC Release test install (static; all; find_package, no version)",
         test_install_find_package_no_version_gcc_release_build_all_fn,
     )
     test_install_find_package_no_version_gcc_release_build_all_tests = Task(
-        "Build GCC Release test install (all_tests; find_package, no version)",
+        "Build GCC Release test install (static; all_tests; find_package, no version)",
         test_install_find_package_no_version_gcc_release_build_all_tests_fn,
     )
     test_install_find_package_no_version_clang_debug_build_all = Task(
-        "Build Clang Debug test install (all; find_package, no version)",
+        "Build Clang Debug test install (static; all; find_package, no version)",
         test_install_find_package_no_version_clang_debug_build_all_fn,
     )
     test_install_find_package_no_version_clang_debug_build_all_tests = Task(
-        "Build Clang Debug test install (all_tests; find_package, no version)",
+        "Build Clang Debug test install (static; all_tests; find_package, no version)",
         test_install_find_package_no_version_clang_debug_build_all_tests_fn,
     )
     test_install_find_package_no_version_clang_relwithdebinfo_build_all = Task(
-        "Build Clang RelWithDebInfo test install (all; find_package, no version)",
+        "Build Clang RelWithDebInfo test install (static; all; find_package, no version)",
         test_install_find_package_no_version_clang_relwithdebinfo_build_all_fn,
     )
     test_install_find_package_no_version_clang_relwithdebinfo_build_all_tests = Task(
-        "Build Clang RelWithDebInfo test install (all_tests; find_package, no version)",
+        "Build Clang RelWithDebInfo test install (static; all_tests; find_package, no version)",
         test_install_find_package_no_version_clang_relwithdebinfo_build_all_tests_fn,
     )
     test_install_find_package_no_version_clang_release_build_all = Task(
-        "Build Clang Release test install (all; find_package, no version)",
+        "Build Clang Release test install (static; all; find_package, no version)",
         test_install_find_package_no_version_clang_release_build_all_fn,
     )
     test_install_find_package_no_version_clang_release_build_all_tests = Task(
-        "Build Clang Release test install (all_tests; find_package, no version)",
+        "Build Clang Release test install (static; all_tests; find_package, no version)",
         test_install_find_package_no_version_clang_release_build_all_tests_fn,
     )
 
     test_install_find_package_no_version_gcc_debug_test = Task(
-        "Test GCC Debug test install (find_package, no version)",
+        "Test GCC Debug test install (static; find_package, no version)",
         test_install_find_package_no_version_gcc_debug_test_fn,
     )
     test_install_find_package_no_version_gcc_relwithdebinfo_test = Task(
-        "Test GCC RelWithDebInfo test install (find_package, no version)",
+        "Test GCC RelWithDebInfo test install (static; find_package, no version)",
         test_install_find_package_no_version_gcc_relwithdebinfo_test_fn,
     )
     test_install_find_package_no_version_gcc_release_test = Task(
-        "Test GCC Release test install (find_package, no version)",
+        "Test GCC Release test install (static; find_package, no version)",
         test_install_find_package_no_version_gcc_release_test_fn,
     )
     test_install_find_package_no_version_clang_debug_test = Task(
-        "Test Clang Debug test install (find_package, no version)",
+        "Test Clang Debug test install (static; find_package, no version)",
         test_install_find_package_no_version_clang_debug_test_fn,
     )
     test_install_find_package_no_version_clang_relwithdebinfo_test = Task(
-        "Test Clang RelWithDebInfo test install (find_package, no version)",
+        "Test Clang RelWithDebInfo test install (static; find_package, no version)",
         test_install_find_package_no_version_clang_relwithdebinfo_test_fn,
     )
     test_install_find_package_no_version_clang_release_test = Task(
-        "Test Clang Release test install (find_package, no version)",
+        "Test Clang Release test install (static; find_package, no version)",
         test_install_find_package_no_version_clang_release_test_fn,
     )
 
@@ -2427,11 +3594,11 @@ def main() -> int:
     )
 
     test_install_find_package_exact_version_gcc_copy_artifacts = Task(
-        "Copy GCC artifacts for test install (find_package, exact version)",
+        "Copy GCC artifacts for test install (static; find_package, exact version)",
         test_install_find_package_exact_version_gcc_copy_artifacts_fn,
     )
     test_install_find_package_exact_version_clang_copy_artifacts = Task(
-        "Copy Clang artifacts for test install (find_package, exact version)",
+        "Copy Clang artifacts for test install (static; find_package, exact version)",
         test_install_find_package_exact_version_clang_copy_artifacts_fn,
     )
 
@@ -2443,11 +3610,11 @@ def main() -> int:
     )
 
     test_install_find_package_exact_version_gcc_configure = Task(
-        "Configure CMake for GCC test install (find_package, exact version)",
+        "Configure CMake for GCC test install (static; find_package, exact version)",
         test_install_find_package_exact_version_gcc_configure_fn,
     )
     test_install_find_package_exact_version_clang_configure = Task(
-        "Configure CMake for Clang test install (find_package, exact version)",
+        "Configure CMake for Clang test install (static; find_package, exact version)",
         test_install_find_package_exact_version_clang_configure_fn,
     )
 
@@ -2459,76 +3626,76 @@ def main() -> int:
     )
 
     test_install_find_package_exact_version_gcc_debug_build_all = Task(
-        "Build GCC Debug test install (all; find_package, exact version)",
+        "Build GCC Debug test install (static; all; find_package, exact version)",
         test_install_find_package_exact_version_gcc_debug_build_all_fn,
     )
     test_install_find_package_exact_version_gcc_debug_build_all_tests = Task(
-        "Build GCC Debug test install (all_tests; find_package, exact version)",
+        "Build GCC Debug test install (static; all_tests; find_package, exact version)",
         test_install_find_package_exact_version_gcc_debug_build_all_tests_fn,
     )
     test_install_find_package_exact_version_gcc_relwithdebinfo_build_all = Task(
-        "Build GCC RelWithDebInfo test install (all; find_package, exact version)",
+        "Build GCC RelWithDebInfo test install (static; all; find_package, exact version)",
         test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_fn,
     )
     test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_tests = Task(
-        "Build GCC RelWithDebInfo test install (all_tests; find_package, exact version)",
+        "Build GCC RelWithDebInfo test install (static; all_tests; find_package, exact version)",
         test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_tests_fn,
     )
     test_install_find_package_exact_version_gcc_release_build_all = Task(
-        "Build GCC Release test install (all; find_package, exact version)",
+        "Build GCC Release test install (static; all; find_package, exact version)",
         test_install_find_package_exact_version_gcc_release_build_all_fn,
     )
     test_install_find_package_exact_version_gcc_release_build_all_tests = Task(
-        "Build GCC Release test install (all_tests; find_package, exact version)",
+        "Build GCC Release test install (static; all_tests; find_package, exact version)",
         test_install_find_package_exact_version_gcc_release_build_all_tests_fn,
     )
     test_install_find_package_exact_version_clang_debug_build_all = Task(
-        "Build Clang Debug test install (all; find_package, exact version)",
+        "Build Clang Debug test install (static; all; find_package, exact version)",
         test_install_find_package_exact_version_clang_debug_build_all_fn,
     )
     test_install_find_package_exact_version_clang_debug_build_all_tests = Task(
-        "Build Clang Debug test install (all_tests; find_package, exact version)",
+        "Build Clang Debug test install (static; all_tests; find_package, exact version)",
         test_install_find_package_exact_version_clang_debug_build_all_tests_fn,
     )
     test_install_find_package_exact_version_clang_relwithdebinfo_build_all = Task(
-        "Build Clang RelWithDebInfo test install (all; find_package, exact version)",
+        "Build Clang RelWithDebInfo test install (static; all; find_package, exact version)",
         test_install_find_package_exact_version_clang_relwithdebinfo_build_all_fn,
     )
     test_install_find_package_exact_version_clang_relwithdebinfo_build_all_tests = Task(
-        "Build Clang RelWithDebInfo test install (all_tests; find_package, exact version)",
+        "Build Clang RelWithDebInfo test install (static; all_tests; find_package, exact version)",
         test_install_find_package_exact_version_clang_relwithdebinfo_build_all_tests_fn,
     )
     test_install_find_package_exact_version_clang_release_build_all = Task(
-        "Build Clang Release test install (all; find_package, exact version)",
+        "Build Clang Release test install (static; all; find_package, exact version)",
         test_install_find_package_exact_version_clang_release_build_all_fn,
     )
     test_install_find_package_exact_version_clang_release_build_all_tests = Task(
-        "Build Clang Release test install (all_tests; find_package, exact version)",
+        "Build Clang Release test install (static; all_tests; find_package, exact version)",
         test_install_find_package_exact_version_clang_release_build_all_tests_fn,
     )
 
     test_install_find_package_exact_version_gcc_debug_test = Task(
-        "Test GCC Debug test install (find_package, exact version)",
+        "Test GCC Debug test install (static; find_package, exact version)",
         test_install_find_package_exact_version_gcc_debug_test_fn,
     )
     test_install_find_package_exact_version_gcc_relwithdebinfo_test = Task(
-        "Test GCC RelWithDebInfo test install (find_package, exact version)",
+        "Test GCC RelWithDebInfo test install (static; find_package, exact version)",
         test_install_find_package_exact_version_gcc_relwithdebinfo_test_fn,
     )
     test_install_find_package_exact_version_gcc_release_test = Task(
-        "Test GCC Release test install (find_package, exact version)",
+        "Test GCC Release test install (static; find_package, exact version)",
         test_install_find_package_exact_version_gcc_release_test_fn,
     )
     test_install_find_package_exact_version_clang_debug_test = Task(
-        "Test Clang Debug test install (find_package, exact version)",
+        "Test Clang Debug test install (static; find_package, exact version)",
         test_install_find_package_exact_version_clang_debug_test_fn,
     )
     test_install_find_package_exact_version_clang_relwithdebinfo_test = Task(
-        "Test Clang RelWithDebInfo test install (find_package, exact version)",
+        "Test Clang RelWithDebInfo test install (static; find_package, exact version)",
         test_install_find_package_exact_version_clang_relwithdebinfo_test_fn,
     )
     test_install_find_package_exact_version_clang_release_test = Task(
-        "Test Clang Release test install (find_package, exact version)",
+        "Test Clang Release test install (static; find_package, exact version)",
         test_install_find_package_exact_version_clang_release_test_fn,
     )
 
@@ -2587,17 +3754,361 @@ def main() -> int:
         [test_install_find_package_exact_version_clang_release_build_all_tests]
     )
 
+    test_install_find_package_no_version_gcc_copy_artifacts_shared = Task(
+        "Copy GCC artifacts for test install (dynamic; find_package, no version)",
+        test_install_find_package_no_version_gcc_copy_artifacts_shared_fn,
+    )
+    test_install_find_package_no_version_clang_copy_artifacts_shared = Task(
+        "Copy Clang artifacts for test install (dynamic; find_package, no version)",
+        test_install_find_package_no_version_clang_copy_artifacts_shared_fn,
+    )
+
+    test_install_find_package_no_version_gcc_copy_artifacts_shared.depends_on(
+        [
+            install_gcc_debug_shared,
+            install_gcc_relwithdebinfo_shared,
+            install_gcc_release_shared,
+        ]
+    )
+    test_install_find_package_no_version_clang_copy_artifacts_shared.depends_on(
+        [
+            install_clang_debug_shared,
+            install_clang_relwithdebinfo_shared,
+            install_clang_release_shared,
+        ]
+    )
+
+    test_install_find_package_no_version_gcc_configure_shared = Task(
+        "Configure CMake for GCC test install (dynamic; find_package, no version)",
+        test_install_find_package_no_version_gcc_configure_shared_fn,
+    )
+    test_install_find_package_no_version_clang_configure_shared = Task(
+        "Configure CMake for Clang test install (dynamic; find_package, no version)",
+        test_install_find_package_no_version_clang_configure_shared_fn,
+    )
+
+    test_install_find_package_no_version_gcc_configure_shared.depends_on(
+        [test_install_find_package_no_version_gcc_copy_artifacts_shared]
+    )
+    test_install_find_package_no_version_clang_configure_shared.depends_on(
+        [test_install_find_package_no_version_clang_copy_artifacts_shared]
+    )
+
+    test_install_find_package_no_version_gcc_debug_build_all_shared = Task(
+        "Build GCC Debug test install (dynamic; all; find_package, no version)",
+        test_install_find_package_no_version_gcc_debug_build_all_shared_fn,
+    )
+    test_install_find_package_no_version_gcc_debug_build_all_tests_shared = Task(
+        "Build GCC Debug test install (dynamic; all_tests; find_package, no version)",
+        test_install_find_package_no_version_gcc_debug_build_all_tests_shared_fn,
+    )
+    test_install_find_package_no_version_gcc_relwithdebinfo_build_all_shared = Task(
+        "Build GCC RelWithDebInfo test install (dynamic; all; find_package, no version)",
+        test_install_find_package_no_version_gcc_relwithdebinfo_build_all_shared_fn,
+    )
+    test_install_find_package_no_version_gcc_relwithdebinfo_build_all_tests_shared = Task(
+        "Build GCC RelWithDebInfo test install (dynamic; all_tests; find_package, no version)",
+        test_install_find_package_no_version_gcc_relwithdebinfo_build_all_tests_shared_fn,
+    )
+    test_install_find_package_no_version_gcc_release_build_all_shared = Task(
+        "Build GCC Release test install (dynamic; all; find_package, no version)",
+        test_install_find_package_no_version_gcc_release_build_all_shared_fn,
+    )
+    test_install_find_package_no_version_gcc_release_build_all_tests_shared = Task(
+        "Build GCC Release test install (dynamic; all_tests; find_package, no version)",
+        test_install_find_package_no_version_gcc_release_build_all_tests_shared_fn,
+    )
+    test_install_find_package_no_version_clang_debug_build_all_shared = Task(
+        "Build Clang Debug test install (dynamic; all; find_package, no version)",
+        test_install_find_package_no_version_clang_debug_build_all_shared_fn,
+    )
+    test_install_find_package_no_version_clang_debug_build_all_tests_shared = Task(
+        "Build Clang Debug test install (dynamic; all_tests; find_package, no version)",
+        test_install_find_package_no_version_clang_debug_build_all_tests_shared_fn,
+    )
+    test_install_find_package_no_version_clang_relwithdebinfo_build_all_shared = Task(
+        "Build Clang RelWithDebInfo test install (dynamic; all; find_package, no version)",
+        test_install_find_package_no_version_clang_relwithdebinfo_build_all_shared_fn,
+    )
+    test_install_find_package_no_version_clang_relwithdebinfo_build_all_tests_shared = Task(
+        "Build Clang RelWithDebInfo test install (dynamic; all_tests; find_package, no version)",
+        test_install_find_package_no_version_clang_relwithdebinfo_build_all_tests_shared_fn,
+    )
+    test_install_find_package_no_version_clang_release_build_all_shared = Task(
+        "Build Clang Release test install (dynamic; all; find_package, no version)",
+        test_install_find_package_no_version_clang_release_build_all_shared_fn,
+    )
+    test_install_find_package_no_version_clang_release_build_all_tests_shared = Task(
+        "Build Clang Release test install (dynamic; all_tests; find_package, no version)",
+        test_install_find_package_no_version_clang_release_build_all_tests_shared_fn,
+    )
+
+    test_install_find_package_no_version_gcc_debug_test_shared = Task(
+        "Test GCC Debug test install (dynamic; find_package, no version)",
+        test_install_find_package_no_version_gcc_debug_test_shared_fn,
+    )
+    test_install_find_package_no_version_gcc_relwithdebinfo_test_shared = Task(
+        "Test GCC RelWithDebInfo test install (dynamic; find_package, no version)",
+        test_install_find_package_no_version_gcc_relwithdebinfo_test_shared_fn,
+    )
+    test_install_find_package_no_version_gcc_release_test_shared = Task(
+        "Test GCC Release test install (dynamic; find_package, no version)",
+        test_install_find_package_no_version_gcc_release_test_shared_fn,
+    )
+    test_install_find_package_no_version_clang_debug_test_shared = Task(
+        "Test Clang Debug test install (dynamic; find_package, no version)",
+        test_install_find_package_no_version_clang_debug_test_shared_fn,
+    )
+    test_install_find_package_no_version_clang_relwithdebinfo_test_shared = Task(
+        "Test Clang RelWithDebInfo test install (dynamic; find_package, no version)",
+        test_install_find_package_no_version_clang_relwithdebinfo_test_shared_fn,
+    )
+    test_install_find_package_no_version_clang_release_test_shared = Task(
+        "Test Clang Release test install (dynamic; find_package, no version)",
+        test_install_find_package_no_version_clang_release_test_shared_fn,
+    )
+
+    test_install_find_package_no_version_gcc_debug_build_all_shared.depends_on(
+        [test_install_find_package_no_version_gcc_configure_shared]
+    )
+    test_install_find_package_no_version_gcc_debug_build_all_tests_shared.depends_on(
+        [test_install_find_package_no_version_gcc_debug_build_all_shared]
+    )
+    test_install_find_package_no_version_gcc_debug_test_shared.depends_on(
+        [test_install_find_package_no_version_gcc_debug_build_all_tests_shared]
+    )
+    test_install_find_package_no_version_gcc_relwithdebinfo_build_all_shared.depends_on(
+        [test_install_find_package_no_version_gcc_configure_shared]
+    )
+    test_install_find_package_no_version_gcc_relwithdebinfo_build_all_tests_shared.depends_on(
+        [test_install_find_package_no_version_gcc_relwithdebinfo_build_all_shared]
+    )
+    test_install_find_package_no_version_gcc_relwithdebinfo_test_shared.depends_on(
+        [test_install_find_package_no_version_gcc_relwithdebinfo_build_all_tests_shared]
+    )
+    test_install_find_package_no_version_gcc_release_build_all_shared.depends_on(
+        [test_install_find_package_no_version_gcc_configure_shared]
+    )
+    test_install_find_package_no_version_gcc_release_build_all_tests_shared.depends_on(
+        [test_install_find_package_no_version_gcc_release_build_all_shared]
+    )
+    test_install_find_package_no_version_gcc_release_test_shared.depends_on(
+        [test_install_find_package_no_version_gcc_release_build_all_tests_shared]
+    )
+    test_install_find_package_no_version_clang_debug_build_all_shared.depends_on(
+        [test_install_find_package_no_version_clang_configure_shared]
+    )
+    test_install_find_package_no_version_clang_debug_build_all_tests_shared.depends_on(
+        [test_install_find_package_no_version_clang_debug_build_all_shared]
+    )
+    test_install_find_package_no_version_clang_debug_test_shared.depends_on(
+        [test_install_find_package_no_version_clang_debug_build_all_tests_shared]
+    )
+    test_install_find_package_no_version_clang_relwithdebinfo_build_all_shared.depends_on(
+        [test_install_find_package_no_version_clang_configure_shared]
+    )
+    test_install_find_package_no_version_clang_relwithdebinfo_build_all_tests_shared.depends_on(
+        [test_install_find_package_no_version_clang_relwithdebinfo_build_all_shared]
+    )
+    test_install_find_package_no_version_clang_relwithdebinfo_test_shared.depends_on(
+        [
+            test_install_find_package_no_version_clang_relwithdebinfo_build_all_tests_shared
+        ]
+    )
+    test_install_find_package_no_version_clang_release_build_all_shared.depends_on(
+        [test_install_find_package_no_version_clang_configure_shared]
+    )
+    test_install_find_package_no_version_clang_release_build_all_tests_shared.depends_on(
+        [test_install_find_package_no_version_clang_release_build_all_shared]
+    )
+    test_install_find_package_no_version_clang_release_test_shared.depends_on(
+        [test_install_find_package_no_version_clang_release_build_all_tests_shared]
+    )
+
+    test_install_find_package_exact_version_gcc_copy_artifacts_shared = Task(
+        "Copy GCC artifacts for test install (dynamic; find_package, exact version)",
+        test_install_find_package_exact_version_gcc_copy_artifacts_shared_fn,
+    )
+    test_install_find_package_exact_version_clang_copy_artifacts_shared = Task(
+        "Copy Clang artifacts for test install (dynamic; find_package, exact version)",
+        test_install_find_package_exact_version_clang_copy_artifacts_shared_fn,
+    )
+
+    test_install_find_package_exact_version_gcc_copy_artifacts_shared.depends_on(
+        [
+            install_gcc_debug_shared,
+            install_gcc_relwithdebinfo_shared,
+            install_gcc_release_shared,
+        ]
+    )
+    test_install_find_package_exact_version_clang_copy_artifacts_shared.depends_on(
+        [
+            install_clang_debug_shared,
+            install_clang_relwithdebinfo_shared,
+            install_clang_release_shared,
+        ]
+    )
+
+    test_install_find_package_exact_version_gcc_configure_shared = Task(
+        "Configure CMake for GCC test install (dynamic; find_package, exact version)",
+        test_install_find_package_exact_version_gcc_configure_shared_fn,
+    )
+    test_install_find_package_exact_version_clang_configure_shared = Task(
+        "Configure CMake for Clang test install (dynamic; find_package, exact version)",
+        test_install_find_package_exact_version_clang_configure_shared_fn,
+    )
+
+    test_install_find_package_exact_version_gcc_configure_shared.depends_on(
+        [test_install_find_package_exact_version_gcc_copy_artifacts_shared]
+    )
+    test_install_find_package_exact_version_clang_configure_shared.depends_on(
+        [test_install_find_package_exact_version_clang_copy_artifacts_shared]
+    )
+
+    test_install_find_package_exact_version_gcc_debug_build_all_shared = Task(
+        "Build GCC Debug test install (dynamic; all; find_package, exact version)",
+        test_install_find_package_exact_version_gcc_debug_build_all_shared_fn,
+    )
+    test_install_find_package_exact_version_gcc_debug_build_all_tests_shared = Task(
+        "Build GCC Debug test install (dynamic; all_tests; find_package, exact version)",
+        test_install_find_package_exact_version_gcc_debug_build_all_tests_shared_fn,
+    )
+    test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_shared = Task(
+        "Build GCC RelWithDebInfo test install (dynamic; all; find_package, exact version)",
+        test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_shared_fn,
+    )
+    test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_tests_shared = Task(
+        "Build GCC RelWithDebInfo test install (dynamic; all_tests; find_package, exact version)",
+        test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_tests_shared_fn,
+    )
+    test_install_find_package_exact_version_gcc_release_build_all_shared = Task(
+        "Build GCC Release test install (dynamic; all; find_package, exact version)",
+        test_install_find_package_exact_version_gcc_release_build_all_shared_fn,
+    )
+    test_install_find_package_exact_version_gcc_release_build_all_tests_shared = Task(
+        "Build GCC Release test install (dynamic; all_tests; find_package, exact version)",
+        test_install_find_package_exact_version_gcc_release_build_all_tests_shared_fn,
+    )
+    test_install_find_package_exact_version_clang_debug_build_all_shared = Task(
+        "Build Clang Debug test install (dynamic; all; find_package, exact version)",
+        test_install_find_package_exact_version_clang_debug_build_all_shared_fn,
+    )
+    test_install_find_package_exact_version_clang_debug_build_all_tests_shared = Task(
+        "Build Clang Debug test install (dynamic; all_tests; find_package, exact version)",
+        test_install_find_package_exact_version_clang_debug_build_all_tests_shared_fn,
+    )
+    test_install_find_package_exact_version_clang_relwithdebinfo_build_all_shared = Task(
+        "Build Clang RelWithDebInfo test install (dynamic; all; find_package, exact version)",
+        test_install_find_package_exact_version_clang_relwithdebinfo_build_all_shared_fn,
+    )
+    test_install_find_package_exact_version_clang_relwithdebinfo_build_all_tests_shared = Task(
+        "Build Clang RelWithDebInfo test install (dynamic; all_tests; find_package, exact version)",
+        test_install_find_package_exact_version_clang_relwithdebinfo_build_all_tests_shared_fn,
+    )
+    test_install_find_package_exact_version_clang_release_build_all_shared = Task(
+        "Build Clang Release test install (dynamic; all; find_package, exact version)",
+        test_install_find_package_exact_version_clang_release_build_all_shared_fn,
+    )
+    test_install_find_package_exact_version_clang_release_build_all_tests_shared = Task(
+        "Build Clang Release test install (dynamic; all_tests; find_package, exact version)",
+        test_install_find_package_exact_version_clang_release_build_all_tests_shared_fn,
+    )
+
+    test_install_find_package_exact_version_gcc_debug_test_shared = Task(
+        "Test GCC Debug test install (dynamic; find_package, exact version)",
+        test_install_find_package_exact_version_gcc_debug_test_shared_fn,
+    )
+    test_install_find_package_exact_version_gcc_relwithdebinfo_test_shared = Task(
+        "Test GCC RelWithDebInfo test install (dynamic; find_package, exact version)",
+        test_install_find_package_exact_version_gcc_relwithdebinfo_test_shared_fn,
+    )
+    test_install_find_package_exact_version_gcc_release_test_shared = Task(
+        "Test GCC Release test install (dynamic; find_package, exact version)",
+        test_install_find_package_exact_version_gcc_release_test_shared_fn,
+    )
+    test_install_find_package_exact_version_clang_debug_test_shared = Task(
+        "Test Clang Debug test install (dynamic; find_package, exact version)",
+        test_install_find_package_exact_version_clang_debug_test_shared_fn,
+    )
+    test_install_find_package_exact_version_clang_relwithdebinfo_test_shared = Task(
+        "Test Clang RelWithDebInfo test install (dynamic; find_package, exact version)",
+        test_install_find_package_exact_version_clang_relwithdebinfo_test_shared_fn,
+    )
+    test_install_find_package_exact_version_clang_release_test_shared = Task(
+        "Test Clang Release test install (dynamic; find_package, exact version)",
+        test_install_find_package_exact_version_clang_release_test_shared_fn,
+    )
+
+    test_install_find_package_exact_version_gcc_debug_build_all_shared.depends_on(
+        [test_install_find_package_exact_version_gcc_configure_shared]
+    )
+    test_install_find_package_exact_version_gcc_debug_build_all_tests_shared.depends_on(
+        [test_install_find_package_exact_version_gcc_debug_build_all_shared]
+    )
+    test_install_find_package_exact_version_gcc_debug_test_shared.depends_on(
+        [test_install_find_package_exact_version_gcc_debug_build_all_tests_shared]
+    )
+    test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_shared.depends_on(
+        [test_install_find_package_exact_version_gcc_configure_shared]
+    )
+    test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_tests_shared.depends_on(
+        [test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_shared]
+    )
+    test_install_find_package_exact_version_gcc_relwithdebinfo_test_shared.depends_on(
+        [
+            test_install_find_package_exact_version_gcc_relwithdebinfo_build_all_tests_shared
+        ]
+    )
+    test_install_find_package_exact_version_gcc_release_build_all_shared.depends_on(
+        [test_install_find_package_exact_version_gcc_configure_shared]
+    )
+    test_install_find_package_exact_version_gcc_release_build_all_tests_shared.depends_on(
+        [test_install_find_package_exact_version_gcc_release_build_all_shared]
+    )
+    test_install_find_package_exact_version_gcc_release_test_shared.depends_on(
+        [test_install_find_package_exact_version_gcc_release_build_all_tests_shared]
+    )
+    test_install_find_package_exact_version_clang_debug_build_all_shared.depends_on(
+        [test_install_find_package_exact_version_clang_configure_shared]
+    )
+    test_install_find_package_exact_version_clang_debug_build_all_tests_shared.depends_on(
+        [test_install_find_package_exact_version_clang_debug_build_all_shared]
+    )
+    test_install_find_package_exact_version_clang_debug_test_shared.depends_on(
+        [test_install_find_package_exact_version_clang_debug_build_all_tests_shared]
+    )
+    test_install_find_package_exact_version_clang_relwithdebinfo_build_all_shared.depends_on(
+        [test_install_find_package_exact_version_clang_configure_shared]
+    )
+    test_install_find_package_exact_version_clang_relwithdebinfo_build_all_tests_shared.depends_on(
+        [test_install_find_package_exact_version_clang_relwithdebinfo_build_all_shared]
+    )
+    test_install_find_package_exact_version_clang_relwithdebinfo_test_shared.depends_on(
+        [
+            test_install_find_package_exact_version_clang_relwithdebinfo_build_all_tests_shared
+        ]
+    )
+    test_install_find_package_exact_version_clang_release_build_all_shared.depends_on(
+        [test_install_find_package_exact_version_clang_configure_shared]
+    )
+    test_install_find_package_exact_version_clang_release_build_all_tests_shared.depends_on(
+        [test_install_find_package_exact_version_clang_release_build_all_shared]
+    )
+    test_install_find_package_exact_version_clang_release_test_shared.depends_on(
+        [test_install_find_package_exact_version_clang_release_build_all_tests_shared]
+    )
+
     test_install_test_install_add_subdirectory_copy_sources = Task(
         "Copy sources for test install (add_subdirectory)",
         test_install_add_subdirectory_copy_sources_fn,
     )
 
     test_install_add_subdirectory_gcc_configure = Task(
-        "Configure CMake for GCC test install (add_subdirectory)",
+        "Configure CMake for GCC test install (static; add_subdirectory)",
         test_install_add_subdirectory_gcc_configure_fn,
     )
     test_install_add_subdirectory_clang_configure = Task(
-        "Configure CMake for Clang test install (add_subdirectory)",
+        "Configure CMake for Clang test install (static; add_subdirectory)",
         test_install_add_subdirectory_clang_configure_fn,
     )
 
@@ -2609,76 +4120,76 @@ def main() -> int:
     )
 
     test_install_add_subdirectory_gcc_debug_build_all = Task(
-        "Build GCC Debug test install (all; add_subdirectory)",
+        "Build GCC Debug test install (static; all; add_subdirectory)",
         test_install_add_subdirectory_gcc_debug_build_all_fn,
     )
     test_install_add_subdirectory_gcc_debug_build_all_tests = Task(
-        "Build GCC Debug test install (all_tests; add_subdirectory)",
+        "Build GCC Debug test install (static; all_tests; add_subdirectory)",
         test_install_add_subdirectory_gcc_debug_build_all_tests_fn,
     )
     test_install_add_subdirectory_gcc_relwithdebinfo_build_all = Task(
-        "Build GCC RelWithDebInfo test install (all; add_subdirectory)",
+        "Build GCC RelWithDebInfo test install (static; all; add_subdirectory)",
         test_install_add_subdirectory_gcc_relwithdebinfo_build_all_fn,
     )
     test_install_add_subdirectory_gcc_relwithdebinfo_build_all_tests = Task(
-        "Build GCC RelWithDebInfo test install (all_tests; add_subdirectory)",
+        "Build GCC RelWithDebInfo test install (static; all_tests; add_subdirectory)",
         test_install_add_subdirectory_gcc_relwithdebinfo_build_all_tests_fn,
     )
     test_install_add_subdirectory_gcc_release_build_all = Task(
-        "Build GCC Release test install (all; add_subdirectory)",
+        "Build GCC Release test install (static; all; add_subdirectory)",
         test_install_add_subdirectory_gcc_release_build_all_fn,
     )
     test_install_add_subdirectory_gcc_release_build_all_tests = Task(
-        "Build GCC Release test install (all_tests; add_subdirectory)",
+        "Build GCC Release test install (static; all_tests; add_subdirectory)",
         test_install_add_subdirectory_gcc_release_build_all_tests_fn,
     )
     test_install_add_subdirectory_clang_debug_build_all = Task(
-        "Build Clang Debug test install (all; add_subdirectory)",
+        "Build Clang Debug test install (static; all; add_subdirectory)",
         test_install_add_subdirectory_clang_debug_build_all_fn,
     )
     test_install_add_subdirectory_clang_debug_build_all_tests = Task(
-        "Build Clang Debug test install (all_tests; add_subdirectory)",
+        "Build Clang Debug test install (static; all_tests; add_subdirectory)",
         test_install_add_subdirectory_clang_debug_build_all_tests_fn,
     )
     test_install_add_subdirectory_clang_relwithdebinfo_build_all = Task(
-        "Build Clang RelWithDebInfo test install (all; add_subdirectory)",
+        "Build Clang RelWithDebInfo test install (static; all; add_subdirectory)",
         test_install_add_subdirectory_clang_relwithdebinfo_build_all_fn,
     )
     test_install_add_subdirectory_clang_relwithdebinfo_build_all_tests = Task(
-        "Build Clang RelWithDebInfo test install (all_tests; add_subdirectory)",
+        "Build Clang RelWithDebInfo test install (static; all_tests; add_subdirectory)",
         test_install_add_subdirectory_clang_relwithdebinfo_build_all_tests_fn,
     )
     test_install_add_subdirectory_clang_release_build_all = Task(
-        "Build Clang Release test install (all; add_subdirectory)",
+        "Build Clang Release test install (static; all; add_subdirectory)",
         test_install_add_subdirectory_clang_release_build_all_fn,
     )
     test_install_add_subdirectory_clang_release_build_all_tests = Task(
-        "Build Clang Release test install (all_tests; add_subdirectory)",
+        "Build Clang Release test install (static; all_tests; add_subdirectory)",
         test_install_add_subdirectory_clang_release_build_all_tests_fn,
     )
 
     test_install_add_subdirectory_gcc_debug_test = Task(
-        "Test GCC Debug test install (add_subdirectory)",
+        "Test GCC Debug test install (static; add_subdirectory)",
         test_install_add_subdirectory_gcc_debug_test_fn,
     )
     test_install_add_subdirectory_gcc_relwithdebinfo_test = Task(
-        "Test GCC RelWithDebInfo test install (add_subdirectory)",
+        "Test GCC RelWithDebInfo test install (static; add_subdirectory)",
         test_install_add_subdirectory_gcc_relwithdebinfo_test_fn,
     )
     test_install_add_subdirectory_gcc_release_test = Task(
-        "Test GCC Release test install (add_subdirectory)",
+        "Test GCC Release test install (static; add_subdirectory)",
         test_install_add_subdirectory_gcc_release_test_fn,
     )
     test_install_add_subdirectory_clang_debug_test = Task(
-        "Test Clang Debug test install (add_subdirectory)",
+        "Test Clang Debug test install (static; add_subdirectory)",
         test_install_add_subdirectory_clang_debug_test_fn,
     )
     test_install_add_subdirectory_clang_relwithdebinfo_test = Task(
-        "Test Clang RelWithDebInfo test install (add_subdirectory)",
+        "Test Clang RelWithDebInfo test install (static; add_subdirectory)",
         test_install_add_subdirectory_clang_relwithdebinfo_test_fn,
     )
     test_install_add_subdirectory_clang_release_test = Task(
-        "Test Clang Release test install (add_subdirectory)",
+        "Test Clang Release test install (static; add_subdirectory)",
         test_install_add_subdirectory_clang_release_test_fn,
     )
 
@@ -2738,6 +4249,152 @@ def main() -> int:
         [test_install_add_subdirectory_clang_release_build_all_tests]
     )
 
+    test_install_add_subdirectory_gcc_configure_shared = Task(
+        "Configure CMake for GCC test install (dynamic; add_subdirectory)",
+        test_install_add_subdirectory_gcc_configure_shared_fn,
+    )
+    test_install_add_subdirectory_clang_configure_shared = Task(
+        "Configure CMake for Clang test install (dynamic; add_subdirectory)",
+        test_install_add_subdirectory_clang_configure_shared_fn,
+    )
+
+    test_install_add_subdirectory_gcc_configure_shared.depends_on(
+        [test_install_test_install_add_subdirectory_copy_sources]
+    )
+    test_install_add_subdirectory_clang_configure_shared.depends_on(
+        [test_install_test_install_add_subdirectory_copy_sources]
+    )
+
+    test_install_add_subdirectory_gcc_debug_build_all_shared = Task(
+        "Build GCC Debug test install (dynamic; all; add_subdirectory)",
+        test_install_add_subdirectory_gcc_debug_build_all_shared_fn,
+    )
+    test_install_add_subdirectory_gcc_debug_build_all_tests_shared = Task(
+        "Build GCC Debug test install (dynamic; all_tests; add_subdirectory)",
+        test_install_add_subdirectory_gcc_debug_build_all_tests_shared_fn,
+    )
+    test_install_add_subdirectory_gcc_relwithdebinfo_build_all_shared = Task(
+        "Build GCC RelWithDebInfo test install (dynamic; all; add_subdirectory)",
+        test_install_add_subdirectory_gcc_relwithdebinfo_build_all_shared_fn,
+    )
+    test_install_add_subdirectory_gcc_relwithdebinfo_build_all_tests_shared = Task(
+        "Build GCC RelWithDebInfo test install (dynamic; all_tests; add_subdirectory)",
+        test_install_add_subdirectory_gcc_relwithdebinfo_build_all_tests_shared_fn,
+    )
+    test_install_add_subdirectory_gcc_release_build_all_shared = Task(
+        "Build GCC Release test install (dynamic; all; add_subdirectory)",
+        test_install_add_subdirectory_gcc_release_build_all_shared_fn,
+    )
+    test_install_add_subdirectory_gcc_release_build_all_tests_shared = Task(
+        "Build GCC Release test install (dynamic; all_tests; add_subdirectory)",
+        test_install_add_subdirectory_gcc_release_build_all_tests_shared_fn,
+    )
+    test_install_add_subdirectory_clang_debug_build_all_shared = Task(
+        "Build Clang Debug test install (dynamic; all; add_subdirectory)",
+        test_install_add_subdirectory_clang_debug_build_all_shared_fn,
+    )
+    test_install_add_subdirectory_clang_debug_build_all_tests_shared = Task(
+        "Build Clang Debug test install (dynamic; all_tests; add_subdirectory)",
+        test_install_add_subdirectory_clang_debug_build_all_tests_shared_fn,
+    )
+    test_install_add_subdirectory_clang_relwithdebinfo_build_all_shared = Task(
+        "Build Clang RelWithDebInfo test install (dynamic; all; add_subdirectory)",
+        test_install_add_subdirectory_clang_relwithdebinfo_build_all_shared_fn,
+    )
+    test_install_add_subdirectory_clang_relwithdebinfo_build_all_tests_shared = Task(
+        "Build Clang RelWithDebInfo test install (dynamic; all_tests; add_subdirectory)",
+        test_install_add_subdirectory_clang_relwithdebinfo_build_all_tests_shared_fn,
+    )
+    test_install_add_subdirectory_clang_release_build_all_shared = Task(
+        "Build Clang Release test install (dynamic; all; add_subdirectory)",
+        test_install_add_subdirectory_clang_release_build_all_shared_fn,
+    )
+    test_install_add_subdirectory_clang_release_build_all_tests_shared = Task(
+        "Build Clang Release test install (dynamic; all_tests; add_subdirectory)",
+        test_install_add_subdirectory_clang_release_build_all_tests_shared_fn,
+    )
+
+    test_install_add_subdirectory_gcc_debug_test_shared = Task(
+        "Test GCC Debug test install (dynamic; add_subdirectory)",
+        test_install_add_subdirectory_gcc_debug_test_shared_fn,
+    )
+    test_install_add_subdirectory_gcc_relwithdebinfo_test_shared = Task(
+        "Test GCC RelWithDebInfo test install (dynamic; add_subdirectory)",
+        test_install_add_subdirectory_gcc_relwithdebinfo_test_shared_fn,
+    )
+    test_install_add_subdirectory_gcc_release_test_shared = Task(
+        "Test GCC Release test install (dynamic; add_subdirectory)",
+        test_install_add_subdirectory_gcc_release_test_shared_fn,
+    )
+    test_install_add_subdirectory_clang_debug_test_shared = Task(
+        "Test Clang Debug test install (dynamic; add_subdirectory)",
+        test_install_add_subdirectory_clang_debug_test_shared_fn,
+    )
+    test_install_add_subdirectory_clang_relwithdebinfo_test_shared = Task(
+        "Test Clang RelWithDebInfo test install (dynamic; add_subdirectory)",
+        test_install_add_subdirectory_clang_relwithdebinfo_test_shared_fn,
+    )
+    test_install_add_subdirectory_clang_release_test_shared = Task(
+        "Test Clang Release test install (dynamic; add_subdirectory)",
+        test_install_add_subdirectory_clang_release_test_shared_fn,
+    )
+
+    test_install_add_subdirectory_gcc_debug_build_all_shared.depends_on(
+        [test_install_add_subdirectory_gcc_configure_shared]
+    )
+    test_install_add_subdirectory_gcc_debug_build_all_tests_shared.depends_on(
+        [test_install_add_subdirectory_gcc_debug_build_all_shared]
+    )
+    test_install_add_subdirectory_gcc_debug_test_shared.depends_on(
+        [test_install_add_subdirectory_gcc_debug_build_all_tests_shared]
+    )
+
+    test_install_add_subdirectory_gcc_relwithdebinfo_build_all_shared.depends_on(
+        [test_install_add_subdirectory_gcc_configure_shared]
+    )
+    test_install_add_subdirectory_gcc_relwithdebinfo_build_all_tests_shared.depends_on(
+        [test_install_add_subdirectory_gcc_relwithdebinfo_build_all_shared]
+    )
+    test_install_add_subdirectory_gcc_relwithdebinfo_test_shared.depends_on(
+        [test_install_add_subdirectory_gcc_relwithdebinfo_build_all_tests_shared]
+    )
+    test_install_add_subdirectory_gcc_release_build_all_shared.depends_on(
+        [test_install_add_subdirectory_gcc_configure_shared]
+    )
+    test_install_add_subdirectory_gcc_release_build_all_tests_shared.depends_on(
+        [test_install_add_subdirectory_gcc_release_build_all_shared]
+    )
+    test_install_add_subdirectory_gcc_release_test_shared.depends_on(
+        [test_install_add_subdirectory_gcc_release_build_all_tests_shared]
+    )
+    test_install_add_subdirectory_clang_debug_build_all_shared.depends_on(
+        [test_install_add_subdirectory_clang_configure_shared]
+    )
+    test_install_add_subdirectory_clang_debug_build_all_tests_shared.depends_on(
+        [test_install_add_subdirectory_clang_debug_build_all_shared]
+    )
+    test_install_add_subdirectory_clang_debug_test_shared.depends_on(
+        [test_install_add_subdirectory_clang_debug_build_all_tests_shared]
+    )
+    test_install_add_subdirectory_clang_relwithdebinfo_build_all_shared.depends_on(
+        [test_install_add_subdirectory_clang_configure_shared]
+    )
+    test_install_add_subdirectory_clang_relwithdebinfo_build_all_tests_shared.depends_on(
+        [test_install_add_subdirectory_clang_relwithdebinfo_build_all_shared]
+    )
+    test_install_add_subdirectory_clang_relwithdebinfo_test_shared.depends_on(
+        [test_install_add_subdirectory_clang_relwithdebinfo_build_all_tests_shared]
+    )
+    test_install_add_subdirectory_clang_release_build_all_shared.depends_on(
+        [test_install_add_subdirectory_clang_configure_shared]
+    )
+    test_install_add_subdirectory_clang_release_build_all_tests_shared.depends_on(
+        [test_install_add_subdirectory_clang_release_build_all_shared]
+    )
+    test_install_add_subdirectory_clang_release_test_shared.depends_on(
+        [test_install_add_subdirectory_clang_release_build_all_tests_shared]
+    )
+
     root_dependencies = []
 
     if mode.clean:
@@ -2748,45 +4405,105 @@ def main() -> int:
 
     if mode.gcc:
         if mode.debug:
-            root_dependencies.append(build_gcc_debug_all)
+            if mode.static_lib:
+                root_dependencies.append(build_gcc_debug_all)
+            if mode.shared_lib:
+                root_dependencies.append(build_gcc_debug_all_shared)
             if mode.test:
-                root_dependencies.append(test_gcc_debug)
+                if mode.static_lib:
+                    root_dependencies.append(test_gcc_debug)
+                if mode.shared_lib:
+                    root_dependencies.append(test_gcc_debug_shared)
             if mode.install:
-                root_dependencies.append(install_gcc_debug)
+                if mode.static_lib:
+                    root_dependencies.append(install_gcc_debug)
+                if mode.shared_lib:
+                    root_dependencies.append(install_gcc_debug_shared)
 
         if mode.release:
-            root_dependencies.append(build_gcc_relwithdebinfo_all)
+            if mode.static_lib:
+                root_dependencies.append(build_gcc_relwithdebinfo_all)
+            if mode.shared_lib:
+                root_dependencies.append(build_gcc_relwithdebinfo_all_shared)
             if mode.test:
-                root_dependencies.append(test_gcc_relwithdebinfo)
+                if mode.static_lib:
+                    root_dependencies.append(test_gcc_relwithdebinfo)
+                if mode.shared_lib:
+                    root_dependencies.append(test_gcc_relwithdebinfo_shared)
             if mode.install:
-                root_dependencies.append(install_gcc_relwithdebinfo)
+                if mode.static_lib:
+                    root_dependencies.append(install_gcc_relwithdebinfo)
+                if mode.shared_lib:
+                    root_dependencies.append(install_gcc_relwithdebinfo_shared)
 
-            root_dependencies.append(build_gcc_release_all)
+            if mode.static_lib:
+                root_dependencies.append(build_gcc_release_all)
+            if mode.shared_lib:
+                root_dependencies.append(build_gcc_release_all_shared)
             if mode.test:
-                root_dependencies.append(test_gcc_release)
+                if mode.static_lib:
+                    root_dependencies.append(test_gcc_release)
+                if mode.shared_lib:
+                    root_dependencies.append(test_gcc_release_shared)
             if mode.install:
-                root_dependencies.append(install_gcc_release)
+                if mode.static_lib:
+                    root_dependencies.append(install_gcc_release)
+                if mode.shared_lib:
+                    root_dependencies.append(install_gcc_release_shared)
 
     if mode.clang:
         if mode.debug:
-            root_dependencies.append(build_clang_debug_all)
+            if mode.static_lib:
+                root_dependencies.append(build_clang_debug_all)
+            if mode.shared_lib:
+                root_dependencies.append(build_clang_debug_all_shared)
             if mode.test:
-                root_dependencies.append(test_clang_debug)
+                if mode.static_lib:
+                    root_dependencies.append(test_clang_debug)
+                if mode.shared_lib:
+                    root_dependencies.append(test_clang_debug_shared)
             if mode.install:
-                root_dependencies.append(install_clang_debug)
+                if mode.static_lib:
+                    root_dependencies.append(install_clang_debug)
+                if mode.shared_lib:
+                    root_dependencies.append(install_clang_debug_shared)
 
         if mode.release:
-            root_dependencies.append(build_clang_relwithdebinfo_all)
+            if mode.static_lib:
+                root_dependencies.append(build_clang_relwithdebinfo_all)
+            if mode.shared_lib:
+                root_dependencies.append(build_clang_relwithdebinfo_all_shared)
             if mode.test:
-                root_dependencies.append(test_clang_relwithdebinfo)
+                if mode.static_lib:
+                    root_dependencies.append(test_clang_relwithdebinfo)
+                if mode.shared_lib:
+                    root_dependencies.append(test_clang_relwithdebinfo_shared)
             if mode.install:
-                root_dependencies.append(install_clang_relwithdebinfo)
+                if mode.static_lib:
+                    root_dependencies.append(install_clang_relwithdebinfo)
+                if mode.shared_lib:
+                    root_dependencies.append(install_clang_relwithdebinfo_shared)
 
-            root_dependencies.append(build_clang_release_all)
+            if mode.static_lib:
+                root_dependencies.append(build_clang_release_all)
+            if mode.shared_lib:
+                root_dependencies.append(build_clang_release_all_shared)
             if mode.test:
-                root_dependencies.append(test_clang_release)
+                if mode.static_lib:
+                    root_dependencies.append(test_clang_release)
+                if mode.shared_lib:
+                    root_dependencies.append(test_clang_release_shared)
             if mode.install:
-                root_dependencies.append(install_clang_release)
+                if mode.static_lib:
+                    root_dependencies.append(install_clang_release)
+                if mode.shared_lib:
+                    root_dependencies.append(install_clang_release_shared)
+
+    if mode.install:
+        if mode.static_lib:
+            root_dependencies.append(verify_install_contents_static)
+        if mode.shared_lib:
+            root_dependencies.append(verify_install_contents_shared)
 
     if mode.coverage:
         if mode.gcc:
@@ -2800,60 +4517,130 @@ def main() -> int:
 
     if mode.test_install:
         if mode.gcc:
-            if mode.debug:
-                root_dependencies.append(
-                    test_install_find_package_no_version_gcc_debug_test
-                )
-                root_dependencies.append(
-                    test_install_find_package_exact_version_gcc_debug_test
-                )
-                root_dependencies.append(test_install_add_subdirectory_gcc_debug_test)
-            if mode.release:
-                root_dependencies.append(
-                    test_install_find_package_no_version_gcc_relwithdebinfo_test
-                )
-                root_dependencies.append(
-                    test_install_find_package_no_version_gcc_release_test
-                )
-                root_dependencies.append(
-                    test_install_find_package_exact_version_gcc_relwithdebinfo_test
-                )
-                root_dependencies.append(
-                    test_install_find_package_exact_version_gcc_release_test
-                )
-                root_dependencies.append(
-                    test_install_add_subdirectory_gcc_relwithdebinfo_test
-                )
-                root_dependencies.append(test_install_add_subdirectory_gcc_release_test)
+            if mode.static_lib:
+                if mode.debug:
+                    root_dependencies.append(
+                        test_install_find_package_no_version_gcc_debug_test
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_exact_version_gcc_debug_test
+                    )
+                    root_dependencies.append(
+                        test_install_add_subdirectory_gcc_debug_test
+                    )
+                if mode.release:
+                    root_dependencies.append(
+                        test_install_find_package_no_version_gcc_relwithdebinfo_test
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_no_version_gcc_release_test
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_exact_version_gcc_relwithdebinfo_test
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_exact_version_gcc_release_test
+                    )
+                    root_dependencies.append(
+                        test_install_add_subdirectory_gcc_relwithdebinfo_test
+                    )
+                    root_dependencies.append(
+                        test_install_add_subdirectory_gcc_release_test
+                    )
+
+            if mode.shared_lib:
+                if mode.debug:
+                    root_dependencies.append(
+                        test_install_find_package_no_version_gcc_debug_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_exact_version_gcc_debug_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_add_subdirectory_gcc_debug_test_shared
+                    )
+                if mode.release:
+                    root_dependencies.append(
+                        test_install_find_package_no_version_gcc_relwithdebinfo_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_no_version_gcc_release_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_exact_version_gcc_relwithdebinfo_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_exact_version_gcc_release_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_add_subdirectory_gcc_relwithdebinfo_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_add_subdirectory_gcc_release_test_shared
+                    )
 
         if mode.clang:
-            if mode.debug:
-                root_dependencies.append(
-                    test_install_find_package_no_version_clang_debug_test
-                )
-                root_dependencies.append(
-                    test_install_find_package_exact_version_clang_debug_test
-                )
-                root_dependencies.append(test_install_add_subdirectory_clang_debug_test)
-            if mode.release:
-                root_dependencies.append(
-                    test_install_find_package_no_version_clang_relwithdebinfo_test
-                )
-                root_dependencies.append(
-                    test_install_find_package_no_version_clang_release_test
-                )
-                root_dependencies.append(
-                    test_install_find_package_exact_version_clang_relwithdebinfo_test
-                )
-                root_dependencies.append(
-                    test_install_find_package_exact_version_clang_release_test
-                )
-                root_dependencies.append(
-                    test_install_add_subdirectory_clang_relwithdebinfo_test
-                )
-                root_dependencies.append(
-                    test_install_add_subdirectory_clang_release_test
-                )
+            if mode.static_lib:
+                if mode.debug:
+                    root_dependencies.append(
+                        test_install_find_package_no_version_clang_debug_test
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_exact_version_clang_debug_test
+                    )
+                    root_dependencies.append(
+                        test_install_add_subdirectory_clang_debug_test
+                    )
+                if mode.release:
+                    root_dependencies.append(
+                        test_install_find_package_no_version_clang_relwithdebinfo_test
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_no_version_clang_release_test
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_exact_version_clang_relwithdebinfo_test
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_exact_version_clang_release_test
+                    )
+                    root_dependencies.append(
+                        test_install_add_subdirectory_clang_relwithdebinfo_test
+                    )
+                    root_dependencies.append(
+                        test_install_add_subdirectory_clang_release_test
+                    )
+
+            if mode.shared_lib:
+                if mode.debug:
+                    root_dependencies.append(
+                        test_install_find_package_no_version_clang_debug_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_exact_version_clang_debug_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_add_subdirectory_clang_debug_test_shared
+                    )
+                if mode.release:
+                    root_dependencies.append(
+                        test_install_find_package_no_version_clang_relwithdebinfo_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_no_version_clang_release_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_exact_version_clang_relwithdebinfo_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_find_package_exact_version_clang_release_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_add_subdirectory_clang_relwithdebinfo_test_shared
+                    )
+                    root_dependencies.append(
+                        test_install_add_subdirectory_clang_release_test_shared
+                    )
 
     if mode.misc:
         root_dependencies.append(misc_checks)
