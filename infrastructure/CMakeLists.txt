@@ -190,6 +190,8 @@ if(DEFINED PRESET_BUILD_WAYPOINT_TESTS_jsGLwkD9eVN5hzRr)
   new_impl_test(090_assert)
 
   new_cxx_std_11_test(091_cxx_std_11)
+
+  new_multifile_test(092_multifile_test)
 endif()
 
 prepare_installation()

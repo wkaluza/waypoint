@@ -203,6 +203,23 @@ function(new_cxx_std_11_test name)
     ${PUBLIC_LIBRARY_NAME})
 endfunction()
 
+function(new_multifile_test name)
+  new_target(
+    TEST
+    TARGET
+    ${name}
+    DIRECTORY
+    test/functional_tests/${name}
+    SOURCES
+    main.cpp
+    test0.cpp
+    test1.cpp
+    test2.cpp
+    test3.cpp
+    LINKS
+    ${PUBLIC_LIBRARY_NAME})
+endfunction()
+
 function(new_impl_test name)
   new_basic_test(${name})
   target_link_libraries(${name} PRIVATE ${INTERNAL_LIBRARIES})
