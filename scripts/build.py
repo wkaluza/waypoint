@@ -351,7 +351,12 @@ class NewEnv:
 
 
 def ns_to_string(nanos) -> str:
-    if nanos > 10**9:
+    if nanos > 60 * 10**9:
+        minutes = int(nanos / (60 * 10**9))
+        seconds = int((nanos % (60 * 10**9)) / (10**9))
+
+        return f"{minutes}m {seconds}s"
+    elif nanos > 10**9:
         return f"{round(nanos / 10 ** 9, 1)}s"
     elif nanos > 10**6:
         return f"{round(nanos / 10 ** 6, 1)}ms"
