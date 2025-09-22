@@ -1,85 +1,30 @@
 include_guard(GLOBAL)
 
-set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
-
-set(WAYPOINT_INTERNAL_HEADER_DIR ${PROJECT_ROOT_DIR}/src/waypoint/internal)
-set(WAYPOINT_OWN_HEADER_DIR ${PROJECT_ROOT_DIR}/src/waypoint/include/waypoint)
-
-set(PUBLIC_LIBRARY_NAME waypoint)
-set(INTERNAL_LIBRARIES assert coverage process)
-
-function(new_target_)
-  set(options PUBLIC_LIBRARY INTERNAL_LIBRARY TEST
-              ENABLE_EXCEPTIONS_IN_COVERAGE EXCLUDE_FROM_ALL)
-  set(singleValueKeywords DIRECTORY TARGET CPP_STANDARD)
-  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
-  cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
-                        "${singleValueKeywords}" "${multiValueKeywords}")
-
-  if(arg_TEST)
-    add_executable(${arg_TARGET})
-    set_target_properties(${arg_TARGET} PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-    if(TARGET all_tests)
-      add_dependencies(all_tests ${arg_TARGET})
-    endif()
-
-    add_test(NAME test_${arg_TARGET} COMMAND $<TARGET_FILE:${arg_TARGET}>)
-    set_tests_properties(test_${arg_TARGET} PROPERTIES LABELS test)
-    set_tests_properties(
-      test_${arg_TARGET}
-      PROPERTIES ENVIRONMENT
-                 WAYPOINT_INTERNAL_RUNNING_TEST_XTSyiOp7QMFW8P2H=123)
-
-    add_test(
-      NAME valgrind_${arg_TARGET}
-      COMMAND valgrind --leak-check=yes --error-exitcode=1
-              $<TARGET_FILE:${arg_TARGET}>
-      CONFIGURATIONS Debug)
-    set_tests_properties(valgrind_${arg_TARGET} PROPERTIES LABELS valgrind)
-    set_tests_properties(
-      valgrind_${arg_TARGET}
-      PROPERTIES ENVIRONMENT
-                 WAYPOINT_INTERNAL_RUNNING_TEST_XTSyiOp7QMFW8P2H=123)
-    if(DEFINED arg_CPP_STANDARD)
-      target_compile_features(${arg_TARGET} PRIVATE ${arg_CPP_STANDARD})
-    endif()
+macro(add_to_all_tests)
+  if(TARGET all_tests)
+    add_dependencies(all_tests ${arg_TARGET})
   endif()
-  if(arg_INTERNAL_LIBRARY)
-    add_library(${arg_TARGET} STATIC)
-    target_compile_features(
-      ${arg_TARGET}
-      PRIVATE cxx_std_23
-      PUBLIC cxx_std_23)
-  endif()
-  if(arg_PUBLIC_LIBRARY)
-    add_library(${arg_TARGET})
-    target_compile_features(
-      ${arg_TARGET}
-      PRIVATE cxx_std_23
-      PUBLIC cxx_std_11)
-  endif()
+endmacro()
 
-  if(BUILD_SHARED_LIBS)
-    set_property(TARGET ${arg_TARGET} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
-  endif()
+macro(define_tests)
+  add_test(NAME test_${arg_TARGET} COMMAND $<TARGET_FILE:${arg_TARGET}>)
+  set_tests_properties(test_${arg_TARGET} PROPERTIES LABELS test)
+  set_tests_properties(
+    test_${arg_TARGET}
+    PROPERTIES ENVIRONMENT WAYPOINT_INTERNAL_RUNNING_TEST_XTSyiOp7QMFW8P2H=123)
 
-  if(arg_EXCLUDE_FROM_ALL)
-    set_target_properties(${arg_TARGET} PROPERTIES EXCLUDE_FROM_ALL TRUE)
-  endif()
+  add_test(
+    NAME valgrind_${arg_TARGET}
+    COMMAND valgrind --leak-check=yes --error-exitcode=1
+            $<TARGET_FILE:${arg_TARGET}>
+    CONFIGURATIONS Debug)
+  set_tests_properties(valgrind_${arg_TARGET} PROPERTIES LABELS valgrind)
+  set_tests_properties(
+    valgrind_${arg_TARGET}
+    PROPERTIES ENVIRONMENT WAYPOINT_INTERNAL_RUNNING_TEST_XTSyiOp7QMFW8P2H=123)
+endmacro()
 
-  if(DEFINED PRESET_ENABLE_COVERAGE)
-    target_compile_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
-    target_link_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
-
-    if(NOT arg_ENABLE_EXCEPTIONS_IN_COVERAGE)
-      target_compile_options(${arg_TARGET} PRIVATE -fno-exceptions)
-    endif()
-
-    target_compile_definitions(
-      ${arg_TARGET} PRIVATE WAYPOINT_INTERNAL_COVERAGE_IOm5lSCCB6p0j19)
-  endif()
-
+macro(links_and_sources)
   if(DEFINED arg_SOURCES)
     target_sources(${arg_TARGET} PRIVATE ${arg_SOURCES})
   endif()
@@ -87,61 +32,42 @@ function(new_target_)
   if(DEFINED arg_LINKS)
     target_link_libraries(${arg_TARGET} PRIVATE ${arg_LINKS})
   endif()
+endmacro()
 
-  if(DEFINED arg_DIRECTORY)
-    if(DEFINED arg_PRIVATE_HEADERS)
-      target_sources(
-        ${arg_TARGET}
-        PRIVATE FILE_SET
-                internal_headers_${arg_TARGET}
-                TYPE
-                HEADERS
-                BASE_DIRS
-                ${arg_DIRECTORY}/internal
-                FILES
-                ${arg_PRIVATE_HEADERS})
-    endif()
+macro(exclude_from_all)
+  set_target_properties(${arg_TARGET} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+endmacro()
 
-    if(DEFINED arg_PUBLIC_HEADERS)
-      add_library(library_own_headers_${arg_TARGET} INTERFACE)
-      target_sources(
-        library_own_headers_${arg_TARGET}
-        INTERFACE FILE_SET
-                  own_headers_${arg_TARGET}
-                  TYPE
-                  HEADERS
-                  BASE_DIRS
-                  ${arg_DIRECTORY}/include/${arg_TARGET}
-                  FILES
-                  ${arg_PUBLIC_HEADERS})
+macro(do_not_install_public_headers)
+  header_file_sets_and_libraries()
 
-      add_library(library_interface_headers_${arg_TARGET} INTERFACE)
-      target_sources(
-        library_interface_headers_${arg_TARGET}
-        INTERFACE FILE_SET
-                  interface_headers_${arg_TARGET}
-                  TYPE
-                  HEADERS
-                  BASE_DIRS
-                  ${arg_DIRECTORY}/include
-                  FILES
-                  ${arg_PUBLIC_HEADERS})
-
-      if(arg_PUBLIC_LIBRARY)
-        target_link_libraries(
-          ${arg_TARGET}
-          PUBLIC library_interface_headers_${arg_TARGET}
-          PRIVATE $<BUILD_LOCAL_INTERFACE:library_own_headers_${arg_TARGET}>)
-      else()
-        target_link_libraries(
-          ${arg_TARGET}
-          PUBLIC
-            $<BUILD_LOCAL_INTERFACE:library_interface_headers_${arg_TARGET}>
-          PRIVATE $<BUILD_LOCAL_INTERFACE:library_own_headers_${arg_TARGET}>)
-      endif()
-    endif()
+  if(DEFINED arg_PUBLIC_HEADERS)
+    target_link_libraries(
+      ${arg_TARGET}
+      PUBLIC $<BUILD_LOCAL_INTERFACE:library_interface_headers_${arg_TARGET}>
+      PRIVATE $<BUILD_LOCAL_INTERFACE:library_own_headers_${arg_TARGET}>)
   endif()
+endmacro()
 
+macro(install_public_headers)
+  header_file_sets_and_libraries()
+
+  if(DEFINED arg_PUBLIC_HEADERS)
+    target_link_libraries(
+      ${arg_TARGET}
+      PUBLIC library_interface_headers_${arg_TARGET}
+      PRIVATE $<BUILD_LOCAL_INTERFACE:library_own_headers_${arg_TARGET}>)
+  endif()
+endmacro()
+
+macro(conditionally_enable_pic)
+  if(BUILD_SHARED_LIBS)
+    set_target_properties(${arg_TARGET} PROPERTIES POSITION_INDEPENDENT_CODE
+                                                   TRUE)
+  endif()
+endmacro()
+
+macro(standard_presets)
   if(DEFINED PRESET_ELEVATED_COMPILER_WARNINGS)
     separate_arguments(PRESET_ELEVATED_COMPILER_WARNINGS)
     target_compile_options(${arg_TARGET}
@@ -170,178 +96,271 @@ function(new_target_)
       ${arg_TARGET} PROPERTIES EXPORT_COMPILE_COMMANDS
                                ${PRESET_PROP_EXPORT_COMPILE_COMMANDS})
   endif()
+endmacro()
+
+macro(conditionally_enable_coverage)
+  if(DEFINED PRESET_ENABLE_COVERAGE)
+    target_compile_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
+    target_link_options(${arg_TARGET} PRIVATE ${PRESET_ENABLE_COVERAGE})
+
+    target_compile_definitions(
+      ${arg_TARGET} PRIVATE WAYPOINT_INTERNAL_COVERAGE_IOm5lSCCB6p0j19)
+  endif()
+endmacro()
+
+macro(disable_exceptions_in_coverage_mode)
+  if(DEFINED PRESET_ENABLE_COVERAGE)
+    target_compile_options(${arg_TARGET} PRIVATE -fno-exceptions)
+  endif()
+endmacro()
+
+macro(header_file_sets_and_libraries)
+  if(NOT DEFINED arg_TARGET OR NOT DEFINED arg_DIRECTORY)
+    message(FATAL_ERROR "header_file_sets_and_libraries error")
+  endif()
+
+  if(DEFINED arg_PRIVATE_HEADERS)
+    target_sources(
+      ${arg_TARGET}
+      PRIVATE FILE_SET
+              internal_headers_${arg_TARGET}
+              TYPE
+              HEADERS
+              BASE_DIRS
+              ${arg_DIRECTORY}/internal
+              FILES
+              ${arg_PRIVATE_HEADERS})
+  endif()
+
+  if(DEFINED arg_PUBLIC_HEADERS)
+    add_library(library_own_headers_${arg_TARGET} INTERFACE)
+    target_sources(
+      library_own_headers_${arg_TARGET}
+      INTERFACE FILE_SET
+                own_headers_${arg_TARGET}
+                TYPE
+                HEADERS
+                BASE_DIRS
+                ${arg_DIRECTORY}/include/${arg_TARGET}
+                FILES
+                ${arg_PUBLIC_HEADERS})
+
+    add_library(library_interface_headers_${arg_TARGET} INTERFACE)
+    target_sources(
+      library_interface_headers_${arg_TARGET}
+      INTERFACE FILE_SET
+                interface_headers_${arg_TARGET}
+                TYPE
+                HEADERS
+                BASE_DIRS
+                ${arg_DIRECTORY}/include
+                FILES
+                ${arg_PUBLIC_HEADERS})
+  endif()
+endmacro()
+
+macro(prepare_paths)
+  set(PROJECT_ROOT_DIR_iUj6dGn1gNrOcYQ7 ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
+  if(DEFINED arg_DIRECTORY)
+    set(arg_DIRECTORY ${PROJECT_ROOT_DIR_iUj6dGn1gNrOcYQ7}/${arg_DIRECTORY})
+  endif()
+  if(DEFINED arg_SOURCES)
+    list(TRANSFORM arg_SOURCES PREPEND ${arg_DIRECTORY}/)
+  endif()
+  if(DEFINED arg_PRIVATE_HEADERS)
+    list(TRANSFORM arg_PRIVATE_HEADERS PREPEND ${arg_DIRECTORY}/internal/)
+  endif()
+  if(DEFINED arg_PUBLIC_HEADERS)
+    list(TRANSFORM arg_PUBLIC_HEADERS
+         PREPEND ${arg_DIRECTORY}/include/${arg_TARGET}/)
+  endif()
+endmacro()
+
+macro(prepare_platform_specific_paths)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(operating_system_name "linux")
+  endif()
+
+  set(PROJECT_ROOT_DIR_wzKU1TwtQcyRd9pA ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
+  if(DEFINED arg_DIRECTORY)
+    set(arg_DIRECTORY ${PROJECT_ROOT_DIR_wzKU1TwtQcyRd9pA}/${arg_DIRECTORY})
+  endif()
+  if(DEFINED arg_SOURCES)
+    list(TRANSFORM arg_SOURCES
+         PREPEND ${arg_DIRECTORY}/${operating_system_name}/)
+  endif()
+  if(DEFINED arg_PRIVATE_HEADERS)
+    list(TRANSFORM arg_PRIVATE_HEADERS PREPEND ${arg_DIRECTORY}/internal/)
+  endif()
+  if(DEFINED arg_PUBLIC_HEADERS)
+    list(TRANSFORM arg_PUBLIC_HEADERS
+         PREPEND ${arg_DIRECTORY}/include/${arg_TARGET}/)
+  endif()
+endmacro()
+
+macro(common_macros)
+  links_and_sources()
+  conditionally_enable_coverage()
+  standard_presets()
+endmacro()
+
+macro(common_test_macros)
+  exclude_from_all()
+  add_to_all_tests()
+  define_tests()
+  disable_exceptions_in_coverage_mode()
+endmacro()
+
+function(new_public_library)
+  set(options PLACEHOLDER_OPTION)
+  set(singleValueKeywords DIRECTORY TARGET)
+  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
+  cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
+                        "${singleValueKeywords}" "${multiValueKeywords}")
+
+  prepare_paths()
+
+  add_library(${arg_TARGET})
+  target_compile_features(
+    ${arg_TARGET}
+    PRIVATE cxx_std_23
+    PUBLIC cxx_std_11)
+
+  install_public_headers()
+  disable_exceptions_in_coverage_mode()
+  conditionally_enable_pic()
+  common_macros()
+endfunction()
+
+function(new_internal_library)
+  set(options PLACEHOLDER_OPTION)
+  set(singleValueKeywords DIRECTORY TARGET)
+  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
+  cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
+                        "${singleValueKeywords}" "${multiValueKeywords}")
+
+  prepare_paths()
+
+  add_library(${arg_TARGET} STATIC)
+  target_compile_features(
+    ${arg_TARGET}
+    PRIVATE cxx_std_23
+    PUBLIC cxx_std_23)
+
+  do_not_install_public_headers()
+  disable_exceptions_in_coverage_mode()
+  conditionally_enable_pic()
+  common_macros()
+endfunction()
+
+function(new_platform_specific_internal_library)
+  set(options PLACEHOLDER_OPTION)
+  set(singleValueKeywords DIRECTORY TARGET)
+  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
+  cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
+                        "${singleValueKeywords}" "${multiValueKeywords}")
+
+  prepare_platform_specific_paths()
+
+  add_library(${arg_TARGET} STATIC)
+  target_compile_features(
+    ${arg_TARGET}
+    PRIVATE cxx_std_23
+    PUBLIC cxx_std_23)
+
+  do_not_install_public_headers()
+  disable_exceptions_in_coverage_mode()
+  conditionally_enable_pic()
+  common_macros()
+endfunction()
+
+function(new_test_library)
+  set(options PLACEHOLDER_OPTION)
+  set(singleValueKeywords DIRECTORY TARGET)
+  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
+  cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
+                        "${singleValueKeywords}" "${multiValueKeywords}")
+
+  prepare_paths()
+
+  add_library(${arg_TARGET} STATIC)
+  target_compile_features(
+    ${arg_TARGET}
+    PRIVATE cxx_std_23
+    PUBLIC cxx_std_23)
+
+  do_not_install_public_headers()
+  exclude_from_all()
+  common_macros()
 endfunction()
 
 function(new_basic_test name)
-  new_target(
-    TEST
-    TARGET
-    ${name}
-    DIRECTORY
-    test/functional_tests/${name}
-    CPP_STANDARD
-    cxx_std_23
-    SOURCES
-    main.cpp
-    LINKS
-    test_helpers
-    ${PUBLIC_LIBRARY_NAME})
-endfunction()
+  set(arg_TARGET ${name})
+  set(arg_DIRECTORY test/functional_tests/${name})
+  set(arg_SOURCES main.cpp)
+  set(arg_LINKS waypoint test_helpers)
 
-function(new_cxx_std_11_test name)
-  new_target(
-    TEST
-    TARGET
-    ${name}
-    DIRECTORY
-    test/functional_tests/${name}
-    CPP_STANDARD
-    cxx_std_11
-    SOURCES
-    main.cpp
-    LINKS
-    ${PUBLIC_LIBRARY_NAME})
-endfunction()
+  prepare_paths()
 
-function(new_multifile_test name)
-  new_target(
-    TEST
-    TARGET
-    ${name}
-    DIRECTORY
-    test/functional_tests/${name}
-    SOURCES
-    main.cpp
-    test0.cpp
-    test1.cpp
-    test2.cpp
-    test3.cpp
-    LINKS
-    ${PUBLIC_LIBRARY_NAME})
+  add_executable(${arg_TARGET})
+  target_compile_features(${arg_TARGET} PRIVATE cxx_std_23)
+
+  common_test_macros()
+  common_macros()
 endfunction()
 
 function(new_impl_test name)
-  new_basic_test(${name})
-  target_link_libraries(${name} PRIVATE ${INTERNAL_LIBRARIES})
-  target_include_directories(${name} PRIVATE ${WAYPOINT_INTERNAL_HEADER_DIR}
-                                             ${WAYPOINT_OWN_HEADER_DIR})
+  set(arg_TARGET ${name})
+  set(arg_DIRECTORY test/functional_tests/${name})
+  set(arg_SOURCES main.cpp)
+  set(arg_LINKS waypoint test_helpers)
+
+  prepare_paths()
+
+  set(PROJECT_ROOT_DIR_s2GsE9Ma9zBssF2X ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
+  add_executable(${arg_TARGET})
+  target_compile_features(${arg_TARGET} PRIVATE cxx_std_23)
+  target_link_libraries(${name} PRIVATE assert coverage process)
+  target_include_directories(
+    ${name}
+    PRIVATE ${PROJECT_ROOT_DIR_s2GsE9Ma9zBssF2X}/src/waypoint/internal
+            ${PROJECT_ROOT_DIR_s2GsE9Ma9zBssF2X}/src/waypoint/include/waypoint)
+
+  common_test_macros()
+  common_macros()
 endfunction()
 
-function(new_target)
-  set(options PUBLIC_LIBRARY INTERNAL_LIBRARY TEST
-              ENABLE_EXCEPTIONS_IN_COVERAGE EXCLUDE_FROM_ALL)
-  set(singleValueKeywords DIRECTORY TARGET CPP_STANDARD)
-  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
-  cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
-                        "${singleValueKeywords}" "${multiValueKeywords}")
+function(new_cxx_std_11_test name)
+  set(arg_TARGET ${name})
+  set(arg_DIRECTORY test/functional_tests/${name})
+  set(arg_SOURCES main.cpp)
+  set(arg_LINKS waypoint)
 
-  if(arg_PUBLIC_LIBRARY)
-    set(type PUBLIC_LIBRARY)
-  endif()
-  if(arg_INTERNAL_LIBRARY)
-    set(type INTERNAL_LIBRARY)
-  endif()
-  if(arg_TEST)
-    set(type TEST)
-  endif()
+  prepare_paths()
 
-  if(arg_ENABLE_EXCEPTIONS_IN_COVERAGE)
-    set(exceptions ENABLE_EXCEPTIONS_IN_COVERAGE)
-  else()
-    set(exceptions "")
-  endif()
+  add_executable(${arg_TARGET})
+  target_compile_features(${arg_TARGET} PRIVATE cxx_std_11)
 
-  if(arg_EXCLUDE_FROM_ALL)
-    set(exclude_from_all EXCLUDE_FROM_ALL)
-  else()
-    set(exclude_from_all "")
-  endif()
-
-  list(TRANSFORM arg_SOURCES PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/)
-  list(TRANSFORM arg_PRIVATE_HEADERS
-       PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/internal/)
-  list(TRANSFORM arg_PUBLIC_HEADERS
-       PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/include/${arg_TARGET}/)
-
-  new_target_(
-    ${type}
-    ${exceptions}
-    ${exclude_from_all}
-    TARGET
-    ${arg_TARGET}
-    DIRECTORY
-    ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}
-    CPP_STANDARD
-    ${arg_CPP_STANDARD}
-    SOURCES
-    ${arg_SOURCES}
-    PRIVATE_HEADERS
-    ${arg_PRIVATE_HEADERS}
-    PUBLIC_HEADERS
-    ${arg_PUBLIC_HEADERS}
-    LINKS
-    ${arg_LINKS})
+  common_test_macros()
+  common_macros()
 endfunction()
 
-function(new_platform_specific_target)
-  set(options PUBLIC_LIBRARY INTERNAL_LIBRARY TEST
-              ENABLE_EXCEPTIONS_IN_COVERAGE EXCLUDE_FROM_ALL)
-  set(singleValueKeywords DIRECTORY TARGET CPP_STANDARD)
-  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
-  cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
-                        "${singleValueKeywords}" "${multiValueKeywords}")
+function(new_multifile_test name)
+  set(arg_TARGET ${name})
+  set(arg_DIRECTORY test/functional_tests/${name})
+  set(arg_SOURCES main.cpp test0.cpp test1.cpp test2.cpp test3.cpp)
+  set(arg_LINKS waypoint)
 
-  if(arg_PUBLIC_LIBRARY)
-    set(type PUBLIC_LIBRARY)
-  endif()
-  if(arg_INTERNAL_LIBRARY)
-    set(type INTERNAL_LIBRARY)
-  endif()
-  if(arg_TEST)
-    set(type TEST)
-  endif()
+  prepare_paths()
 
-  if(arg_ENABLE_EXCEPTIONS_IN_COVERAGE)
-    set(exceptions ENABLE_EXCEPTIONS_IN_COVERAGE)
-  else()
-    set(exceptions "")
-  endif()
+  add_executable(${arg_TARGET})
+  target_compile_features(${arg_TARGET} PRIVATE cxx_std_23)
 
-  if(arg_EXCLUDE_FROM_ALL)
-    set(exclude_from_all EXCLUDE_FROM_ALL)
-  else()
-    set(exclude_from_all "")
-  endif()
-
-  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set(system_name "linux")
-  endif()
-
-  list(TRANSFORM arg_SOURCES
-       PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/${system_name}/)
-  list(TRANSFORM arg_PRIVATE_HEADERS
-       PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/internal/)
-  list(TRANSFORM arg_PUBLIC_HEADERS
-       PREPEND ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}/include/${arg_TARGET}/)
-
-  new_target_(
-    ${type}
-    ${exceptions}
-    ${exclude_from_all}
-    TARGET
-    ${arg_TARGET}
-    DIRECTORY
-    ${PROJECT_ROOT_DIR}/${arg_DIRECTORY}
-    CPP_STANDARD
-    ${arg_CPP_STANDARD}
-    SOURCES
-    ${arg_SOURCES}
-    PRIVATE_HEADERS
-    ${arg_PRIVATE_HEADERS}
-    PUBLIC_HEADERS
-    ${arg_PUBLIC_HEADERS}
-    LINKS
-    ${arg_LINKS})
+  common_test_macros()
+  common_macros()
 endfunction()
 
 function(prepare_installation)

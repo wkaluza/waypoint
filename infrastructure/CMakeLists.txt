@@ -12,8 +12,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries" FALSE)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/tools.cmake)
 
-new_platform_specific_target(
-  INTERNAL_LIBRARY
+new_platform_specific_internal_library(
   TARGET
   coverage
   DIRECTORY
@@ -23,8 +22,7 @@ new_platform_specific_target(
   PUBLIC_HEADERS
   coverage.hpp)
 
-new_target(
-  INTERNAL_LIBRARY
+new_internal_library(
   TARGET
   assert
   DIRECTORY
@@ -36,8 +34,7 @@ new_target(
   LINKS
   coverage)
 
-new_platform_specific_target(
-  INTERNAL_LIBRARY
+new_platform_specific_internal_library(
   TARGET
   process
   DIRECTORY
@@ -50,8 +47,7 @@ new_platform_specific_target(
   assert
   coverage)
 
-new_target(
-  PUBLIC_LIBRARY
+new_public_library(
   TARGET
   waypoint
   DIRECTORY
@@ -74,10 +70,7 @@ new_target(
 if(DEFINED PRESET_BUILD_WAYPOINT_TESTS_jsGLwkD9eVN5hzRr)
   add_custom_target(all_tests)
 
-  new_target(
-    INTERNAL_LIBRARY
-    ENABLE_EXCEPTIONS_IN_COVERAGE
-    EXCLUDE_FROM_ALL
+  new_test_library(
     TARGET
     test_helpers
     DIRECTORY
