@@ -1,4 +1,14 @@
-# Forthright unit testing
+# Lucid unit testing
+
+## Contents
+
+1. [Introduction](#introduction)
+2. [Quick start](#quick-start)
+    1. [The build-and-install method (recommended)](#the-build-and-install-method-recommended)
+    2. [The add_subdirectory method](#the-add_subdirectory-method)
+3. [Contributing](#contributing)
+
+## Introduction
 
 The Waypoint project is a minimalistic unit testing framework written
 in modern C++.
@@ -119,3 +129,11 @@ target_compile_features(the_answer PRIVATE cxx_std_11)
 
 # TODO: add test executable
 ```
+
+### The add_subdirectory method
+
+TODO
+
+## Contributing
+
+TODO
