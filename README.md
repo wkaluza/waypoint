@@ -1,4 +1,4 @@
-# Lucid unit testing
+# Lucid unit testing with Waypoint
 
 ## Contents
 
@@ -10,8 +10,8 @@
 
 ## Introduction
 
-The Waypoint project is a minimalistic unit testing framework written
-in modern C++.
+Waypoint is a minimalistic unit testing framework written in modern
+C++.
 It aims to be stable, intuitive, and quick to master.
 Below are some of Waypoint's stand-out features.
 
@@ -61,76 +61,21 @@ cmake --install build___ --prefix waypoint_install___ --config Release
 ```
 
 If all went well, the directory `waypoint_install___` now exists.
-You are free to rename it if you like.
+You are free to rename it if you wish.
 Copy this directory into your test project's directory, possibly adding
-it to your `.gitignore` file. 
+it to your `.gitignore` file.
 
-Below is a minimal C++ CMake project which makes use of the build
-artifacts.
-All files are assumed to be in the same directory together with
+In the `examples/quick_start1` directory of this repository, there is
+a minimal C++ CMake test project which makes use of the build artifacts in
 `waypoint_install___`.
 
-`the_answer.hpp`
-
-```c++
-#pragma once
-
-namespace stuff {
-
-int the_answer() noexcept;
-
-}
-```
-
-`the_answer.cpp`
-
-```c++
-#include "the_answer.hpp"
-
-namespace stuff {
-
-int the_answer() noexcept
-{
-  return 42;
-}
-
-}
-```
-
-`CMakeLists.txt`
-
-```cmake
-cmake_minimum_required(VERSION 4.0)
-
-project(
-  test_project
-  VERSION 1.0.0
-  DESCRIPTION "Test project"
-  LANGUAGES CXX)
-
-enable_testing()
-
-find_package(
-  waypoint
-  REQUIRED
-  CONFIG
-  PATHS ${CMAKE_CURRENT_SOURCE_DIR}/waypoint_install___/cmake
-  NO_DEFAULT_PATH)
-
-add_library(the_answer)
-target_sources(the_answer
-  PRIVATE the_answer.cpp
-  PUBLIC
-  FILE_SET the_answer_public_headers
-  TYPE HEADERS
-  BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
-  FILES the_answer.hpp)
-target_compile_features(the_answer PRIVATE cxx_std_11)
-
-# TODO: add test executable
-```
+TODO: describe how to build and run test project
 
 ### The add_subdirectory method
+
+TODO
+
+### Providing your own entry point
 
 TODO
 
