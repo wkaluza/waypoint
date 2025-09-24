@@ -70,7 +70,6 @@ new_implementation_library(
   process)
 
 new_implementation_library(
-  STATIC
   TARGET
   waypoint_main_impl
   DIRECTORY

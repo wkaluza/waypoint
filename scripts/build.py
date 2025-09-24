@@ -457,20 +457,20 @@ def verify_installation_contents_shared_(preset) -> bool:
         "cmake/waypoint-config-version.cmake",
         "include/waypoint/waypoint.hpp",
         "lib/Debug/libwaypoint_impl.so",
+        "lib/Debug/libwaypoint_main_impl.so",
         "lib/RelWithDebInfo/libwaypoint_impl.so",
+        "lib/RelWithDebInfo/libwaypoint_main_impl.so",
         "lib/Release/libwaypoint_impl.so",
+        "lib/Release/libwaypoint_main_impl.so",
         "lib/Debug/libassert.a",
         "lib/Debug/libcoverage.a",
         "lib/Debug/libprocess.a",
-        "lib/Debug/libwaypoint_main_impl.a",
         "lib/RelWithDebInfo/libassert.a",
         "lib/RelWithDebInfo/libcoverage.a",
         "lib/RelWithDebInfo/libprocess.a",
-        "lib/RelWithDebInfo/libwaypoint_main_impl.a",
         "lib/Release/libassert.a",
         "lib/Release/libcoverage.a",
         "lib/Release/libprocess.a",
-        "lib/Release/libwaypoint_main_impl.a",
     ]
 
     files = find_files_by_name(install_dir, lambda x: True)

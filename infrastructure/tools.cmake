@@ -238,7 +238,7 @@ macro(common_test_macros)
 endmacro()
 
 function(new_implementation_library)
-  set(options STATIC)
+  set(options PLACEHOLDER_OPTION)
   set(singleValueKeywords DIRECTORY TARGET INCLUDE_PREFIX)
   set(multiValueKeywords PRIVATE_LINKS PUBLIC_LINKS PRIVATE_HEADERS
                          PUBLIC_HEADERS SOURCES)
@@ -247,11 +247,7 @@ function(new_implementation_library)
 
   prepare_paths()
 
-  if(arg_STATIC)
-    add_library(${arg_TARGET} STATIC)
-  else()
-    add_library(${arg_TARGET})
-  endif()
+  add_library(${arg_TARGET})
   target_compile_features(
     ${arg_TARGET}
     PRIVATE cxx_std_23
