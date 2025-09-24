@@ -419,22 +419,27 @@ def verify_installation_contents_static_(preset) -> bool:
         "lib/Debug/libassert.a",
         "lib/Debug/libcoverage.a",
         "lib/Debug/libprocess.a",
-        "lib/Debug/libwaypoint.a",
+        "lib/Debug/libwaypoint_impl.a",
+        "lib/Debug/libwaypoint_main_impl.a",
         "lib/RelWithDebInfo/libassert.a",
         "lib/RelWithDebInfo/libcoverage.a",
         "lib/RelWithDebInfo/libprocess.a",
-        "lib/RelWithDebInfo/libwaypoint.a",
+        "lib/RelWithDebInfo/libwaypoint_impl.a",
+        "lib/RelWithDebInfo/libwaypoint_main_impl.a",
         "lib/Release/libassert.a",
         "lib/Release/libcoverage.a",
         "lib/Release/libprocess.a",
-        "lib/Release/libwaypoint.a",
+        "lib/Release/libwaypoint_impl.a",
+        "lib/Release/libwaypoint_main_impl.a",
     ]
 
     files = find_files_by_name(install_dir, lambda x: True)
     for expected in expected_files:
-        assert os.path.realpath(f"{install_dir}/{expected}") in files
+        assert (
+            os.path.realpath(f"{install_dir}/{expected}") in files
+        ), f"File not found: {os.path.realpath(f'{install_dir}/{expected}')}"
 
-    assert len(files) == len(expected_files)
+    assert len(files) == len(expected_files), "Unexpected files are present"
 
     return True
 
@@ -449,16 +454,30 @@ def verify_installation_contents_shared_(preset) -> bool:
         "cmake/waypoint-config-release.cmake",
         "cmake/waypoint-config-version.cmake",
         "include/waypoint/waypoint.hpp",
-        "lib/Debug/libwaypoint.so",
-        "lib/RelWithDebInfo/libwaypoint.so",
-        "lib/Release/libwaypoint.so",
+        "lib/Debug/libwaypoint_impl.so",
+        "lib/RelWithDebInfo/libwaypoint_impl.so",
+        "lib/Release/libwaypoint_impl.so",
+        "lib/Debug/libassert.a",
+        "lib/Debug/libcoverage.a",
+        "lib/Debug/libprocess.a",
+        "lib/Debug/libwaypoint_main_impl.a",
+        "lib/RelWithDebInfo/libassert.a",
+        "lib/RelWithDebInfo/libcoverage.a",
+        "lib/RelWithDebInfo/libprocess.a",
+        "lib/RelWithDebInfo/libwaypoint_main_impl.a",
+        "lib/Release/libassert.a",
+        "lib/Release/libcoverage.a",
+        "lib/Release/libprocess.a",
+        "lib/Release/libwaypoint_main_impl.a",
     ]
 
     files = find_files_by_name(install_dir, lambda x: True)
     for expected in expected_files:
-        assert os.path.realpath(f"{install_dir}/{expected}") in files
+        assert (
+            os.path.realpath(f"{install_dir}/{expected}") in files
+        ), f"File not found: {os.path.realpath(f'{install_dir}/{expected}')}"
 
-    assert len(files) == len(expected_files)
+    assert len(files) == len(expected_files), "Unexpected files are present"
 
     return True
 

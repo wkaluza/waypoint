@@ -31,7 +31,7 @@ new_internal_library(
   assert.cpp
   PUBLIC_HEADERS
   assert.hpp
-  LINKS
+  PRIVATE_LINKS
   coverage)
 
 new_platform_specific_internal_library(
@@ -43,15 +43,17 @@ new_platform_specific_internal_library(
   process.cpp
   PUBLIC_HEADERS
   process.hpp
-  LINKS
+  PRIVATE_LINKS
   assert
   coverage)
 
-new_public_library(
+new_implementation_library(
   TARGET
-  waypoint
+  waypoint_impl
   DIRECTORY
   src/waypoint
+  INCLUDE_PREFIX
+  waypoint
   SOURCES
   function.cpp
   impls.cpp
@@ -63,9 +65,24 @@ new_public_library(
   PRIVATE_HEADERS
   impls.hpp
   types.hpp
-  LINKS
+  PRIVATE_LINKS
   coverage
   process)
+
+new_implementation_library(
+  STATIC
+  TARGET
+  waypoint_main_impl
+  DIRECTORY
+  src/waypoint
+  SOURCES
+  entry_point.cpp
+  PUBLIC_LINKS
+  waypoint_impl)
+
+new_exported_library(TARGET waypoint INTERFACE_LINKS waypoint_impl)
+
+new_exported_library(TARGET waypoint_main INTERFACE_LINKS waypoint_main_impl)
 
 if(DEFINED PRESET_BUILD_WAYPOINT_TESTS_jsGLwkD9eVN5hzRr)
   add_custom_target(all_tests)
@@ -82,9 +99,9 @@ if(DEFINED PRESET_BUILD_WAYPOINT_TESTS_jsGLwkD9eVN5hzRr)
     test_helpers.hpp
     PRIVATE_HEADERS
     test_helpers_crash.hpp
-    LINKS
+    PRIVATE_LINKS
     coverage
-    waypoint)
+    waypoint_impl)
 
   new_basic_test(000_include_only)
   new_basic_test(001_init_only)
@@ -185,6 +202,10 @@ if(DEFINED PRESET_BUILD_WAYPOINT_TESTS_jsGLwkD9eVN5hzRr)
   new_cxx_std_11_test(091_cxx_std_11)
 
   new_multifile_test(092_multifile_test)
+
+  new_waypoint_main_test(TARGET 093_waypoint_main_pass)
+  new_waypoint_main_test(EXPECTED_FAILURE TARGET 094_waypoint_main_fail)
+  new_waypoint_main_test(EXPECTED_FAILURE TARGET 095_waypoint_main_error)
 endif()
 
 prepare_installation()

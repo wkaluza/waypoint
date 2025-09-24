@@ -13,6 +13,10 @@ macro(define_tests)
     test_${arg_TARGET}
     PROPERTIES ENVIRONMENT WAYPOINT_INTERNAL_RUNNING_TEST_XTSyiOp7QMFW8P2H=123)
 
+  if(DEFINED arg_EXPECTED_FAILURE AND arg_EXPECTED_FAILURE)
+    set_tests_properties(test_${arg_TARGET} PROPERTIES WILL_FAIL TRUE)
+  endif()
+
   add_test(
     NAME valgrind_${arg_TARGET}
     COMMAND valgrind --leak-check=yes --error-exitcode=1
@@ -22,6 +26,10 @@ macro(define_tests)
   set_tests_properties(
     valgrind_${arg_TARGET}
     PROPERTIES ENVIRONMENT WAYPOINT_INTERNAL_RUNNING_TEST_XTSyiOp7QMFW8P2H=123)
+
+  if(DEFINED arg_EXPECTED_FAILURE AND arg_EXPECTED_FAILURE)
+    set_tests_properties(valgrind_${arg_TARGET} PROPERTIES WILL_FAIL TRUE)
+  endif()
 endmacro()
 
 macro(links_and_sources)
@@ -29,8 +37,17 @@ macro(links_and_sources)
     target_sources(${arg_TARGET} PRIVATE ${arg_SOURCES})
   endif()
 
-  if(DEFINED arg_LINKS)
-    target_link_libraries(${arg_TARGET} PRIVATE ${arg_LINKS})
+  if(DEFINED arg_PRIVATE_LINKS)
+    target_link_libraries(${arg_TARGET} PRIVATE ${arg_PRIVATE_LINKS})
+  endif()
+  if(DEFINED arg_PUBLIC_LINKS)
+    target_link_libraries(${arg_TARGET} PUBLIC ${arg_PUBLIC_LINKS})
+  endif()
+endmacro()
+
+macro(interface_links)
+  if(DEFINED arg_INTERFACE_LINKS)
+    target_link_libraries(${arg_TARGET} INTERFACE ${arg_INTERFACE_LINKS})
   endif()
 endmacro()
 
@@ -133,6 +150,10 @@ macro(header_file_sets_and_libraries)
   endif()
 
   if(DEFINED arg_PUBLIC_HEADERS)
+    if(NOT DEFINED arg_INCLUDE_PREFIX)
+      set(arg_INCLUDE_PREFIX ${arg_TARGET})
+    endif()
+
     add_library(library_own_headers_${arg_TARGET} INTERFACE)
     target_sources(
       library_own_headers_${arg_TARGET}
@@ -141,7 +162,7 @@ macro(header_file_sets_and_libraries)
                 TYPE
                 HEADERS
                 BASE_DIRS
-                ${arg_DIRECTORY}/include/${arg_TARGET}
+                ${arg_DIRECTORY}/include/${arg_INCLUDE_PREFIX}
                 FILES
                 ${arg_PUBLIC_HEADERS})
 
@@ -172,8 +193,11 @@ macro(prepare_paths)
     list(TRANSFORM arg_PRIVATE_HEADERS PREPEND ${arg_DIRECTORY}/internal/)
   endif()
   if(DEFINED arg_PUBLIC_HEADERS)
+    if(NOT DEFINED arg_INCLUDE_PREFIX)
+      set(arg_INCLUDE_PREFIX ${arg_TARGET})
+    endif()
     list(TRANSFORM arg_PUBLIC_HEADERS
-         PREPEND ${arg_DIRECTORY}/include/${arg_TARGET}/)
+         PREPEND ${arg_DIRECTORY}/include/${arg_INCLUDE_PREFIX}/)
   endif()
 endmacro()
 
@@ -213,16 +237,21 @@ macro(common_test_macros)
   disable_exceptions_in_coverage_mode()
 endmacro()
 
-function(new_public_library)
-  set(options PLACEHOLDER_OPTION)
-  set(singleValueKeywords DIRECTORY TARGET)
-  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
+function(new_implementation_library)
+  set(options STATIC)
+  set(singleValueKeywords DIRECTORY TARGET INCLUDE_PREFIX)
+  set(multiValueKeywords PRIVATE_LINKS PUBLIC_LINKS PRIVATE_HEADERS
+                         PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
                         "${singleValueKeywords}" "${multiValueKeywords}")
 
   prepare_paths()
 
-  add_library(${arg_TARGET})
+  if(arg_STATIC)
+    add_library(${arg_TARGET} STATIC)
+  else()
+    add_library(${arg_TARGET})
+  endif()
   target_compile_features(
     ${arg_TARGET}
     PRIVATE cxx_std_23
@@ -234,10 +263,25 @@ function(new_public_library)
   common_macros()
 endfunction()
 
+function(new_exported_library)
+  set(options PLACEHOLDER_OPTION)
+  set(singleValueKeywords TARGET)
+  set(multiValueKeywords INTERFACE_LINKS)
+  cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
+                        "${singleValueKeywords}" "${multiValueKeywords}")
+
+  prepare_paths()
+
+  add_library(${arg_TARGET} INTERFACE)
+  target_compile_features(${arg_TARGET} INTERFACE cxx_std_11)
+
+  interface_links()
+endfunction()
+
 function(new_internal_library)
   set(options PLACEHOLDER_OPTION)
   set(singleValueKeywords DIRECTORY TARGET)
-  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
+  set(multiValueKeywords PRIVATE_LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
                         "${singleValueKeywords}" "${multiValueKeywords}")
 
@@ -258,7 +302,7 @@ endfunction()
 function(new_platform_specific_internal_library)
   set(options PLACEHOLDER_OPTION)
   set(singleValueKeywords DIRECTORY TARGET)
-  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
+  set(multiValueKeywords PRIVATE_LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
                         "${singleValueKeywords}" "${multiValueKeywords}")
 
@@ -279,7 +323,7 @@ endfunction()
 function(new_test_library)
   set(options PLACEHOLDER_OPTION)
   set(singleValueKeywords DIRECTORY TARGET)
-  set(multiValueKeywords LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
+  set(multiValueKeywords PRIVATE_LINKS PRIVATE_HEADERS PUBLIC_HEADERS SOURCES)
   cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
                         "${singleValueKeywords}" "${multiValueKeywords}")
 
@@ -300,7 +344,27 @@ function(new_basic_test name)
   set(arg_TARGET ${name})
   set(arg_DIRECTORY test/functional_tests/${name})
   set(arg_SOURCES main.cpp)
-  set(arg_LINKS waypoint test_helpers)
+  set(arg_PRIVATE_LINKS waypoint test_helpers)
+
+  prepare_paths()
+
+  add_executable(${arg_TARGET})
+  target_compile_features(${arg_TARGET} PRIVATE cxx_std_23)
+
+  common_test_macros()
+  common_macros()
+endfunction()
+
+function(new_waypoint_main_test)
+  set(options EXPECTED_FAILURE)
+  set(singleValueKeywords TARGET)
+  set(multiValueKeywords PLACEHOLDER_MULTI_VALUE)
+  cmake_parse_arguments(PARSE_ARGV 0 "arg" "${options}"
+                        "${singleValueKeywords}" "${multiValueKeywords}")
+
+  set(arg_DIRECTORY test/functional_tests/${arg_TARGET})
+  set(arg_SOURCES main.cpp)
+  set(arg_PRIVATE_LINKS waypoint_main test_helpers)
 
   prepare_paths()
 
@@ -315,7 +379,7 @@ function(new_impl_test name)
   set(arg_TARGET ${name})
   set(arg_DIRECTORY test/functional_tests/${name})
   set(arg_SOURCES main.cpp)
-  set(arg_LINKS waypoint test_helpers)
+  set(arg_PRIVATE_LINKS waypoint test_helpers)
 
   prepare_paths()
 
@@ -337,7 +401,7 @@ function(new_cxx_std_11_test name)
   set(arg_TARGET ${name})
   set(arg_DIRECTORY test/functional_tests/${name})
   set(arg_SOURCES main.cpp)
-  set(arg_LINKS waypoint)
+  set(arg_PRIVATE_LINKS waypoint)
 
   prepare_paths()
 
@@ -352,7 +416,7 @@ function(new_multifile_test name)
   set(arg_TARGET ${name})
   set(arg_DIRECTORY test/functional_tests/${name})
   set(arg_SOURCES main.cpp test0.cpp test1.cpp test2.cpp test3.cpp)
-  set(arg_LINKS waypoint)
+  set(arg_PRIVATE_LINKS waypoint)
 
   prepare_paths()
 
@@ -365,21 +429,35 @@ endfunction()
 
 function(prepare_installation)
   add_library(waypoint::waypoint ALIAS waypoint)
+  add_library(waypoint::waypoint_main ALIAS waypoint_main)
 
   if(BUILD_SHARED_LIBS)
     install(
-      TARGETS waypoint library_interface_headers_waypoint
+      TARGETS waypoint
+              waypoint_impl
+              waypoint_main
+              waypoint_main_impl
+              assert
+              coverage
+              process
+              library_interface_headers_waypoint_impl
       EXPORT waypoint-targets
-      FILE_SET interface_headers_waypoint
+      FILE_SET interface_headers_waypoint_impl
       ARCHIVE DESTINATION lib/$<CONFIG>
       LIBRARY DESTINATION lib/$<CONFIG>
       RUNTIME DESTINATION bin/$<CONFIG>)
   else()
     install(
-      TARGETS waypoint assert coverage process
-              library_interface_headers_waypoint
+      TARGETS waypoint
+              waypoint_impl
+              waypoint_main
+              waypoint_main_impl
+              assert
+              coverage
+              process
+              library_interface_headers_waypoint_impl
       EXPORT waypoint-targets
-      FILE_SET interface_headers_waypoint
+      FILE_SET interface_headers_waypoint_impl
       ARCHIVE DESTINATION lib/$<CONFIG>
       LIBRARY DESTINATION lib/$<CONFIG>
       RUNTIME DESTINATION bin/$<CONFIG>)
