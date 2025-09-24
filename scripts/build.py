@@ -107,6 +107,8 @@ assert os.path.isfile(
     f"{TEST_INSTALL_ADD_SUBDIRECTORY_CMAKE_SOURCE_DIR}/CMakePresets.json"
 )
 
+EXAMPLES_DIR_PATH = os.path.realpath(f"{PROJECT_ROOT_DIR}/examples")
+
 JOBS = os.process_cpu_count()
 
 CLANG20_ENV_PATCH = {"CC": "clang-20", "CXX": "clang++-20"}
@@ -838,6 +840,7 @@ def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str |
 def run_clang_static_analysis_all_files_fn() -> bool:
     files = find_files_by_name(PROJECT_ROOT_DIR, is_cpp_file)
     files = [f for f in files if not f.startswith(INSTALL_TESTS_DIR_PATH)]
+    files = [f for f in files if not f.startswith(EXAMPLES_DIR_PATH)]
 
     return run_clang_tidy(CMakePresets.LinuxClang, files)
 
@@ -845,6 +848,7 @@ def run_clang_static_analysis_all_files_fn() -> bool:
 def run_clang_static_analysis_changed_files_fn() -> bool:
     files = changed_cpp_files_and_dependents(CMakePresets.LinuxClang)
     files = [f for f in files if not f.startswith(INSTALL_TESTS_DIR_PATH)]
+    files = [f for f in files if not f.startswith(EXAMPLES_DIR_PATH)]
 
     return run_clang_tidy(CMakePresets.LinuxClang, files)
 

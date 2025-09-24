@@ -1,0 +1,17 @@
+#include "the_answer.hpp"
+
+#include "waypoint/waypoint.hpp"
+
+WAYPOINT_AUTORUN(waypoint::TestRun const &t)
+{
+  auto const g = t.group("the_answer tests");
+
+  t.test(g, "two answers are better than one")
+    .run(
+      [](waypoint::Context const &ctx)
+      {
+        ctx.assert(
+          2 * stuff::the_answer() > stuff::the_answer(),
+          "two answers are better than one");
+      });
+}

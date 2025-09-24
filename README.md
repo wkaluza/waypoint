@@ -49,27 +49,47 @@ To build Waypoint and install the artifacts to a specified location,
 execute the following commands.
 
 ```shell
-CC=clang-20 CXX=clang++-20 cmake -S infrastructure -B build___ -G "Ninja Multi-Config"
+# you may use -DBUILD_SHARED_LIBS=TRUE if you wish to produce a dynamic library
+CC=clang-20 CXX=clang++-20 cmake -S infrastructure -B waypoint_build___ -G "Ninja Multi-Config"
 
-cmake --build build___ --config Debug
-cmake --build build___ --config RelWithDebInfo
-cmake --build build___ --config Release
+cmake --build waypoint_build___ --config Debug
+cmake --build waypoint_build___ --config RelWithDebInfo
+cmake --build waypoint_build___ --config Release
 
-cmake --install build___ --prefix waypoint_install___ --config Debug
-cmake --install build___ --prefix waypoint_install___ --config RelWithDebInfo
-cmake --install build___ --prefix waypoint_install___ --config Release
+cmake --install waypoint_build___ --prefix waypoint_install___ --config Debug
+cmake --install waypoint_build___ --prefix waypoint_install___ --config RelWithDebInfo
+cmake --install waypoint_build___ --prefix waypoint_install___ --config Release
 ```
 
 If all went well, the directory `waypoint_install___` now exists.
-You are free to rename it if you wish.
-Copy this directory into your test project's directory, possibly adding
-it to your `.gitignore` file.
+You are free to rename it if you wish, but for the purposes of this
+example, let us keep the name as it is.
 
 In the `examples/quick_start1` directory of this repository, there is
 a minimal C++ CMake test project which makes use of the build artifacts in
 `waypoint_install___`.
 
-TODO: describe how to build and run test project
+To build and run the test project, start by copying
+`waypoint_install___` into `examples/quick_start1`.
+In a production scenario, you would probably also add it to your
+`.gitignore` file.
+
+```shell
+cd examples/quick_start1
+cp --recursive ../../waypoint_install___ ./
+
+cmake -S ./ -B build___ -G "Ninja Multi-Config"
+cmake --build build___ --config Debug
+
+# Run the tests directly
+./build___/Debug/test_program
+
+cd build___
+# Run the tests with ctest
+ctest --build-config Debug
+```
+
+TODO: add and use presets file in quick start test project
 
 ### The add_subdirectory method
 
