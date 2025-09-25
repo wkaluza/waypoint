@@ -127,6 +127,7 @@ class ModeConfig:
     release: bool = False
     static_analysis: bool = False
     test: bool = False
+    test_target: bool = False
     valgrind: bool = False
     coverage: bool = False
     misc: bool = False
@@ -155,6 +156,7 @@ class Mode(enum.Enum):
         release=True,
         static_analysis=True,
         test=True,
+        test_target=True,
         valgrind=True,
         coverage=True,
         misc=True,
@@ -175,6 +177,7 @@ class Mode(enum.Enum):
         release=True,
         static_analysis=True,
         test=True,
+        test_target=True,
         valgrind=True,
         coverage=True,
         misc=True,
@@ -261,6 +264,10 @@ class Mode(enum.Enum):
     @property
     def test(self):
         return self.config.test
+
+    @property
+    def test_target(self):
+        return self.config.test_target
 
     @property
     def valgrind(self):
@@ -758,7 +765,7 @@ def configure_cmake(preset, env_patch, cmake_source_dir) -> bool:
     return True
 
 
-def build_cmake(config, preset, env_patch, cmake_source_dir, target):
+def build_cmake(config, preset, env_patch, cmake_source_dir, target) -> bool:
     env = os.environ.copy()
     env.update(env_patch)
     with NewEnv(env):
@@ -3142,6 +3149,126 @@ def test_install_add_subdirectory_clang_release_test_shared_fn() -> bool:
     )
 
 
+def test_clang_debug_test_target_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "test",
+    )
+
+
+def test_clang_relwithdebinfo_test_target_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "test",
+    )
+
+
+def test_clang_release_test_target_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClang,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "test",
+    )
+
+
+def test_clang_debug_test_target_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "test",
+    )
+
+
+def test_clang_relwithdebinfo_test_target_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "test",
+    )
+
+
+def test_clang_release_test_target_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxClangShared,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "test",
+    )
+
+
+def test_gcc_debug_test_target_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "test",
+    )
+
+
+def test_gcc_relwithdebinfo_test_target_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "test",
+    )
+
+
+def test_gcc_release_test_target_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGcc,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "test",
+    )
+
+
+def test_gcc_debug_test_target_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "test",
+    )
+
+
+def test_gcc_relwithdebinfo_test_target_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "test",
+    )
+
+
+def test_gcc_release_test_target_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.LinuxGccShared,
+        GCC15_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "test",
+    )
+
+
 def main() -> int:
     config, success = preamble()
     if not success:
@@ -3154,6 +3281,16 @@ def main() -> int:
         "Test Clang RelWithDebInfo (static)", test_clang_relwithdebinfo_fn
     )
     test_clang_release = Task("Test Clang Release (static)", test_clang_release_fn)
+    test_clang_debug_test_target = Task(
+        "Build Clang Debug test target (static)", test_clang_debug_test_target_fn
+    )
+    test_clang_relwithdebinfo_test_target = Task(
+        "Build Clang RelWithDebInfo test target (static)",
+        test_clang_relwithdebinfo_test_target_fn,
+    )
+    test_clang_release_test_target = Task(
+        "Build Clang Release test target (static)", test_clang_release_test_target_fn
+    )
     build_clang_debug_all = Task(
         "Build Clang Debug (static; all)", build_clang_debug_all_fn
     )
@@ -3186,6 +3323,18 @@ def main() -> int:
     )
     test_clang_release_shared = Task(
         "Test Clang Release (dynamic)", test_clang_release_shared_fn
+    )
+    test_clang_debug_test_target_shared = Task(
+        "Build Clang Debug test target (dynamic)",
+        test_clang_debug_test_target_shared_fn,
+    )
+    test_clang_relwithdebinfo_test_target_shared = Task(
+        "Build Clang RelWithDebInfo test target (dynamic)",
+        test_clang_relwithdebinfo_test_target_shared_fn,
+    )
+    test_clang_release_test_target_shared = Task(
+        "Build Clang Release test target (dynamic)",
+        test_clang_release_test_target_shared_fn,
     )
     build_clang_debug_all_shared = Task(
         "Build Clang Debug (dynamic; all)", build_clang_debug_all_shared_fn
@@ -3222,6 +3371,12 @@ def main() -> int:
     build_clang_release_all_tests.depends_on([build_clang_release_all])
     test_clang_release.depends_on([build_clang_release_all_tests])
 
+    test_clang_debug_test_target.depends_on([build_clang_debug_all_tests])
+    test_clang_relwithdebinfo_test_target.depends_on(
+        [build_clang_relwithdebinfo_all_tests]
+    )
+    test_clang_release_test_target.depends_on([build_clang_release_all_tests])
+
     build_clang_debug_all_shared.depends_on([configure_cmake_clang_shared])
     build_clang_debug_all_tests_shared.depends_on([build_clang_debug_all_shared])
     test_clang_debug_shared.depends_on([build_clang_debug_all_tests_shared])
@@ -3236,11 +3391,29 @@ def main() -> int:
     build_clang_release_all_tests_shared.depends_on([build_clang_release_all_shared])
     test_clang_release_shared.depends_on([build_clang_release_all_tests_shared])
 
+    test_clang_debug_test_target_shared.depends_on([build_clang_debug_all_tests_shared])
+    test_clang_relwithdebinfo_test_target_shared.depends_on(
+        [build_clang_relwithdebinfo_all_tests_shared]
+    )
+    test_clang_release_test_target_shared.depends_on(
+        [build_clang_release_all_tests_shared]
+    )
+
     test_gcc_debug = Task("Test GCC Debug (static)", test_gcc_debug_fn)
     test_gcc_relwithdebinfo = Task(
         "Test GCC RelWithDebInfo (static)", test_gcc_relwithdebinfo_fn
     )
     test_gcc_release = Task("Test GCC Release (static)", test_gcc_release_fn)
+    test_gcc_debug_test_target = Task(
+        "Build GCC Debug test target (static)", test_gcc_debug_test_target_fn
+    )
+    test_gcc_relwithdebinfo_test_target = Task(
+        "Build GCC RelWithDebInfo test target (static)",
+        test_gcc_relwithdebinfo_test_target_fn,
+    )
+    test_gcc_release_test_target = Task(
+        "Build GCC Release test target (static)", test_gcc_release_test_target_fn
+    )
     build_gcc_debug_all = Task("Build GCC Debug (static; all)", build_gcc_debug_all_fn)
     build_gcc_debug_all_tests = Task(
         "Build GCC Debug (static; all_tests)", build_gcc_debug_all_tests_fn
@@ -3269,6 +3442,17 @@ def main() -> int:
     )
     test_gcc_release_shared = Task(
         "Test GCC Release (dynamic)", test_gcc_release_shared_fn
+    )
+    test_gcc_debug_test_target_shared = Task(
+        "Build GCC Debug test target (dynamic)", test_gcc_debug_test_target_shared_fn
+    )
+    test_gcc_relwithdebinfo_test_target_shared = Task(
+        "Build GCC RelWithDebInfo test target (dynamic)",
+        test_gcc_relwithdebinfo_test_target_shared_fn,
+    )
+    test_gcc_release_test_target_shared = Task(
+        "Build GCC Release test target (dynamic)",
+        test_gcc_release_test_target_shared_fn,
     )
     build_gcc_debug_all_shared = Task(
         "Build GCC Debug (dynamic; all)", build_gcc_debug_all_shared_fn
@@ -3305,6 +3489,10 @@ def main() -> int:
     build_gcc_release_all_tests.depends_on([build_gcc_release_all])
     test_gcc_release.depends_on([build_gcc_release_all_tests])
 
+    test_gcc_debug_test_target.depends_on([build_gcc_debug_all_tests])
+    test_gcc_relwithdebinfo_test_target.depends_on([build_gcc_relwithdebinfo_all_tests])
+    test_gcc_release_test_target.depends_on([build_gcc_release_all_tests])
+
     build_gcc_debug_all_shared.depends_on([configure_cmake_gcc_shared])
     build_gcc_debug_all_tests_shared.depends_on([build_gcc_debug_all_shared])
     test_gcc_debug_shared.depends_on([build_gcc_debug_all_tests_shared])
@@ -3318,6 +3506,12 @@ def main() -> int:
     build_gcc_release_all_shared.depends_on([configure_cmake_gcc_shared])
     build_gcc_release_all_tests_shared.depends_on([build_gcc_release_all_shared])
     test_gcc_release_shared.depends_on([build_gcc_release_all_tests_shared])
+
+    test_gcc_debug_test_target_shared.depends_on([build_gcc_debug_all_tests_shared])
+    test_gcc_relwithdebinfo_test_target_shared.depends_on(
+        [build_gcc_relwithdebinfo_all_tests_shared]
+    )
+    test_gcc_release_test_target_shared.depends_on([build_gcc_release_all_tests_shared])
 
     install_gcc_debug = Task("Install GCC Debug (static)", install_gcc_debug_fn)
     install_gcc_relwithdebinfo = Task(
@@ -4442,6 +4636,11 @@ def main() -> int:
                     root_dependencies.append(test_gcc_debug)
                 if mode.shared_lib:
                     root_dependencies.append(test_gcc_debug_shared)
+            if mode.test_target:
+                if mode.static_lib:
+                    root_dependencies.append(test_gcc_debug_test_target)
+                if mode.shared_lib:
+                    root_dependencies.append(test_gcc_debug_test_target_shared)
             if mode.install:
                 if mode.static_lib:
                     root_dependencies.append(install_gcc_debug)
@@ -4458,6 +4657,11 @@ def main() -> int:
                     root_dependencies.append(test_gcc_relwithdebinfo)
                 if mode.shared_lib:
                     root_dependencies.append(test_gcc_relwithdebinfo_shared)
+            if mode.test_target:
+                if mode.static_lib:
+                    root_dependencies.append(test_gcc_relwithdebinfo_test_target)
+                if mode.shared_lib:
+                    root_dependencies.append(test_gcc_relwithdebinfo_test_target_shared)
             if mode.install:
                 if mode.static_lib:
                     root_dependencies.append(install_gcc_relwithdebinfo)
@@ -4473,6 +4677,11 @@ def main() -> int:
                     root_dependencies.append(test_gcc_release)
                 if mode.shared_lib:
                     root_dependencies.append(test_gcc_release_shared)
+            if mode.test_target:
+                if mode.static_lib:
+                    root_dependencies.append(test_gcc_release_test_target)
+                if mode.shared_lib:
+                    root_dependencies.append(test_gcc_release_test_target_shared)
             if mode.install:
                 if mode.static_lib:
                     root_dependencies.append(install_gcc_release)
@@ -4490,6 +4699,11 @@ def main() -> int:
                     root_dependencies.append(test_clang_debug)
                 if mode.shared_lib:
                     root_dependencies.append(test_clang_debug_shared)
+            if mode.test_target:
+                if mode.static_lib:
+                    root_dependencies.append(test_clang_debug_test_target)
+                if mode.shared_lib:
+                    root_dependencies.append(test_clang_debug_test_target_shared)
             if mode.install:
                 if mode.static_lib:
                     root_dependencies.append(install_clang_debug)
@@ -4506,6 +4720,13 @@ def main() -> int:
                     root_dependencies.append(test_clang_relwithdebinfo)
                 if mode.shared_lib:
                     root_dependencies.append(test_clang_relwithdebinfo_shared)
+            if mode.test_target:
+                if mode.static_lib:
+                    root_dependencies.append(test_clang_relwithdebinfo_test_target)
+                if mode.shared_lib:
+                    root_dependencies.append(
+                        test_clang_relwithdebinfo_test_target_shared
+                    )
             if mode.install:
                 if mode.static_lib:
                     root_dependencies.append(install_clang_relwithdebinfo)
@@ -4521,6 +4742,11 @@ def main() -> int:
                     root_dependencies.append(test_clang_release)
                 if mode.shared_lib:
                     root_dependencies.append(test_clang_release_shared)
+            if mode.test_target:
+                if mode.static_lib:
+                    root_dependencies.append(test_clang_release_test_target)
+                if mode.shared_lib:
+                    root_dependencies.append(test_clang_release_test_target_shared)
             if mode.install:
                 if mode.static_lib:
                     root_dependencies.append(install_clang_release)
