@@ -81,11 +81,14 @@ cp --recursive ../../waypoint_install___ ./
 cmake -S ./ -B build___ -G "Ninja Multi-Config"
 cmake --build build___ --config Debug
 
-# Run the tests directly
-./build___/Debug/test_program
+# Run the tests with cmake
+cmake \
+  --build build___ \
+  --config Debug \
+  --target test
 
 cd build___
-# Run the tests with ctest
+# Run the tests by calling ctest directly
 ctest --build-config Debug
 ```
 
