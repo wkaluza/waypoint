@@ -627,14 +627,13 @@ def find_files_by_name(dir_path, pred) -> typing.List[str]:
 
 
 def install_cmake(preset, config, working_dir) -> bool:
-    build_dir = build_dir_from_preset(preset, CMAKE_SOURCE_DIR)
-
     with contextlib.chdir(working_dir):
         success, output = run(
             [
                 "cmake",
                 "--build",
-                f"{build_dir}",
+                "--preset",
+                f"{preset.build}",
                 "--target",
                 "install",
                 "--config",
@@ -652,73 +651,73 @@ def install_cmake(preset, config, working_dir) -> bool:
 
 def install_gcc_debug_fn() -> bool:
     return install_cmake(
-        CMakePresets.LinuxGcc, CMakeBuildConfig.Debug, PROJECT_ROOT_DIR
+        CMakePresets.LinuxGcc, CMakeBuildConfig.Debug, CMAKE_SOURCE_DIR
     )
 
 
 def install_gcc_relwithdebinfo_fn() -> bool:
     return install_cmake(
-        CMakePresets.LinuxGcc, CMakeBuildConfig.RelWithDebInfo, PROJECT_ROOT_DIR
+        CMakePresets.LinuxGcc, CMakeBuildConfig.RelWithDebInfo, CMAKE_SOURCE_DIR
     )
 
 
 def install_gcc_release_fn() -> bool:
     return install_cmake(
-        CMakePresets.LinuxGcc, CMakeBuildConfig.Release, PROJECT_ROOT_DIR
+        CMakePresets.LinuxGcc, CMakeBuildConfig.Release, CMAKE_SOURCE_DIR
     )
 
 
 def install_clang_debug_fn() -> bool:
     return install_cmake(
-        CMakePresets.LinuxClang, CMakeBuildConfig.Debug, PROJECT_ROOT_DIR
+        CMakePresets.LinuxClang, CMakeBuildConfig.Debug, CMAKE_SOURCE_DIR
     )
 
 
 def install_clang_relwithdebinfo_fn() -> bool:
     return install_cmake(
-        CMakePresets.LinuxClang, CMakeBuildConfig.RelWithDebInfo, PROJECT_ROOT_DIR
+        CMakePresets.LinuxClang, CMakeBuildConfig.RelWithDebInfo, CMAKE_SOURCE_DIR
     )
 
 
 def install_clang_release_fn() -> bool:
     return install_cmake(
-        CMakePresets.LinuxClang, CMakeBuildConfig.Release, PROJECT_ROOT_DIR
+        CMakePresets.LinuxClang, CMakeBuildConfig.Release, CMAKE_SOURCE_DIR
     )
 
 
 def install_gcc_debug_shared_fn() -> bool:
     return install_cmake(
-        CMakePresets.LinuxGccShared, CMakeBuildConfig.Debug, PROJECT_ROOT_DIR
+        CMakePresets.LinuxGccShared, CMakeBuildConfig.Debug, CMAKE_SOURCE_DIR
     )
 
 
 def install_gcc_relwithdebinfo_shared_fn() -> bool:
     return install_cmake(
-        CMakePresets.LinuxGccShared, CMakeBuildConfig.RelWithDebInfo, PROJECT_ROOT_DIR
+        CMakePresets.LinuxGccShared, CMakeBuildConfig.RelWithDebInfo, CMAKE_SOURCE_DIR
     )
 
 
 def install_gcc_release_shared_fn() -> bool:
     return install_cmake(
-        CMakePresets.LinuxGccShared, CMakeBuildConfig.Release, PROJECT_ROOT_DIR
+        CMakePresets.LinuxGccShared, CMakeBuildConfig.Release, CMAKE_SOURCE_DIR
     )
 
 
 def install_clang_debug_shared_fn() -> bool:
     return install_cmake(
-        CMakePresets.LinuxClangShared, CMakeBuildConfig.Debug, PROJECT_ROOT_DIR
+        CMakePresets.LinuxClangShared, CMakeBuildConfig.Debug, CMAKE_SOURCE_DIR
     )
 
 
 def install_clang_relwithdebinfo_shared_fn() -> bool:
     return install_cmake(
-        CMakePresets.LinuxClangShared, CMakeBuildConfig.RelWithDebInfo, PROJECT_ROOT_DIR
+        CMakePresets.LinuxClangShared, CMakeBuildConfig.RelWithDebInfo, CMAKE_SOURCE_DIR
     )
 
 
 def install_clang_release_shared_fn() -> bool:
     return install_cmake(
-        CMakePresets.LinuxClangShared, CMakeBuildConfig.Release, PROJECT_ROOT_DIR
+        CMakePresets.LinuxClangShared, CMakeBuildConfig.Release, CMAKE_SOURCE_DIR
     )
 
 
