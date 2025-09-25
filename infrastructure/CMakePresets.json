@@ -23,6 +23,11 @@
       ]
     },
     {
+      "configurePreset": "example_config",
+      "hidden": false,
+      "name": "example_build"
+    },
+    {
       "configurePreset": "configure_linux_clang",
       "hidden": false,
       "inherits": [
@@ -142,6 +147,12 @@
       },
       "hidden": true,
       "name": "base_system_linux"
+    },
+    {
+      "binaryDir": "${sourceDir}/../waypoint_build___",
+      "hidden": false,
+      "installDir": "${sourceDir}/../waypoint_install___",
+      "name": "example_config"
     },
     {
       "binaryDir": "${sourceDir}/../build_linux_clang_xgozuT4W2AeFQhlh___",

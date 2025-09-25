@@ -49,16 +49,17 @@ To build Waypoint and install the artifacts to a specified location,
 execute the following commands.
 
 ```shell
+cd infrastructure
 # you may use -DBUILD_SHARED_LIBS=TRUE if you wish to produce a dynamic library
-CC=clang-20 CXX=clang++-20 cmake -S infrastructure -B waypoint_build___ -G "Ninja Multi-Config"
+CC=clang-20 CXX=clang++-20 cmake --preset example_config -G "Ninja Multi-Config"
 
-cmake --build waypoint_build___ --config Debug
-cmake --build waypoint_build___ --config RelWithDebInfo
-cmake --build waypoint_build___ --config Release
+cmake --build --preset example_build --target all --config Debug
+cmake --build --preset example_build --target all --config RelWithDebInfo
+cmake --build --preset example_build --target all --config Release
 
-cmake --install waypoint_build___ --prefix waypoint_install___ --config Debug
-cmake --install waypoint_build___ --prefix waypoint_install___ --config RelWithDebInfo
-cmake --install waypoint_build___ --prefix waypoint_install___ --config Release
+cmake --build --preset example_build --target install --config Debug
+cmake --build --preset example_build --target install --config RelWithDebInfo
+cmake --build --preset example_build --target install --config Release
 ```
 
 If all went well, the directory `waypoint_install___` now exists.
@@ -78,21 +79,15 @@ In a production scenario, you would probably also add it to your
 cd examples/quick_start1
 cp --recursive ../../waypoint_install___ ./
 
-cmake -S ./ -B build___ -G "Ninja Multi-Config"
-cmake --build build___ --config Debug
+cmake --preset quick_start1_config -G "Ninja Multi-Config"
+cmake --build --preset quick_start1_build --config Debug
 
-# Run the tests with cmake
-cmake \
-  --build build___ \
-  --config Debug \
-  --target test
+# Run the tests with CMake
+cmake --build --preset quick_start1_build --target test --config Debug
 
-cd build___
-# Run the tests by calling ctest directly
-ctest --build-config Debug
+# Run the tests by calling CTest directly
+ctest --preset quick_start1_test --build-config Debug
 ```
-
-TODO: add and use presets file in quick start test project
 
 ### The add_subdirectory method
 

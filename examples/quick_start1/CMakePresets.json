@@ -1,0 +1,34 @@
+{
+  "buildPresets": [
+    {
+      "configurePreset": "quick_start1_config",
+      "hidden": false,
+      "name": "quick_start1_build"
+    }
+  ],
+  "configurePresets": [
+    {
+      "binaryDir": "${sourceDir}/build___",
+      "hidden": false,
+      "name": "quick_start1_config"
+    }
+  ],
+  "testPresets": [
+    {
+      "configurePreset": "quick_start1_config",
+      "execution": {
+        "noTestsAction": "error",
+        "scheduleRandom": true,
+        "stopOnFailure": false,
+        "timeout": 3600
+      },
+      "hidden": false,
+      "name": "quick_start1_test",
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "default"
+      }
+    }
+  ],
+  "version": 10
+}
