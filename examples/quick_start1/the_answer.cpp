@@ -1,6 +1,6 @@
 #include "the_answer.hpp"
 
-namespace stuff
+namespace deep_thought
 {
 
 auto the_answer() noexcept -> int
@@ -8,4 +8,4 @@ auto the_answer() noexcept -> int
   return 42;
 }
 
-} // namespace stuff
+} // namespace deep_thought

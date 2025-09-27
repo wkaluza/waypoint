@@ -108,6 +108,12 @@ assert os.path.isfile(
 )
 
 EXAMPLES_DIR_PATH = os.path.realpath(f"{PROJECT_ROOT_DIR}/examples")
+EXAMPLE_QUICK_START_BUILD_AND_INSTALL_CMAKE_SOURCE_DIR = os.path.realpath(
+    f"{EXAMPLES_DIR_PATH}/quick_start1"
+)
+EXAMPLE_QUICK_START_BUILD_AND_INSTALL_WAYPOINT_INSTALL_DIR = os.path.realpath(
+    f"{EXAMPLE_QUICK_START_BUILD_AND_INSTALL_CMAKE_SOURCE_DIR}/waypoint_install___"
+)
 
 JOBS = os.process_cpu_count()
 
@@ -131,6 +137,7 @@ class ModeConfig:
     valgrind: bool = False
     coverage: bool = False
     misc: bool = False
+    examples: bool = False
     install: bool = False
     test_install: bool = False
 
@@ -160,6 +167,7 @@ class Mode(enum.Enum):
         valgrind=True,
         coverage=True,
         misc=True,
+        examples=True,
         install=True,
         test_install=True,
     )
@@ -181,6 +189,7 @@ class Mode(enum.Enum):
         valgrind=True,
         coverage=True,
         misc=True,
+        examples=True,
         install=True,
         test_install=True,
     )
@@ -282,6 +291,10 @@ class Mode(enum.Enum):
         return self.config.misc
 
     @property
+    def examples(self):
+        return self.config.examples
+
+    @property
     def install(self):
         return self.config.install
 
@@ -308,6 +321,16 @@ class CMakePresets(enum.Enum):
         "configure_linux_gcc_coverage",
         "build_linux_gcc_coverage",
         "test_linux_gcc_coverage",
+    )
+    Example = (
+        "example_configure",
+        "example_build",
+        "example_test",
+    )
+    ExampleShared = (
+        "example_configure_shared",
+        "example_build_shared",
+        "example_test_shared",
     )
 
     def __init__(self, configure_preset, build_preset, test_preset):
@@ -685,6 +708,40 @@ def install_clang_release_fn() -> bool:
     )
 
 
+def install_example_clang_debug_fn() -> bool:
+    return install_cmake(CMakePresets.Example, CMakeBuildConfig.Debug, CMAKE_SOURCE_DIR)
+
+
+def install_example_clang_relwithdebinfo_fn() -> bool:
+    return install_cmake(
+        CMakePresets.Example, CMakeBuildConfig.RelWithDebInfo, CMAKE_SOURCE_DIR
+    )
+
+
+def install_example_clang_release_fn() -> bool:
+    return install_cmake(
+        CMakePresets.Example, CMakeBuildConfig.Release, CMAKE_SOURCE_DIR
+    )
+
+
+def install_example_clang_debug_shared_fn() -> bool:
+    return install_cmake(
+        CMakePresets.ExampleShared, CMakeBuildConfig.Debug, CMAKE_SOURCE_DIR
+    )
+
+
+def install_example_clang_relwithdebinfo_shared_fn() -> bool:
+    return install_cmake(
+        CMakePresets.ExampleShared, CMakeBuildConfig.RelWithDebInfo, CMAKE_SOURCE_DIR
+    )
+
+
+def install_example_clang_release_shared_fn() -> bool:
+    return install_cmake(
+        CMakePresets.ExampleShared, CMakeBuildConfig.Release, CMAKE_SOURCE_DIR
+    )
+
+
 def install_gcc_debug_shared_fn() -> bool:
     return install_cmake(
         CMakePresets.LinuxGccShared, CMakeBuildConfig.Debug, CMAKE_SOURCE_DIR
@@ -738,6 +795,16 @@ def configure_cmake_clang_shared_fn() -> bool:
 def configure_cmake_gcc_shared_fn() -> bool:
     return configure_cmake(
         CMakePresets.LinuxGccShared, GCC15_ENV_PATCH, CMAKE_SOURCE_DIR
+    )
+
+
+def configure_example_clang_fn() -> bool:
+    return configure_cmake(CMakePresets.Example, CLANG20_ENV_PATCH, CMAKE_SOURCE_DIR)
+
+
+def configure_example_clang_shared_fn() -> bool:
+    return configure_cmake(
+        CMakePresets.ExampleShared, CLANG20_ENV_PATCH, CMAKE_SOURCE_DIR
     )
 
 
@@ -796,21 +863,22 @@ def run_ctest(
     preset, build_config, jobs, label_include_regex, cmake_source_dir
 ) -> bool:
     with contextlib.chdir(cmake_source_dir):
-        success, output = run(
-            [
-                "ctest",
-                "--preset",
-                preset.test,
-                "--build-config",
-                f"{build_config}",
-                "--timeout",
-                "60",
-                "--parallel",
-                f"{jobs}",
+        cmd = [
+            "ctest",
+            "--preset",
+            preset.test,
+            "--build-config",
+            f"{build_config}",
+            "--parallel",
+            f"{jobs}",
+        ]
+        if label_include_regex is not None:
+            cmd += [
                 "--label-regex",
                 label_include_regex,
             ]
-        )
+
+        success, output = run(cmd)
         if not success:
             if output is not None:
                 print(output)
@@ -1192,6 +1260,66 @@ def analyze_gcc_coverage_fn() -> bool:
         return False
 
     return True
+
+
+def build_example_clang_debug_all_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.Example,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def build_example_clang_relwithdebinfo_all_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.Example,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def build_example_clang_release_all_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.Example,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def build_example_clang_debug_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Debug,
+        CMakePresets.ExampleShared,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def build_example_clang_relwithdebinfo_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.RelWithDebInfo,
+        CMakePresets.ExampleShared,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all",
+    )
+
+
+def build_example_clang_release_all_shared_fn() -> bool:
+    return build_cmake(
+        CMakeBuildConfig.Release,
+        CMakePresets.ExampleShared,
+        CLANG20_ENV_PATCH,
+        CMAKE_SOURCE_DIR,
+        "all",
+    )
 
 
 def build_clang_debug_all_fn() -> bool:
@@ -1775,6 +1903,13 @@ def clean_fn() -> bool:
     remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_CLANG_BUILD_SHARED_DIR)
     remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_GCC_BUILD_DIR)
     remove_dir(TEST_INSTALL_ADD_SUBDIRECTORY_WAYPOINT_GCC_BUILD_SHARED_DIR)
+
+    clean_build_dir(CMakePresets.Example, CMAKE_SOURCE_DIR)
+    clean_install_dir(CMakePresets.Example)
+    clean_build_dir(
+        CMakePresets.Example, EXAMPLE_QUICK_START_BUILD_AND_INSTALL_CMAKE_SOURCE_DIR
+    )
+    remove_dir(EXAMPLE_QUICK_START_BUILD_AND_INSTALL_WAYPOINT_INSTALL_DIR)
 
     return True
 
@@ -3268,6 +3403,87 @@ def test_gcc_release_test_target_shared_fn() -> bool:
     )
 
 
+def example_quick_start1_fn() -> bool:
+    config = CMakeBuildConfig.Release
+    example_cmake_source_dir = EXAMPLE_QUICK_START_BUILD_AND_INSTALL_CMAKE_SOURCE_DIR
+    env_patch = CLANG20_ENV_PATCH
+    build_dir = build_dir_from_preset(CMakePresets.Example, example_cmake_source_dir)
+
+    # use Waypoint as a static library
+    remove_dir(build_dir)
+    remove_dir(EXAMPLE_QUICK_START_BUILD_AND_INSTALL_WAYPOINT_INSTALL_DIR)
+
+    install_dir = install_dir_from_preset(CMakePresets.Example)
+    recursively_copy_dir(
+        install_dir, EXAMPLE_QUICK_START_BUILD_AND_INSTALL_WAYPOINT_INSTALL_DIR
+    )
+
+    success = configure_cmake(CMakePresets.Example, env_patch, example_cmake_source_dir)
+    if not success:
+        return False
+
+    success = build_cmake(
+        config, CMakePresets.Example, env_patch, example_cmake_source_dir, "all"
+    )
+    if not success:
+        return False
+
+    success = build_cmake(
+        config, CMakePresets.Example, env_patch, example_cmake_source_dir, "test"
+    )
+    if not success:
+        return False
+
+    success = run_ctest(
+        CMakePresets.Example, config, JOBS, None, example_cmake_source_dir
+    )
+    if not success:
+        return False
+
+    with contextlib.chdir(example_cmake_source_dir):
+        success, output = run([f"{build_dir}/{config}/test_program"])
+        if not success:
+            return False
+
+    # use Waypoint as a dynamic library
+    remove_dir(build_dir)
+    remove_dir(EXAMPLE_QUICK_START_BUILD_AND_INSTALL_WAYPOINT_INSTALL_DIR)
+
+    install_dir = install_dir_from_preset(CMakePresets.ExampleShared)
+    recursively_copy_dir(
+        install_dir, EXAMPLE_QUICK_START_BUILD_AND_INSTALL_WAYPOINT_INSTALL_DIR
+    )
+
+    success = configure_cmake(CMakePresets.Example, env_patch, example_cmake_source_dir)
+    if not success:
+        return False
+
+    success = build_cmake(
+        config, CMakePresets.Example, env_patch, example_cmake_source_dir, "all"
+    )
+    if not success:
+        return False
+
+    success = build_cmake(
+        config, CMakePresets.Example, env_patch, example_cmake_source_dir, "test"
+    )
+    if not success:
+        return False
+
+    success = run_ctest(
+        CMakePresets.Example, config, JOBS, None, example_cmake_source_dir
+    )
+    if not success:
+        return False
+
+    with contextlib.chdir(example_cmake_source_dir):
+        success, output = run([f"{build_dir}/{config}/test_program"])
+        if not success:
+            return False
+
+    return True
+
+
 def main() -> int:
     config, success = preamble()
     if not success:
@@ -4616,6 +4832,88 @@ def main() -> int:
         [test_install_add_subdirectory_clang_release_build_all_tests_shared]
     )
 
+    configure_example_clang = Task(
+        "Configure example Clang (static)", configure_example_clang_fn
+    )
+    build_example_clang_debug_all = Task(
+        "Build example Clang Debug (static)", build_example_clang_debug_all_fn
+    )
+    build_example_clang_relwithdebinfo_all = Task(
+        "Build example Clang RelWithDebInfo (static)",
+        build_example_clang_relwithdebinfo_all_fn,
+    )
+    build_example_clang_release_all = Task(
+        "Build example Clang Release (static)", build_example_clang_release_all_fn
+    )
+    install_example_clang_debug = Task(
+        "Install example Clang Debug (static)", install_example_clang_debug_fn
+    )
+    install_example_clang_relwithdebinfo = Task(
+        "Install example Clang RelWithDebInfo (static)",
+        install_example_clang_relwithdebinfo_fn,
+    )
+    install_example_clang_release = Task(
+        "Install example Clang Release (static)", install_example_clang_release_fn
+    )
+    configure_example_clang_shared = Task(
+        "Configure example Clang (dynamic)", configure_example_clang_shared_fn
+    )
+    build_example_clang_debug_all_shared = Task(
+        "Build example Clang Debug (dynamic)", build_example_clang_debug_all_shared_fn
+    )
+    build_example_clang_relwithdebinfo_all_shared = Task(
+        "Build example Clang RelWithDebInfo (dynamic)",
+        build_example_clang_relwithdebinfo_all_shared_fn,
+    )
+    build_example_clang_release_all_shared = Task(
+        "Build example Clang Release (dynamic)",
+        build_example_clang_release_all_shared_fn,
+    )
+    install_example_clang_debug_shared = Task(
+        "Install example Clang Debug (dynamic)", install_example_clang_debug_shared_fn
+    )
+    install_example_clang_relwithdebinfo_shared = Task(
+        "Install example Clang RelWithDebInfo (dynamic)",
+        install_example_clang_relwithdebinfo_shared_fn,
+    )
+    install_example_clang_release_shared = Task(
+        "Install example Clang Release (dynamic)",
+        install_example_clang_release_shared_fn,
+    )
+    build_example_clang_debug_all.depends_on([configure_example_clang])
+    build_example_clang_relwithdebinfo_all.depends_on([configure_example_clang])
+    build_example_clang_release_all.depends_on([configure_example_clang])
+    build_example_clang_debug_all_shared.depends_on([configure_example_clang_shared])
+    build_example_clang_relwithdebinfo_all_shared.depends_on(
+        [configure_example_clang_shared]
+    )
+    build_example_clang_release_all_shared.depends_on([configure_example_clang_shared])
+    install_example_clang_debug.depends_on([build_example_clang_debug_all])
+    install_example_clang_relwithdebinfo.depends_on(
+        [build_example_clang_relwithdebinfo_all]
+    )
+    install_example_clang_release.depends_on([build_example_clang_release_all])
+    install_example_clang_debug_shared.depends_on(
+        [build_example_clang_debug_all_shared]
+    )
+    install_example_clang_relwithdebinfo_shared.depends_on(
+        [build_example_clang_relwithdebinfo_all_shared]
+    )
+    install_example_clang_release_shared.depends_on(
+        [build_example_clang_release_all_shared]
+    )
+    example_quick_start1 = Task("Test examples/quick_start1", example_quick_start1_fn)
+    example_quick_start1.depends_on(
+        [
+            install_example_clang_debug,
+            install_example_clang_relwithdebinfo,
+            install_example_clang_release,
+            install_example_clang_debug_shared,
+            install_example_clang_relwithdebinfo_shared,
+            install_example_clang_release_shared,
+        ]
+    )
+
     root_dependencies = []
 
     if mode.clean:
@@ -4897,6 +5195,9 @@ def main() -> int:
 
     if mode.misc:
         root_dependencies.append(misc_checks)
+
+    if mode.examples:
+        root_dependencies.append(example_quick_start1)
 
     if mode.static_analysis:
         if mode.clang:

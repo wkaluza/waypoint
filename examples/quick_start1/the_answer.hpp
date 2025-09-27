@@ -1,8 +1,8 @@
 #pragma once
 
-namespace stuff
+namespace deep_thought
 {
 
 auto the_answer() noexcept -> int;
 
-} // namespace stuff
+} // namespace deep_thought

@@ -50,13 +50,16 @@ execute the following commands.
 
 ```shell
 cd infrastructure
+# Configure step
 # you may use -DBUILD_SHARED_LIBS=TRUE if you wish to produce a dynamic library
-CC=clang-20 CXX=clang++-20 cmake --preset example_config -G "Ninja Multi-Config"
+CC=clang-20 CXX=clang++-20 cmake --preset example_configure 
 
+# Build step
 cmake --build --preset example_build --target all --config Debug
 cmake --build --preset example_build --target all --config RelWithDebInfo
 cmake --build --preset example_build --target all --config Release
 
+# Install step
 cmake --build --preset example_build --target install --config Debug
 cmake --build --preset example_build --target install --config RelWithDebInfo
 cmake --build --preset example_build --target install --config Release
@@ -67,7 +70,7 @@ You are free to rename it if you wish, but for the purposes of this
 example, let us keep the name as it is.
 
 In the `examples/quick_start1` directory of this repository, there is
-a minimal C++ CMake test project which makes use of the build artifacts in
+a minimal C++ CMake test project which makes use of the artifacts in
 `waypoint_install___`.
 
 To build and run the test project, start by copying
@@ -79,14 +82,20 @@ In a production scenario, you would probably also add it to your
 cd examples/quick_start1
 cp --recursive ../../waypoint_install___ ./
 
-cmake --preset quick_start1_config -G "Ninja Multi-Config"
-cmake --build --preset quick_start1_build --config Debug
+# Configure step
+cmake --preset example_configure
+
+# Build step
+cmake --build --preset example_build --config Debug
 
 # Run the tests with CMake
-cmake --build --preset quick_start1_build --target test --config Debug
+cmake --build --preset example_build --target test --config Debug
 
-# Run the tests by calling CTest directly
-ctest --preset quick_start1_test --build-config Debug
+# Alternatively, run the tests with CTest (a more flexible approach)
+ctest --preset example_test --build-config Debug
+
+# You may also run the test executable directly
+./build___/Debug/test_program
 ```
 
 ### The add_subdirectory method

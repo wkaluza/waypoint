@@ -11,7 +11,7 @@ WAYPOINT_AUTORUN(waypoint::TestRun const &t)
       [](waypoint::Context const &ctx)
       {
         ctx.assert(
-          2 * stuff::the_answer() > stuff::the_answer(),
+          2 * deep_thought::the_answer() > deep_thought::the_answer(),
           "two answers are better than one");
       });
 }

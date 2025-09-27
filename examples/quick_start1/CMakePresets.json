@@ -1,21 +1,22 @@
 {
   "buildPresets": [
     {
-      "configurePreset": "quick_start1_config",
+      "configurePreset": "example_configure",
       "hidden": false,
-      "name": "quick_start1_build"
+      "name": "example_build"
     }
   ],
   "configurePresets": [
     {
       "binaryDir": "${sourceDir}/build___",
+      "generator": "Ninja Multi-Config",
       "hidden": false,
-      "name": "quick_start1_config"
+      "name": "example_configure"
     }
   ],
   "testPresets": [
     {
-      "configurePreset": "quick_start1_config",
+      "configurePreset": "example_configure",
       "execution": {
         "noTestsAction": "error",
         "scheduleRandom": true,
@@ -23,7 +24,7 @@
         "timeout": 3600
       },
       "hidden": false,
-      "name": "quick_start1_test",
+      "name": "example_test",
       "output": {
         "outputOnFailure": true,
         "verbosity": "default"

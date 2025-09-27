@@ -23,9 +23,14 @@
       ]
     },
     {
-      "configurePreset": "example_config",
+      "configurePreset": "example_configure",
       "hidden": false,
       "name": "example_build"
+    },
+    {
+      "configurePreset": "example_configure_shared",
+      "hidden": false,
+      "name": "example_build_shared"
     },
     {
       "configurePreset": "configure_linux_clang",
@@ -149,10 +154,21 @@
       "name": "base_system_linux"
     },
     {
-      "binaryDir": "${sourceDir}/../waypoint_build___",
+      "binaryDir": "${sourceDir}/../waypoint_build_static___",
+      "generator": "Ninja Multi-Config",
       "hidden": false,
-      "installDir": "${sourceDir}/../waypoint_install___",
-      "name": "example_config"
+      "installDir": "${sourceDir}/../waypoint_install_static___",
+      "name": "example_configure"
+    },
+    {
+      "binaryDir": "${sourceDir}/../waypoint_build_shared___",
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": true
+      },
+      "generator": "Ninja Multi-Config",
+      "hidden": false,
+      "installDir": "${sourceDir}/../waypoint_install_shared___",
+      "name": "example_configure_shared"
     },
     {
       "binaryDir": "${sourceDir}/../build_linux_clang_xgozuT4W2AeFQhlh___",

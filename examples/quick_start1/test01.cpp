@@ -10,13 +10,17 @@ WAYPOINT_AUTORUN(waypoint::TestRun const &t)
     .run(
       [](waypoint::Context const &ctx)
       {
-        ctx.assert(stuff::the_answer() == 42, "the_answer() should return 42");
+        ctx.assert(
+          deep_thought::the_answer() == 42,
+          "the_answer() should return 42");
       });
 
   t.test(g, "the_answer() does not return an incorrect value")
     .run(
       [](waypoint::Context const &ctx)
       {
-        ctx.assert(stuff::the_answer() != 69, "the_answer() should return 42");
+        ctx.assert(
+          deep_thought::the_answer() != 69,
+          "the_answer() should return 42");
       });
 }
