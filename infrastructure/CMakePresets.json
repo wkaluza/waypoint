@@ -73,14 +73,14 @@
       "name": "build_linux_gcc_shared"
     },
     {
-      "configurePreset": "configure_linux_clang_ide",
+      "configurePreset": "ide_configure_linux_clang",
       "hidden": false,
       "inherits": [
         "base_build_ninja",
         "base_system_linux",
         "base_verbose"
       ],
-      "name": "build_linux_clang_ide"
+      "name": "ide_build_linux_clang"
     },
     {
       "configurePreset": "configure_linux_gcc_coverage",
@@ -225,7 +225,7 @@
       "name": "configure_linux_gcc_shared"
     },
     {
-      "binaryDir": "${sourceDir}/../build_linux_clang_ide_axkXHTfUdKUVQyvv___",
+      "binaryDir": "${sourceDir}/../ide_build_linux_clang_axkXHTfUdKUVQyvv___",
       "hidden": false,
       "inherits": [
         "base_compiler_clang",
@@ -234,8 +234,8 @@
         "base_enable_tests_build",
         "base_target_properties"
       ],
-      "installDir": "${sourceDir}/../install_linux_clang_ide_y5FaH8SibU5XtQaB___",
-      "name": "configure_linux_clang_ide"
+      "installDir": "${sourceDir}/../ide_install_linux_clang_y5FaH8SibU5XtQaB___",
+      "name": "ide_configure_linux_clang"
     },
     {
       "binaryDir": "${sourceDir}/../build_linux_gcc_coverage_TIJMCfKGrO9yjx4W___",
