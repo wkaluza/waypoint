@@ -109,7 +109,7 @@ assert os.path.isfile(
 
 EXAMPLES_DIR_PATH = os.path.realpath(f"{PROJECT_ROOT_DIR}/examples")
 EXAMPLE_QUICK_START_BUILD_AND_INSTALL_CMAKE_SOURCE_DIR = os.path.realpath(
-    f"{EXAMPLES_DIR_PATH}/quick_start1"
+    f"{EXAMPLES_DIR_PATH}/quick_start_build_and_install"
 )
 EXAMPLE_QUICK_START_BUILD_AND_INSTALL_WAYPOINT_INSTALL_DIR = os.path.realpath(
     f"{EXAMPLE_QUICK_START_BUILD_AND_INSTALL_CMAKE_SOURCE_DIR}/waypoint_install___"
@@ -3403,7 +3403,7 @@ def test_gcc_release_test_target_shared_fn() -> bool:
     )
 
 
-def example_quick_start1_fn() -> bool:
+def example_quick_start_build_and_install_fn() -> bool:
     config = CMakeBuildConfig.Release
     example_cmake_source_dir = EXAMPLE_QUICK_START_BUILD_AND_INSTALL_CMAKE_SOURCE_DIR
     env_patch = CLANG20_ENV_PATCH
@@ -4902,8 +4902,11 @@ def main() -> int:
     install_example_clang_release_shared.depends_on(
         [build_example_clang_release_all_shared]
     )
-    example_quick_start1 = Task("Test examples/quick_start1", example_quick_start1_fn)
-    example_quick_start1.depends_on(
+    example_quick_start_build_and_install = Task(
+        "Test examples/quick_start_build_and_install",
+        example_quick_start_build_and_install_fn,
+    )
+    example_quick_start_build_and_install.depends_on(
         [
             install_example_clang_debug,
             install_example_clang_relwithdebinfo,
@@ -5197,7 +5200,7 @@ def main() -> int:
         root_dependencies.append(misc_checks)
 
     if mode.examples:
-        root_dependencies.append(example_quick_start1)
+        root_dependencies.append(example_quick_start_build_and_install)
 
     if mode.static_analysis:
         if mode.clang:

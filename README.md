@@ -69,17 +69,17 @@ If all went well, the directory `waypoint_install___` now exists.
 You are free to rename it if you wish, but for the purposes of this
 example, let us keep the name as it is.
 
-In the `examples/quick_start1` directory of this repository, there is
+In the `examples/quick_start_build_and_install` directory of this repository, there is
 a minimal C++ CMake test project which makes use of the artifacts in
 `waypoint_install___`.
 
 To build and run the test project, start by copying
-`waypoint_install___` into `examples/quick_start1`.
+`waypoint_install___` into `examples/quick_start_build_and_install`.
 In a production scenario, you would probably also add it to your
 `.gitignore` file.
 
 ```shell
-cd examples/quick_start1
+cd examples/quick_start_build_and_install
 cp --recursive ../../waypoint_install___ ./
 
 # Configure step
