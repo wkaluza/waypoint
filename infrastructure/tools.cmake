@@ -429,13 +429,7 @@ function(prepare_installation)
 
   if(BUILD_SHARED_LIBS)
     install(
-      TARGETS waypoint
-              waypoint_impl
-              waypoint_main
-              waypoint_main_impl
-              assert
-              coverage
-              process
+      TARGETS waypoint waypoint_impl waypoint_main waypoint_main_impl
               library_interface_headers_waypoint_impl
       EXPORT waypoint-targets
       FILE_SET interface_headers_waypoint_impl
