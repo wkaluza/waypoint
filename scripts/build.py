@@ -1906,6 +1906,8 @@ def clean_fn() -> bool:
 
     clean_build_dir(CMakePresets.Example, CMAKE_SOURCE_DIR)
     clean_install_dir(CMakePresets.Example)
+    clean_build_dir(CMakePresets.ExampleShared, CMAKE_SOURCE_DIR)
+    clean_install_dir(CMakePresets.ExampleShared)
     clean_build_dir(
         CMakePresets.Example, EXAMPLE_QUICK_START_BUILD_AND_INSTALL_CMAKE_SOURCE_DIR
     )
