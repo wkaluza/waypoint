@@ -919,18 +919,25 @@ def clang_tidy_process_single_file(data) -> typing.Tuple[bool, str, float, str |
     )
 
 
-def run_clang_static_analysis_all_files_fn() -> bool:
-    files = find_files_by_name(PROJECT_ROOT_DIR, is_cpp_file)
+def filter_files_for_static_analysis(files: typing.List[str]) -> typing.List[str]:
     files = [f for f in files if not f.startswith(INSTALL_TESTS_DIR_PATH)]
     files = [f for f in files if not f.startswith(EXAMPLES_DIR_PATH)]
+
+    return files
+
+
+def run_clang_static_analysis_all_files_fn() -> bool:
+    files = find_files_by_name(PROJECT_ROOT_DIR, is_cpp_file)
+
+    files = filter_files_for_static_analysis(files)
 
     return run_clang_tidy(CMakePresets.LinuxClang, files)
 
 
 def run_clang_static_analysis_changed_files_fn() -> bool:
     files = changed_cpp_files_and_dependents(CMakePresets.LinuxClang)
-    files = [f for f in files if not f.startswith(INSTALL_TESTS_DIR_PATH)]
-    files = [f for f in files if not f.startswith(EXAMPLES_DIR_PATH)]
+
+    files = filter_files_for_static_analysis(files)
 
     return run_clang_tidy(CMakePresets.LinuxClang, files)
 
