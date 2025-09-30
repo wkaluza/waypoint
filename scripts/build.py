@@ -1644,7 +1644,7 @@ def format_json(f) -> bool:
 
 
 def format_cmake(f) -> bool:
-    success, output = run(["cmake-format", "-i", f])
+    success, output = run(["cmake-format", "--first-comment-is-literal", "-i", f])
     if not success:
         if output is not None:
             print(output)
