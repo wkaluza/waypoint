@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Wojciech Kałuża
+// SPDX-License-Identifier: MIT
+// For license details, see LICENSE file
+
 #include "test_helpers/test_helpers.hpp"
 #include "waypoint/waypoint.hpp"
 

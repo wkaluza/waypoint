@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Wojciech Kałuża
+# SPDX-License-Identifier: MIT
+# For license details, see LICENSE file
+
 FROM ubuntu:25.04 AS base
 
 SHELL ["/bin/bash", "-c"]

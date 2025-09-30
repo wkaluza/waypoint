@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Wojciech Kałuża
+// SPDX-License-Identifier: MIT
+// For license details, see LICENSE file
+
 #include "coverage.hpp"
 
 #ifdef WAYPOINT_INTERNAL_COVERAGE_IOm5lSCCB6p0j19

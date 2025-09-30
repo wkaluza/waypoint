@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Wojciech Kałuża
+# SPDX-License-Identifier: MIT
+# For license details, see LICENSE file
+
 include_guard(GLOBAL)
 
 macro(add_to_all_tests)
