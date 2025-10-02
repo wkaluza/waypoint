@@ -1,4 +1,4 @@
-# Lucid unit testing with Waypoint
+# Lucid C++ unit testing with Waypoint
 
 ## Contents
 
@@ -7,18 +7,18 @@
 3. [Quick start](#quick-start)
     1. [The build-and-install method (recommended)](#the-build-and-install-method-recommended)
     2. [The add_subdirectory method](#the-add_subdirectory-method)
-4. [Contributing](#contributing)
+    3. [Providing your own entry point](#providing-your-own-entry-point)
+4. [Contributing to Waypoint](#contributing-to-waypoint)
 
 ## License
 
 Waypoint is available under the MIT license.
-For more information, see the LICENSE file in the root directory of
-this project.
+For more information, see the [LICENSE](../LICENSE) file in the root directory
+of this project.
 
 ## Introduction
 
-Waypoint is a minimalistic unit testing framework written in modern
-C++.
+Waypoint is a minimalistic unit testing framework written in modern C++.
 It aims to be stable, intuitive, and quick to master.
 Below are some of Waypoint's stand-out features.
 
@@ -27,9 +27,9 @@ Below are some of Waypoint's stand-out features.
 * Tests are defined within normal program flow
 * Crash resilience (a crashing test does not interfere
   with other tests)
-* Uses modern C++23 features internally, but can be adopted even in
-  C++11 codebases
-* Tests are executed sequentially and shuffled by default
+* Uses modern C++23 features internally, but can be adopted even in C++11
+  codebases
+* Tests are executed in shuffled order by default
 
 ## Quick start
 
@@ -40,7 +40,7 @@ Ninja Multi-Config generator.
 
 Building Waypoint requires a C++23-capable compiler.
 It has been confirmed to work out of the box with GCC 15 and Clang 20.
-We will use the latter in the following examples.
+We will use the latter in the examples that follow.
 
 ### The build-and-install method (recommended)
 
@@ -58,7 +58,8 @@ execute the following commands.
 ```shell
 cd infrastructure
 # Configure step
-# you may use -DBUILD_SHARED_LIBS=TRUE if you wish to produce a dynamic library
+# You may use -DBUILD_SHARED_LIBS=TRUE if you wish
+# to produce a dynamic library.
 CC=clang-20 CXX=clang++-20 cmake --preset example_configure 
 
 # Build step
@@ -76,9 +77,9 @@ If all went well, the directory `waypoint_install___` now exists.
 You are free to rename it if you wish, but for the purposes of this
 example, let us keep the name as it is.
 
-In the `examples/quick_start_build_and_install` directory of this repository, there is
-a minimal C++ CMake test project which makes use of the artifacts in
-`waypoint_install___`.
+In the `examples/quick_start_build_and_install` directory of this
+repository, there is a minimal C++ CMake test project which makes use
+of the artifacts in `waypoint_install___`.
 
 To build and run the test project, start by copying
 `waypoint_install___` into `examples/quick_start_build_and_install`.
@@ -113,6 +114,6 @@ TODO
 
 TODO
 
-## Contributing
+## Contributing to Waypoint
 
-TODO
+Refer to the [contribution guidelines](CONTRIBUTING.md).
