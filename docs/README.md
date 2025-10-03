@@ -48,7 +48,7 @@ Start by cloning the Waypoint Git repository and navigate to the
 clone's directory.
 
 ```shell
-git clone https://github.com/wkaluza/waypoint.git
+git clone ssh://git@github.com/wkaluza/waypoint.git
 cd waypoint
 ```
 
