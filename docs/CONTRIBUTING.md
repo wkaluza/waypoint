@@ -28,6 +28,8 @@ need for development work.
 Waypoint is a CMake project.
 Make sure you have CMake installed to build it.
 
+All source files are encoded using UTF-8.
+
 ### Development on Linux
 
 On Linux, development is best carried out in a Docker container;
