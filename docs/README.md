@@ -43,6 +43,14 @@ Building Waypoint requires a C++23-capable compiler.
 It has been confirmed to work out of the box with GCC 15 and Clang 20.
 We will use the latter in the examples that follow.
 
+When testing with Waypoint, make sure you do not use variables, classes
+or functions from any namespace named `internal`
+(e.g. `waypoint::internal`).
+These APIs may not be stable between releases and using them directly
+may result in defects up to and including undefined behaviour.
+Client-facing APIs are all in the `waypoint` namespace and will remain
+stable for the forseeable future.
+
 ### The build-and-install method (recommended)
 
 Start by cloning the Waypoint Git repository and navigate to the
