@@ -2,11 +2,21 @@
 
 ## Contents
 
-1. [Reporting defects](#reporting-defects)
-2. [Proposing improvements](#proposing-improvements)
-3. [Submitting pull requests](#submitting-pull-requests)
-4. [Development](#development)
+1. [Introduction](#introduction)
+2. [Reporting defects](#reporting-defects)
+3. [Proposing improvements](#proposing-improvements)
+4. [Submitting pull requests](#submitting-pull-requests)
+5. [Development](#development)
     1. [Development on Linux](#development-on-linux)
+
+## Introduction
+
+To avoid wasted effort, get in touch (e.g. submit an issue) before
+making changes.
+Sometimes a discussion is required to determine the best approach, or
+even if a change makes sense in the first place.
+
+TODO
 
 ## Reporting defects
 
