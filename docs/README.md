@@ -8,7 +8,8 @@
     1. [The build-and-install method (recommended)](#the-build-and-install-method-recommended)
     2. [The add_subdirectory method](#the-add_subdirectory-method)
     3. [Providing your own entry point](#providing-your-own-entry-point)
-4. [Contributing to Waypoint](#contributing-to-waypoint)
+4. [Releases](#releases)
+5. [Contributing to Waypoint](#contributing-to-waypoint)
 
 ## License
 
@@ -113,6 +114,36 @@ TODO
 ### Providing your own entry point
 
 TODO
+
+## Releases
+
+The Waypoint project follows the Live at Head philosophy.
+Every commit undergoes verification to be implicitly releasable and
+backwards compatible.
+As such, there is no formal feature-driven release schedule and we
+encourage consumers to use the latest commit (the "Head") of the `main`
+branch.
+
+We will occasionally (e.g. on an annual basis) tag a `main` branch head
+commit with a [Semantic Version](https://semver.org) number to mark it
+as "supported".
+This is in deference to users who require numbered dependency versions,
+e.g. due to internal company policies, or who rely on GitHub's Releases
+facility.
+Tagging also gives us an opportunity to mark milestones, such as the first
+feature-complete `1.0.0` version.
+
+If a sufficiently serious defect is discovered in a supported version,
+a branch may be created at the supported commit; the fix will be
+backported to this branch from `main`.
+The commit implementing the fix will be tagged as a patch release.
+Supported versions will receive bugfixes for at least two years from
+their base supported commit's creation date.
+
+If a client-facing API requires changes that break backwards
+compatibility, a deprecation period of at least one year will be
+observed prior to removal, unless exceptional circumstances arise
+(e.g. a security exploit would unavoidably put users at risk).
 
 ## Contributing to Waypoint
 
