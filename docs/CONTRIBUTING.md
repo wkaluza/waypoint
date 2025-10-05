@@ -11,12 +11,21 @@
 
 ## Introduction
 
+We welcome contributions from the Community, whether they are defect
+reports, new feature proposals, or code changes.
+
 To avoid wasted effort, get in touch (e.g. submit an issue) before
 making changes.
-Sometimes a discussion is required to determine the best approach, or
-even if a change makes sense in the first place.
+Sometimes a discussion is required to determine what the best approach
+is, or even if a change makes sense in the first place.
+In particular, changes that radically alter Waypoint's behaviour, or
+which do not align with our long-term vision will not be accepted.
 
-TODO
+In closing, let us be clear that we evaluate contributions
+individually on merit.
+In particular, neither your sponsor status nor time served as a
+Community member guarantee that a pull request will be merged or an
+issue implemented.
 
 ## Reporting defects
 
