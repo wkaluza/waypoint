@@ -8,6 +8,7 @@
 4. [Submitting pull requests](#submitting-pull-requests)
 5. [Development](#development)
     1. [Development on Linux](#development-on-linux)
+    2. [The pre-commit hook](#the-pre-commit-hook)
 
 ## Introduction
 
@@ -61,3 +62,23 @@ This script will build a Docker image with all the necessary
 tooling and start a terminal session inside the container.
 
 TODO describe using the build script
+
+### The pre-commit hook
+
+Waypoint comes with a helpful pre-commit hook that will keep you from
+falling foul of some of the checks performed during the build.
+It is a Python script in `scripts/git_pre_commit_hook.py`;
+it makes sure that you update the notice of copyright in the files
+you change.
+All you have to do to use it is have Git's pre-commit hook invoke
+this script.
+
+A minimal pre-commit hook on Linux would be the following (make sure
+the `pre-commit` file is executable).
+
+`.git/hooks/pre-commit`
+
+```shell
+#!/bin/sh
+python3 "$(pwd)/scripts/git_pre_commit_hook.py"
+```
