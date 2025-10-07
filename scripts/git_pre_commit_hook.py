@@ -4,6 +4,7 @@
 
 import datetime
 import hashlib
+import multiprocessing
 import os
 import re
 import subprocess
@@ -122,7 +123,9 @@ def is_file_with_licensing_comment(f) -> bool:
     )
 
 
-def validate_notice_of_copyright(file: str, copyright_notice: str) -> bool:
+def validate_notice_of_copyright(
+    file: str, copyright_notice: str
+) -> typing.Tuple[bool, str | None]:
     pattern_single_year = r"^Copyright \(c\) ([0-9]{4}) (.+)$"
     pattern_year_range = r"^Copyright \(c\) ([0-9]{4})-([0-9]{4}) (.+)$"
 
@@ -130,9 +133,10 @@ def validate_notice_of_copyright(file: str, copyright_notice: str) -> bool:
     year_range = re.match(pattern_year_range, copyright_notice)
 
     if single_year is None and year_range is None:
-        print(f"Error ({file}):\n" "Notice of copyright not found or is malformed")
-
-        return False
+        return (
+            False,
+            f"Error ({file}):\n" "Notice of copyright not found or is malformed",
+        )
 
     current_year = datetime.datetime.now().year
 
@@ -140,70 +144,61 @@ def validate_notice_of_copyright(file: str, copyright_notice: str) -> bool:
     if result is not None:
         name = result.group(2)
         if name != COPYRIGHT_HOLDER_NAME:
-            print(f"Error ({file}):\n" "Unexpected copyright holder name")
-
-            return False
+            return False, f"Error ({file}):\n" "Unexpected copyright holder name"
 
         start_year = int(result.group(1))
         if current_year < start_year:
-            print(
+            return (
+                False,
                 f"Error ({file}):\n"
                 "Year in notice of copyright appears to be in the future "
-                f"({start_year}; current year is {current_year})"
+                f"({start_year}; current year is {current_year})",
             )
 
-            return False
-
         if start_year == current_year:
-            return True
+            return True, None
 
-        print(
+        return (
+            False,
             f"Error ({file}):\n"
             f'Notice of copyright begins with "Copyright (c) {start_year}", '
-            f'but it should begin with "Copyright (c) {start_year}-{current_year}"'
+            f'but it should begin with "Copyright (c) {start_year}-{current_year}"',
         )
-
-        return False
 
     result = re.match(pattern_year_range, copyright_notice)
     if result is not None:
         name = result.group(3)
         if name != COPYRIGHT_HOLDER_NAME:
-            print(f"Error ({file}):\n" "Unexpected copyright holder name")
-
-            return False
+            return False, f"Error ({file}):\n" "Unexpected copyright holder name"
 
         start_year = int(result.group(1))
         end_year = int(result.group(2))
         if end_year <= start_year:
-            print(
+            return (
+                False,
                 f"Error ({file}):\n"
-                f"Malformed year range in notice of copyright ({start_year}-{end_year})"
+                f"Malformed year range in notice of copyright ({start_year}-{end_year})",
             )
-
-            return False
 
         if current_year < end_year:
-            print(
+            return (
+                False,
                 f"Error ({file}):\n"
                 "Year in notice of copyright appears to be in the future "
-                f"({start_year}-{end_year}; current year is {current_year})"
+                f"({start_year}-{end_year}; current year is {current_year})",
             )
 
-            return False
-
         if end_year == current_year:
-            return True
+            return True, None
 
-        print(
+        return (
+            False,
             f"Error ({file}):\n"
             f'Notice of copyright begins with "Copyright (c) {start_year}-{end_year}", '
-            f'but it should begin with "Copyright (c) {start_year}-{current_year}"'
+            f'but it should begin with "Copyright (c) {start_year}-{current_year}"',
         )
 
-        return False
-
-    return True
+    return True, None
 
 
 def check_license_file() -> bool:
@@ -248,8 +243,12 @@ def check_license_file() -> bool:
         return False
 
     copyright_notice = copyright_lines[0]
-    success = validate_notice_of_copyright(license_file_path, copyright_notice)
+    success, error_output = validate_notice_of_copyright(
+        license_file_path, copyright_notice
+    )
     if not success:
+        print(error_output)
+
         return False
 
     return True
@@ -259,56 +258,65 @@ def match_copyright_notice_pattern(text: str):
     return re.match(r"^(?://|#) (Copyright \(c\) [0-9]{4}[\- ].+)$", text)
 
 
-def check_license_comments_in_changed_files() -> bool:
+def check_license_comments_in_single_file(file) -> typing.Tuple[bool, str | None]:
+    with open(file, "r") as f:
+        lines = f.readlines()
+    lines = lines[0:3]
+    lines = [line.strip() for line in lines]
+    copyright_lines = [
+        line for line in lines if match_copyright_notice_pattern(line) is not None
+    ]
+    if len(copyright_lines) != 1:
+        return (
+            False,
+            f"Error ({file}):\n"
+            "Notice of copyright not found or multiple lines matched in error",
+        )
+
+    copyright_notice = match_copyright_notice_pattern(copyright_lines[0]).group(1)
+    success, error_output = validate_notice_of_copyright(file, copyright_notice)
+    if not success:
+        return False, error_output
+
+    spdx_license_id_lines = [
+        line
+        for line in lines
+        if re.match(r"^(?://|#) SPDX-License-Identifier: .+$", line) is not None
+    ]
+    if len(spdx_license_id_lines) != 1:
+        return (
+            False,
+            f"Error ({file}):\n"
+            "SPDX-License-Identifier not found or multiple lines matched in error",
+        )
+
+    license_file_ref_lines = [
+        line
+        for line in lines
+        if re.match(r"^(?://|#) For license details, see LICENSE file$", line)
+        is not None
+    ]
+    if len(license_file_ref_lines) != 1:
+        return (
+            False,
+            f"Error ({file}):\n"
+            "Reference to LICENSE file not found or multiple lines matched in error",
+        )
+
+    return True, None
+
+
+def check_license_comments_in_changed_files(pool) -> bool:
     files = get_changed_files()
     files = [f for f in files if is_file_with_licensing_comment(f)]
-    for file in files:
-        with open(file, "r") as f:
-            lines = f.readlines()
-        lines = lines[0:3]
-        lines = [line.strip() for line in lines]
-        copyright_lines = [
-            line for line in lines if match_copyright_notice_pattern(line) is not None
-        ]
-        if len(copyright_lines) != 1:
-            print(
-                f"Error ({file}):\n"
-                "Notice of copyright not found or multiple lines matched in error"
-            )
+    results = pool.map(check_license_comments_in_single_file, files)
+    errors = [output for success, output in results if not success]
+    if len(errors) > 0:
+        for e in errors:
+            if e is not None:
+                print(e)
 
-            return False
-
-        copyright_notice = match_copyright_notice_pattern(copyright_lines[0]).group(1)
-        success = validate_notice_of_copyright(file, copyright_notice)
-        if not success:
-            return False
-
-        spdx_license_id_lines = [
-            line
-            for line in lines
-            if re.match(r"^(?://|#) SPDX-License-Identifier: .+$", line) is not None
-        ]
-        if len(spdx_license_id_lines) != 1:
-            print(
-                f"Error ({file}):\n"
-                "SPDX-License-Identifier not found or multiple lines matched in error"
-            )
-
-            return False
-
-        license_file_ref_lines = [
-            line
-            for line in lines
-            if re.match(r"^(?://|#) For license details, see LICENSE file$", line)
-            is not None
-        ]
-        if len(license_file_ref_lines) != 1:
-            print(
-                f"Error ({file}):\n"
-                "Reference to LICENSE file not found or multiple lines matched in error"
-            )
-
-            return False
+        return False
 
     return True
 
@@ -318,9 +326,10 @@ def main() -> int:
     if not success:
         return 1
 
-    success = check_license_comments_in_changed_files()
-    if not success:
-        return 1
+    with multiprocessing.Pool(processes=os.cpu_count()) as pool:
+        success = check_license_comments_in_changed_files(pool)
+        if not success:
+            return 1
 
     return 0
 
