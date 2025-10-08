@@ -219,17 +219,17 @@ class Mode(enum.Enum):
             return "clean"
         if self == Mode.Coverage:
             return "coverage"
-        elif self == Mode.Fast:
+        if self == Mode.Fast:
             return "fast"
-        elif self == Mode.Format:
+        if self == Mode.Format:
             return "format"
-        elif self == Mode.Full:
+        if self == Mode.Full:
             return "full"
-        elif self == Mode.StaticAnalysis:
+        if self == Mode.StaticAnalysis:
             return "static"
-        elif self == Mode.Valgrind:
+        if self == Mode.Valgrind:
             return "valgrind"
-        elif self == Mode.Verify:
+        if self == Mode.Verify:
             return "verify"
 
         assert False, "This should not happen"
