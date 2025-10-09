@@ -68,7 +68,8 @@ TODO describe using the build script
 Waypoint comes with a helpful pre-commit hook that will keep you from
 falling foul of some of the checks performed during the build.
 It is a Python script in `scripts/git_pre_commit_hook.py`;
-it makes sure that you update the notice of copyright in the files
+among other things, it checks if your sources are correctly formatted
+and makes sure that you update the notice of copyright in the files
 you change.
 All you have to do to use it is have Git's pre-commit hook invoke
 this script.

@@ -4,6 +4,7 @@
 
 import datetime
 import hashlib
+import json
 import multiprocessing
 import os
 import re
@@ -14,8 +15,13 @@ import typing
 
 THIS_SCRIPT_DIR = os.path.realpath(os.path.dirname(__file__))
 PROJECT_ROOT_DIR = os.path.realpath(f"{THIS_SCRIPT_DIR}/..")
+INFRASTRUCTURE_DIR = os.path.realpath(f"{PROJECT_ROOT_DIR}/infrastructure")
 
 COPYRIGHT_HOLDER_NAME = "Wojciech Kałuża"
+
+PYTHON = (
+    "python3" if (sys.executable is None or sys.executable == "") else sys.executable
+)
 
 
 def run(cmd) -> typing.Tuple[bool, str | None]:
@@ -107,6 +113,10 @@ def is_cpp_file(f) -> bool:
 
 def is_docker_file(f) -> bool:
     return re.search(r"\.dockerfile$", f) is not None
+
+
+def is_json_file(f) -> bool:
+    return re.search(r"\.json$", f) is not None
 
 
 def is_python_file(f) -> bool:
@@ -258,7 +268,7 @@ def match_copyright_notice_pattern(text: str):
     return re.match(r"^(?://|#) (Copyright \(c\) [0-9]{4}[\- ].+)$", text)
 
 
-def check_license_comments_in_single_file(file) -> typing.Tuple[bool, str | None]:
+def check_license_comments_in_single_file(file) -> typing.Tuple[bool, str | None, str]:
     with open(file, "r") as f:
         lines = f.readlines()
     lines = lines[0:3]
@@ -271,12 +281,13 @@ def check_license_comments_in_single_file(file) -> typing.Tuple[bool, str | None
             False,
             f"Error ({file}):\n"
             "Notice of copyright not found or multiple lines matched in error",
+            file,
         )
 
     copyright_notice = match_copyright_notice_pattern(copyright_lines[0]).group(1)
     success, error_output = validate_notice_of_copyright(file, copyright_notice)
     if not success:
-        return False, error_output
+        return False, error_output, file
 
     spdx_license_id_lines = [
         line
@@ -288,6 +299,7 @@ def check_license_comments_in_single_file(file) -> typing.Tuple[bool, str | None
             False,
             f"Error ({file}):\n"
             "SPDX-License-Identifier not found or multiple lines matched in error",
+            file,
         )
 
     license_file_ref_lines = [
@@ -301,20 +313,122 @@ def check_license_comments_in_single_file(file) -> typing.Tuple[bool, str | None
             False,
             f"Error ({file}):\n"
             "Reference to LICENSE file not found or multiple lines matched in error",
+            file,
         )
+
+    return True, None, file
+
+
+def check_formatting_cmake(file) -> typing.Tuple[bool, str | None]:
+    success, output = run(
+        [
+            "cmake-format",
+            "--enable-markup",
+            "FALSE",
+            "--check",
+            "-i",
+            file,
+        ]
+    )
+    if not success:
+        return False, output
 
     return True, None
 
 
-def check_license_comments_in_changed_files(pool) -> bool:
-    files = get_changed_files()
+def check_formatting_cpp(file) -> typing.Tuple[bool, str | None]:
+    path_to_config = os.path.realpath(f"{INFRASTRUCTURE_DIR}/.clang-format-20")
+
+    success, output = run(
+        [
+            "clang-format-20",
+            f"--style=file:{path_to_config}",
+            "--dry-run",
+            "-Werror",
+            "-i",
+            file,
+        ]
+    )
+    if not success:
+        return False, output
+
+    return True, None
+
+
+def check_formatting_json(f) -> typing.Tuple[bool, str | None]:
+    with open(f, "r") as handle:
+        original = handle.read()
+    with open(f, "r") as handle:
+        data = json.load(handle)
+
+    data_str = json.dumps(data, indent=2, sort_keys=True)
+    data_str += "\n"
+
+    correct_formatting = data_str == original
+
+    return correct_formatting, None
+
+
+def check_formatting_python(file) -> typing.Tuple[bool, str | None]:
+    success, output = run(
+        [PYTHON, "-m", "isort", "--check", "--line-length", "88", file]
+    )
+    if not success:
+        return False, output
+
+    success, output = run(["black", "--quiet", "--check", "--line-length", "88", file])
+    if not success:
+        return False, output
+
+    return True, None
+
+
+def check_formatting_in_single_file(file: str) -> typing.Tuple[bool, str | None, str]:
+    if is_cmake_file(file):
+        success, output = check_formatting_cmake(file)
+
+        return success, output, file
+    if is_cpp_file(file):
+        success, output = check_formatting_cpp(file)
+
+        return success, output, file
+    if is_json_file(file):
+        success, output = check_formatting_json(file)
+
+        return success, output, file
+    if is_python_file(file):
+        success, output = check_formatting_python(file)
+
+        return success, output, file
+
+    return True, None, file
+
+
+def check_license_comments_in_changed_files(files, pool) -> bool:
     files = [f for f in files if is_file_with_licensing_comment(f)]
     results = pool.map(check_license_comments_in_single_file, files)
-    errors = [output for success, output in results if not success]
+    errors = [(output, file) for success, output, file in results if not success]
     if len(errors) > 0:
-        for e in errors:
-            if e is not None:
-                print(e)
+        for output, file in errors:
+            print(f"Error: {file}\nIncorrect license comment")
+            if output is not None:
+                print(output)
+
+        return False
+
+    return True
+
+
+def check_formatting_in_changed_files(files, pool) -> bool:
+    results = pool.map(check_formatting_in_single_file, files)
+    errors = [(output, file) for success, output, file in results if not success]
+    if len(errors) > 0:
+        for output, file in errors:
+            print(
+                f'Error: {file}\nIncorrect formatting; run the build in "format" mode'
+            )
+            if output is not None:
+                print(output)
 
         return False
 
@@ -327,7 +441,13 @@ def main() -> int:
         return 1
 
     with multiprocessing.Pool(processes=os.cpu_count()) as pool:
-        success = check_license_comments_in_changed_files(pool)
+        files = get_changed_files()
+
+        success = check_license_comments_in_changed_files(files, pool)
+        if not success:
+            return 1
+
+        success = check_formatting_in_changed_files(files, pool)
         if not success:
             return 1
 

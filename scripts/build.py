@@ -1601,14 +1601,14 @@ def is_cpp_file(f) -> bool:
 
 
 def format_single_file(f) -> typing.Tuple[bool, str]:
+    if is_cmake_file(f):
+        return format_cmake(f), f
+    if is_cpp_file(f):
+        return format_cpp(f), f
+    if is_json_file(f):
+        return format_json(f), f
     if is_python_file(f):
         return format_python(f), f
-    elif is_cmake_file(f):
-        return format_cmake(f), f
-    elif is_json_file(f):
-        return format_json(f), f
-    elif is_cpp_file(f):
-        return format_cpp(f), f
 
     return False, f
 
