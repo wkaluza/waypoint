@@ -136,11 +136,10 @@ def is_file_with_licensing_comment(f) -> bool:
 def validate_notice_of_copyright(
     file: str, copyright_notice: str
 ) -> typing.Tuple[bool, str | None]:
-    pattern_single_year = r"^Copyright \(c\) ([0-9]{4}) (.+)$"
-    pattern_year_range = r"^Copyright \(c\) ([0-9]{4})-([0-9]{4}) (.+)$"
-
-    single_year = re.match(pattern_single_year, copyright_notice)
-    year_range = re.match(pattern_year_range, copyright_notice)
+    single_year = re.match(r"^Copyright \(c\) ([0-9]{4}) (.+)$", copyright_notice)
+    year_range = re.match(
+        r"^Copyright \(c\) ([0-9]{4})-([0-9]{4}) (.+)$", copyright_notice
+    )
 
     if single_year is None and year_range is None:
         return (
@@ -150,13 +149,12 @@ def validate_notice_of_copyright(
 
     current_year = datetime.datetime.now().year
 
-    result = re.match(pattern_single_year, copyright_notice)
-    if result is not None:
-        name = result.group(2)
+    if single_year is not None:
+        name = single_year.group(2)
         if name != COPYRIGHT_HOLDER_NAME:
             return False, f"Error ({file}):\n" "Unexpected copyright holder name"
 
-        start_year = int(result.group(1))
+        start_year = int(single_year.group(1))
         if current_year < start_year:
             return (
                 False,
@@ -175,14 +173,13 @@ def validate_notice_of_copyright(
             f'but it should begin with "Copyright (c) {start_year}-{current_year}"',
         )
 
-    result = re.match(pattern_year_range, copyright_notice)
-    if result is not None:
-        name = result.group(3)
+    if year_range is not None:
+        name = year_range.group(3)
         if name != COPYRIGHT_HOLDER_NAME:
             return False, f"Error ({file}):\n" "Unexpected copyright holder name"
 
-        start_year = int(result.group(1))
-        end_year = int(result.group(2))
+        start_year = int(year_range.group(1))
+        end_year = int(year_range.group(2))
         if end_year <= start_year:
             return (
                 False,
@@ -440,9 +437,8 @@ def main() -> int:
     if not success:
         return 1
 
+    files = get_changed_files()
     with multiprocessing.Pool(processes=os.cpu_count()) as pool:
-        files = get_changed_files()
-
         success = check_license_comments_in_changed_files(files, pool)
         if not success:
             return 1
