@@ -1747,20 +1747,26 @@ def process_depfiles(depfile_paths) -> typing.Dict[str, typing.Set[str]]:
 
 def get_changed_files(predicate) -> typing.List[str]:
     with contextlib.chdir(PROJECT_ROOT_DIR):
-        success, output = run(["git", "status", "--porcelain"])
+        success1, output1 = run(["git", "diff", "--name-only"])
+        success2, output2 = run(["git", "diff", "--cached", "--name-only"])
+        success3, output3 = run(["git", "ls-files", "--others", "--exclude-standard"])
         # Fall back to all files if git is not available
-        if not success:
+        if not (success1 and success2 and success3):
             return find_files_by_name(PROJECT_ROOT_DIR, predicate)
 
-        files = output.split("\n")
-        files = [f"{PROJECT_ROOT_DIR}/{f[3:]}" for f in files if len(f) > 0]
-        files = [
-            os.path.realpath(f) for f in files if os.path.isfile(f) and predicate(f)
-        ]
+        files = output1.strip().split("\n")
+        files += output2.strip().split("\n")
+        files += output3.strip().split("\n")
+        out = []
+        for f in files:
+            path = os.path.realpath(f"{PROJECT_ROOT_DIR}/{f.strip()}")
+            if os.path.isfile(path) and predicate(path):
+                out.append(path)
 
-        files.sort()
+        out = list(set(out))
+        out.sort()
 
-        return files
+        return out
 
 
 def collect_depfiles(preset):
