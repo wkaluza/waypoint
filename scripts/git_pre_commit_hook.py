@@ -152,7 +152,12 @@ def validate_notice_of_copyright(
     if single_year is not None:
         name = single_year.group(2)
         if name != COPYRIGHT_HOLDER_NAME:
-            return False, f"Error ({file}):\n" "Unexpected copyright holder name"
+            return (
+                False,
+                f"Error ({file}):\n"
+                f'Unexpected copyright holder name "{name}"'
+                f'Expected "{COPYRIGHT_HOLDER_NAME}"',
+            )
 
         start_year = int(single_year.group(1))
         if current_year < start_year:
@@ -176,7 +181,12 @@ def validate_notice_of_copyright(
     if year_range is not None:
         name = year_range.group(3)
         if name != COPYRIGHT_HOLDER_NAME:
-            return False, f"Error ({file}):\n" "Unexpected copyright holder name"
+            return (
+                False,
+                f"Error ({file}):\n"
+                f'Unexpected copyright holder name "{name}"'
+                f'Expected "{COPYRIGHT_HOLDER_NAME}"',
+            )
 
         start_year = int(year_range.group(1))
         end_year = int(year_range.group(2))
