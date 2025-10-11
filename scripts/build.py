@@ -5,7 +5,9 @@
 import argparse
 import contextlib
 import dataclasses
+import datetime
 import enum
+import hashlib
 import json
 import multiprocessing
 import os
@@ -121,6 +123,8 @@ EXAMPLE_QUICK_START_BUILD_AND_INSTALL_WAYPOINT_INSTALL_DIR = os.path.realpath(
 
 JOBS = os.process_cpu_count()
 
+COPYRIGHT_HOLDER_NAME = "Wojciech Kałuża"
+
 CLANG20_ENV_PATCH = {"CC": "clang-20", "CXX": "clang++-20"}
 GCC15_ENV_PATCH = {"CC": "gcc-15", "CXX": "g++-15"}
 
@@ -128,6 +132,7 @@ GCC15_ENV_PATCH = {"CC": "gcc-15", "CXX": "g++-15"}
 @dataclasses.dataclass(frozen=True)
 class ModeConfig:
     clean: bool = False
+    check_copyright: bool = False
     format: bool = False
     static_lib: bool = False
     shared_lib: bool = False
@@ -158,6 +163,7 @@ class Mode(enum.Enum):
         format=True,
     )
     Full = ModeConfig(
+        check_copyright=True,
         format=True,
         static_lib=True,
         shared_lib=True,
@@ -180,6 +186,7 @@ class Mode(enum.Enum):
     )
     Verify = ModeConfig(
         clean=True,
+        check_copyright=True,
         format=True,
         static_lib=True,
         shared_lib=True,
@@ -241,6 +248,10 @@ class Mode(enum.Enum):
     @property
     def incremental(self):
         return not self.config.clean
+
+    @property
+    def check_copyright(self):
+        return self.config.check_copyright
 
     @property
     def format(self):
@@ -3519,6 +3530,134 @@ def example_quick_start_build_and_install_fn() -> bool:
     return True
 
 
+def validate_notice_of_copyright(
+    file: str, copyright_notice: str
+) -> typing.Tuple[bool, str | None]:
+    single_year = re.match(r"^Copyright \(c\) ([0-9]{4}) (.+)$", copyright_notice)
+    year_range = re.match(
+        r"^Copyright \(c\) ([0-9]{4})-([0-9]{4}) (.+)$", copyright_notice
+    )
+
+    if single_year is None and year_range is None:
+        return (
+            False,
+            f"Error ({file}):\n" "Notice of copyright not found or is malformed",
+        )
+
+    current_year = datetime.datetime.now().year
+
+    if single_year is not None:
+        name = single_year.group(2)
+        if name != COPYRIGHT_HOLDER_NAME:
+            return False, f"Error ({file}):\n" "Unexpected copyright holder name"
+
+        start_year = int(single_year.group(1))
+        if current_year < start_year:
+            return (
+                False,
+                f"Error ({file}):\n"
+                "Year in notice of copyright appears to be in the future "
+                f"({start_year}; current year is {current_year})",
+            )
+
+        if start_year == current_year:
+            return True, None
+
+        return (
+            False,
+            f"Error ({file}):\n"
+            f'Notice of copyright begins with "Copyright (c) {start_year}", '
+            f'but it should begin with "Copyright (c) {start_year}-{current_year}"',
+        )
+
+    if year_range is not None:
+        name = year_range.group(3)
+        if name != COPYRIGHT_HOLDER_NAME:
+            return False, f"Error ({file}):\n" "Unexpected copyright holder name"
+
+        start_year = int(year_range.group(1))
+        end_year = int(year_range.group(2))
+        if end_year <= start_year:
+            return (
+                False,
+                f"Error ({file}):\n"
+                f"Malformed year range in notice of copyright ({start_year}-{end_year})",
+            )
+
+        if current_year < end_year:
+            return (
+                False,
+                f"Error ({file}):\n"
+                "Year in notice of copyright appears to be in the future "
+                f"({start_year}-{end_year}; current year is {current_year})",
+            )
+
+        if end_year == current_year:
+            return True, None
+
+        return (
+            False,
+            f"Error ({file}):\n"
+            f'Notice of copyright begins with "Copyright (c) {start_year}-{end_year}", '
+            f'but it should begin with "Copyright (c) {start_year}-{current_year}"',
+        )
+
+    return True, None
+
+
+def check_license_file_fn() -> bool:
+    license_file_path = os.path.realpath(f"{PROJECT_ROOT_DIR}/LICENSE")
+    if not os.path.isfile(license_file_path):
+        print(f"Error: file {license_file_path} does not exist")
+
+        return False
+
+    with open(license_file_path, "br") as f:
+        data = f.read()
+    sha3_256 = hashlib.sha3_256()
+    sha3_256.update(data)
+    sha3_256_digest = sha3_256.hexdigest()
+    expected_sha3_256_digest = (
+        "4885e645412f0073f7c5211e3dd1c581e87e67e6ec1ac33dac1221d3fe66101c"
+    )
+
+    if sha3_256_digest != expected_sha3_256_digest:
+        print(
+            f"Unexpected LICENSE file digest: {sha3_256_digest}\n"
+            "Verify the LICENSE file is correct and update the variable "
+            f"expected_sha3_256_digest in {os.path.basename(sys.argv[0])}"
+        )
+
+        return False
+
+    with open(license_file_path, "r") as f:
+        lines = f.readlines()
+    lines = [line.strip() for line in lines]
+    copyright_lines = [
+        line
+        for line in lines
+        if re.match(r"^Copyright \(c\) [0-9]{4}[\- ].+$", line) is not None
+    ]
+    if len(copyright_lines) != 1:
+        print(
+            f"Error ({license_file_path}):\n"
+            "Notice of copyright not found or multiple lines matched in error"
+        )
+
+        return False
+
+    copyright_notice = copyright_lines[0]
+    success, error_output = validate_notice_of_copyright(
+        license_file_path, copyright_notice
+    )
+    if not success:
+        print(error_output)
+
+        return False
+
+    return True
+
+
 def main() -> int:
     config, success = preamble()
     if not success:
@@ -3900,6 +4039,7 @@ def main() -> int:
         ]
     )
 
+    check_license_file = Task("Check LICENSE file", check_license_file_fn)
     format_sources = Task("Format code", format_sources_fn)
 
     clean = Task("Clean build files", clean_fn)
@@ -4956,6 +5096,9 @@ def main() -> int:
 
     if mode.clean:
         root_dependencies.append(clean)
+
+    if mode.check_copyright:
+        root_dependencies.append(check_license_file)
 
     if mode.format:
         root_dependencies.append(format_sources)
